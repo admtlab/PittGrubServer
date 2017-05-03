@@ -4,11 +4,17 @@ Author: Mark Silvis
 """
 
 
-import tornado.web as web
+import logging
+from tornado import web
+from tornado.escape import json_encode
 
 
 class MainHandler(web.RequestHandler):
     """Hello world request"""
 
     def get(self):
-        self.write("Hello, world\n")
+        logging.info("Sending new message")
+        message = {
+            'message': 'Hello, world!'
+        }
+        self.write(json_encode(message))
