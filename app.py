@@ -4,11 +4,16 @@ Author: Mark Silvis
 Author: David Tsui
 """
 
-
 import sys
-from tornado import httpserver, web
-from tornado.ioloop import IOLoop
-from tornado.options import options, define, parse_command_line
+try:
+    import tornado
+except ModuleNotFoundError:
+    # DB10 fix
+    sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
+finally:
+    from tornado import httpserver, web
+    from tornado.ioloop import IOLoop
+    from tornado.options import options, define, parse_command_line
 from handlers.index import MainHandler
 
 
