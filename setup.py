@@ -11,5 +11,7 @@ setup(name='PittGrub-Server',
       requires=[
             'tornado',
             'sockjs',
+            'sqlalchemy',
+            'pymysql',
       ]
      )
