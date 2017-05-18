@@ -1,0 +1,16 @@
+[DB]
+  # dbms
+  database = mysql
+  driver = pymysql
+
+  # credentials
+  username = 
+  password = 
+
+  # url
+  url = 
+  name = 
+  
+  # option1=value1, option2=value2, etc.
+  options = 
+
