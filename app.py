@@ -40,7 +40,7 @@ parse_command_line()
 class App(web.Application):
     """Wrapper around Tornado web application with configuration"""
 
-    def __init__(self, config, options):
+    def __init__(self, config):
         # tornado web app
         handlers = [
             (r"/(/*)", MainHandler),
@@ -51,7 +51,7 @@ class App(web.Application):
             debug=options.debug,
             autoreload=options.autoreload,
         )
-        tornado.web.Application.__init__(self, handlers, **settings)
+        web.Application.__init__(self, handlers, **settings)
 
         # database config
         config.read(options.config)
@@ -81,13 +81,13 @@ def main():
     # start server
     if (options.procs == 1):
         # single process
-        server = httpserver.HTTPServer(App(config, options))
+        server = httpserver.HTTPServer(App(config))
         server.listen(options.port)
         server.start()
         IOLoop.current().start()
     else:
         # multiple processes
-        server = httpserver.HTTPServer(App(config, options))
+        server = httpserver.HTTPServer(App(config))
         server.bind(options.port)
         server.start(options.procs)
         IOLoop.current().start()

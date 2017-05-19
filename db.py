@@ -16,8 +16,7 @@ def init(engine, create=False):
 
 class Test(Base):
     __tablename__ = 'Test'
-    executor = 1
-    
+
     id = Column(Integer, primary_key=True)
 
     @classmethod

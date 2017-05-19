@@ -36,7 +36,7 @@ class TestHandler(web.RequestHandler):
             self.write("ERROR")
         else:
             self.set_status(200)
-            self.write(payload(Tests=[i.dict() for i in value]))
+            self.write(payload(Tests=[i.__dict__ for i in value]))
         self.finish()
         # value = yield gen.Task(Test.get_all)
         # try:
