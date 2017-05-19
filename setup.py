@@ -13,5 +13,6 @@ setup(name='PittGrub-Server',
             'sockjs',
             'sqlalchemy',
             'pymysql',
+            'inflect',
       ]
      )
