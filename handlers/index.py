@@ -8,9 +8,12 @@ import logging
 from tornado import web, gen
 from tornado.escape import json_encode
 from sqlalchemy.orm.exc import NoResultFound
-from db import Test
+from db import Test, User, FoodPreference, UserFoodPreferences
+from handlers.response import Payload, ErrorResponse
+from handlers.base import BaseHandler
 import json
 import time
+from util import json_esc
 
 
 class MainHandler(web.RequestHandler):
@@ -25,18 +28,60 @@ class MainHandler(web.RequestHandler):
         self.finish()
 
 
-class TestHandler(web.RequestHandler):
+class PreferenceHandler(web.RedirectHandler):
+    def get(self, path):
+        value = FoodPreference.get_all()
+        if value is None:
+            self.set_status(404)
+            self.write("ERROR")
+        else:
+            self.set_status(200)
+            self.write(Payload(value).json())
+        self.finish()
+
+
+class UserHandler(web.RequestHandler):
+    def get(self, path):
+        value = User.get_all()
+        print(f'len of value: {len(value)}')
+        if value is None:
+            self.set_status(404)
+            self.write("ERROR")
+        else:
+            self.set_status(200)
+            self.write(Payload(value).json())
+        self.finish()
+
+
+class UserFoodPreferencesHandler(web.RequestHandler):
+    def get(self, path):
+        value = UserFoodPreferences.get_all()
+        print(f'len of value: {len(value)}')
+        print(f'UserFoodPrefs: {value}')
+        if value is None:
+            self.set_status(404)
+            self.write("ERROR")
+        else:
+            self.set_status(200)
+            self.write(Payload(value).json())
+        self.finish()
+
+
+class TestHandler(BaseHandler):
     """Test entity requests"""
 
     def get(self, path):
         print(f"Path is: {path}")
+        print(f"\nself: href: {self.request.path}\n")
         value = Test.get_all()
         if value is None:
             self.set_status(404)
             self.write("ERROR")
         else:
             self.set_status(200)
-            self.write(payload(Tests=[i.__dict__ for i in value]))
+            payload = Payload(value)
+            print(json_esc(payload.prep()))
+            self.write(Payload(value).prep())
         self.finish()
         # value = yield gen.Task(Test.get_all)
         # try:
@@ -61,9 +106,10 @@ class TestHandler(web.RequestHandler):
         # self.write(payload(Tests=[i.dict() for i in value]))
 
 
-class TestHandlerId(web.RequestHandler):
+class TestHandlerId(BaseHandler):
     def get(self, id):
         value = Test.get_by_id(id)
+        print(f"\nself: href: {self.request.path}\n")        
         if value is None:
             self.set_status(404)
             self.write(error(404, 'Not Found', f'Test not found with id {id}'))

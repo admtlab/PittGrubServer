@@ -5,7 +5,7 @@ Author: Mark Silvis
 
 import time
 from typing import Any, Dict, List, Union
-from util import property_dict
+from util import json_dict, json_esc
 import inflect
 p = inflect.engine()
 
@@ -17,18 +17,24 @@ class Payload():
         # response
         if isinstance(response, list):
             # generate response list
-            assert len(response) > 0
-            typ = type(response[0]).__name__
-            name = p.plural(typ[0].lower()+typ[1:])
-            objs = [property_dict(res) for res in response]
-            self._response = dict({name: objs})
+            if len(response):
+                # list has items
+                typ = type(response[0]).__name__
+                name = p.plural(typ[0].lower()+typ[1:])
+                objs = [json_dict(res, allow_none=True) for res in response]
+                self._response = dict({name: objs})
+            else:
+                # empty list --> empty response
+                self._response = dict()
         else:
             # generate response object
             assert response is not None
-            self._response = property_dict(response)
+            self._response = json_dict(response, allow_none=True)
         # links
         if len(links) > 0:
             self._links = {'_links': {key.lower(): {'href': val} for key, val in links.items()}}
+        else:
+            self._links = None
 
     @property
     def response(self) -> Dict[str, Any]:
@@ -39,10 +45,6 @@ class Payload():
     def links(self) -> Dict[str, Dict[str, str]]:
         """Get payload links"""
         return self._links
-
-    def prep(self) -> Dict[str, Any]:
-        """Prepare payload for json serialization"""
-        return property_dict(self)
 
     def add(rel: str, link: str) -> None:
         """Add link to payload
@@ -61,9 +63,21 @@ class Payload():
         for rel, link in links.items():
             self.add(rel, link)
 
+    def prep(self) -> Dict[str, Any]:
+        """Prepare payload for JSON serialization"""
+        res = json_dict(self)
+        # replace response with embedded keyword
+        res['_embedded'] = res['response']
+        del res['response']
+        return res
 
-class ErrorMessage():
-    """Error response"""
+    def json(self) -> str:
+        """Returns escaped JSON encoding of payload"""
+        return json_esc(self.prep())
+
+
+class ErrorResponse():
+    """Error response message"""
 
     def __init__(self, status: int, error: str, message: str=None):
         """
