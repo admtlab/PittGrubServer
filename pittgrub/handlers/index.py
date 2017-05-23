@@ -57,8 +57,8 @@ class UserHandler(web.RequestHandler):
             #     print(pref.id)
             self.set_status(200)
             payload = Payload(value)
-            print(f'TESTING PAYLOAD: {payload.json()}')
-            self.write(Payload(value).json())
+            print(f'TESTING PAYLOAD: {payload.json_test()}')
+            self.write(Payload(value).json_test())
         self.finish()
 
 

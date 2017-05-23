@@ -96,7 +96,7 @@ class FoodPreference(Base, Entity):
         self.id = id
         self.name = name
         self.description = description
-    
+
     def json(cls):
         return {'id': cls.id, 'name': cls.name, 'description': cls.description}
 

@@ -21,7 +21,7 @@ class Payload():
                 # list has items
                 typ = type(response[0]).__name__
                 name = p.plural(typ[0].lower()+typ[1:])
-                objs = [json_dict(res, allow_none=True) for res in response]
+                objs = [res.json() for res in response]
                 self._response = dict({name: objs})
             else:
                 # empty list --> empty response
@@ -29,7 +29,7 @@ class Payload():
         else:
             # generate response object
             assert response is not None
-            self._response = json_dict(response, allow_none=True)
+            self._response = response.json()
         # links
         if len(links) > 0:
             self._links = {'_links': {key.lower(): {'href': val} for key, val in links.items()}}
@@ -76,6 +76,12 @@ class Payload():
     def json(self) -> str:
         """Returns escaped JSON encoding of payload"""
         return json_esc(self.prep())
+
+    def json_test(self) -> str:
+        j = dict()
+        j['_embedded'] = self.response
+        j['_links'] = self.links
+        return json_esc(j)
 
 
 class ErrorResponse():
