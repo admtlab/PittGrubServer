@@ -1,7 +1,9 @@
-import json, sys
+import json
+import sys
 from typing import Any, Optional, List, TypeVar
-from sqlalchemy import Column, ForeignKey, BIGINT, CHAR, INT, VARCHAR
+from sqlalchemy import Column, Table, ForeignKey, ForeignKeyConstraint, BIGINT, CHAR, INT, VARCHAR
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -17,11 +19,11 @@ DEFAULTS = dict({
         (1, 'xyz@pitt.edu', '1234567890'),
         (2, 'abc@pitt.edu', '5432109876')
     ],
-    'UserFoodPreferences': [
-        (1, 1),
-        (1, 3),
-        (2, 4),
-    ],
+    # 'UserFoodPreferences': [
+    #     (1, 1),
+    #     (1, 3),
+    #     (2, 4),
+    # ],
 })
 
 # typing
@@ -41,6 +43,11 @@ def init(engine, create=False):
                 session.merge(cls(*i))
         session.commit()
 
+# user_foodpreferences = Table(
+#     'UserFoodPreferences', Base.metadata,
+#     Column('user_id', INT, ForeignKey('User.id'), primary_key=True),
+#     Column('foodpreference_id', INT, ForeignKey('FoodPreference.id'), primary_key=True)
+# )
 
 class Entity():
     """Base queries for entities"""
@@ -60,11 +67,20 @@ class User(Base, Entity):
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
     email = Column('email', VARCHAR(255), unique=True, nullable=False)
     _password = Column('password', CHAR(64), nullable=False)
+    # foodpreferences = relationship('UserFoodPreferences', lazy='joined')
+    # userfoodpreference_id = Column(BIGINT, ForeignKey("UserFoodPreferences.user_id"))
+    # foodpreftest = relationship("FoodPreference", secondary="UserFoodPreferences",
+                                # primaryjoin=id=='UserFoodPreferences.user_id')
+    # foodpreftest = relationship("UserFoodPreferences", back_populates="user")
+    foodpreftest = association_proxy('_user_foodpreferences', 'foodpreference')
 
     def __init__(self, id=None, email=None, password=None):
         self.id = id
         self.email = email
         self._password = password
+
+    def json(cls):
+        return {'id': cls.id, 'email': cls.email, 'foodpreferences': [f.json() for f in cls.foodpreftest]}
 
 
 class FoodPreference(Base, Entity):
@@ -73,38 +89,49 @@ class FoodPreference(Base, Entity):
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
     name = Column('name', VARCHAR(255), unique=True, nullable=False)
     description = Column('description', VARCHAR(255), nullable=False)
+    # _users = relationship('UserFoodPreferences', backref='users', lazy='joined')
+    # usertest = relationship("UserFoodPreferences", back_populates="foodpreference")
 
     def __init__(self, id=None, name=None, description=None):
         self.id = id
         self.name = name
         self.description = description
+    
+    def json(cls):
+        return {'id': cls.id, 'name': cls.name, 'description': cls.description}
+
 
 class UserFoodPreferences(Base):
     __tablename__ = 'UserFoodPreferences'
 
-    user_id = Column("user_id", BIGINT, ForeignKey("User.id"), primary_key=True)
-    foodpref_id = Column("foodpreference_id", BIGINT, ForeignKey("FoodPreference.id"), primary_key=True)
+    user_id = Column('user_id', BIGINT, ForeignKey('User.id'), primary_key=True)
+    foodpref_id = Column("foodpreference_id", BIGINT, ForeignKey('FoodPreference.id'), primary_key=True)
 
-    user = relationship("User", foreign_keys=[user_id])
-    foodpref = relationship("FoodPreference", foreign_keys=[foodpref_id])
+    user = relationship(User, backref=backref('_user_foodpreferences'))
+    foodpreference = relationship(FoodPreference)
 
-    def __init__(self, user_id, foodpref_id):
-        self.user_id = user_id
-        self.foodpref_id = foodpref_id
+    # user = relationship("User", back_populates="foodpreftest")
+    # foodpreference = relationship("FoodPreference", back_populates="usertest")
+    # foodpreference = relationship("FoodPreference", back_populates="User")
+    # foodpreference = relationship("FoodPreference", back_populates="User")
 
-    @classmethod
-    def get_all(cls) -> List['UserFoodPreferences']:
-        return session.query(cls).all()
+    def __init__(self, user=None, foodpreference=None):
+        self.user = user
+        self.foodpreference = foodpreference
 
-    @classmethod
-    def get_by_user_id(cls, user_id: int) -> List['UserFoodPreferences']:
-        assert user_id is not None
-        return session.query(cls).filter_by(user_id=user_id)
+    # @classmethod
+    # def get_all(cls) -> List['UserFoodPreferences']:
+    #     return session.query(cls).all()
 
-    @classmethod
-    def get_by_foodpref_id(cls, foodpref_id: int) -> List['UserFoodPreferences']:
-        assert foodpref_id is not None
-        return session.query(cls).filter_by(foodpreference_i=foodpref_id)
+    # @classmethod
+    # def get_by_user_id(cls, user_id: int) -> List['UserFoodPreferences']:
+    #     assert user_id is not None
+    #     return session.query(cls).filter_by(user_id=user_id)
+
+    # @classmethod
+    # def get_by_foodpref_id(cls, foodpref_id: int) -> List['UserFoodPreferences']:
+    #     assert foodpref_id is not None
+    #     return session.query(cls).filter_by(foodpreference_id=foodpref_id)
 
 
 class Event(Base, Entity):

@@ -13,7 +13,7 @@ import sys
 
 # modules
 import db
-from handlers.index import MainHandler, TestHandler, TestHandlerId, UserHandler, PreferenceHandler, UserFoodPreferencesHandler
+from handlers.index import *
 
 # dependencies
 try:
@@ -30,7 +30,7 @@ finally:
 
 
 # options
-define("config", default="./config", type=str, help="config file")
+define("config", default="./config.ini", type=str, help="config file")
 define("port", default=8080, help="app port", type=int)
 define("procs", default=1, help="number of processes (0 = # CPUs)")
 define("debug", default=True, help="debug mode")
@@ -54,7 +54,7 @@ class App(web.Application):
             (r'/test/([0-9]+)', TestHandlerId),
             (r'/user(/*)', UserHandler),
             (r'/p(/*)', PreferenceHandler),
-            (r'/userfood(/*)', UserFoodPreferencesHandler)
+            # (r'/userfood(/*)', UserFoodPreferencesHandler)
         ]
         settings = dict(
             debug=options.debug,
@@ -64,16 +64,16 @@ class App(web.Application):
 
         # database config
         db_config = config['DB']
-        database = db_config['database']
+        server = db_config['server']
         driver = db_config['driver']
         user = db_config['username']
         password = db_config['password']
         url = db_config['url']
-        name = db_config['name']
+        database = db_config['database']
         params = '?'+re.sub(',\s*', '&', db_config['options']) if db_config['options'] else ''
 
         # init database engine and session
-        engine = create_engine(f"{database}+{driver}://{user}:{password}@{url}/{name}{params}",
+        engine = create_engine(f"{server}+{driver}://{user}:{password}@{url}/{database}{params}",
                                convert_unicode=True,
                                echo=options.debug)
         db.init(engine, options.debug)
@@ -88,16 +88,16 @@ def main():
         sys.exit("Error: config file not found")
     config = configparser.ConfigParser()
     config.read(options.config)
-    
+
     # logging configuration
     log_config = config['LOG']
     filename = log_config['file']
     level = log_config['level']
     format = log_config['format']
-    logging.basicConfig(filename = filename,
-                        level = level,
-                        format = format)
- 
+    logging.basicConfig(filename=filename,
+                        level=level,
+                        format=format)
+
     # start server
     if (options.procs == 1):
         # single process

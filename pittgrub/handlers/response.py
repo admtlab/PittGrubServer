@@ -67,8 +67,10 @@ class Payload():
         """Prepare payload for JSON serialization"""
         res = json_dict(self)
         # replace response with embedded keyword
-        res['_embedded'] = res['response']
-        del res['response']
+        if 'response' in res:
+            res['_embedded'] = res['response']
+            del res['response']
+            print(f'res: {res}')
         return res
 
     def json(self) -> str:

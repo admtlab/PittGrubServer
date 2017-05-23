@@ -1,5 +1,4 @@
 from tornado import web
-import loggin
 
 class TestHandlerAll(web.RequestHandler):
     def get(self):

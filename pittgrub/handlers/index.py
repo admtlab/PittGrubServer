@@ -8,7 +8,7 @@ import logging
 from tornado import web, gen
 from tornado.escape import json_encode
 from sqlalchemy.orm.exc import NoResultFound
-from db import Test, User, FoodPreference, UserFoodPreferences
+from db import Test, User, FoodPreference
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler
 import json
@@ -48,23 +48,32 @@ class UserHandler(web.RequestHandler):
             self.set_status(404)
             self.write("ERROR")
         else:
+            print(f'\n\nuser id: {value[0].id}')
+            print(f'user: {value[0]}')
+            print(f'foodprefs: {value[0].foodpreftest}\n\n')
+            print(f'vars: {vars(type(value[0]))}')
+            print(f'\n\njson test: {value[0].json()}\n\n')
+            # for pref in value[0].foodpreftest:
+            #     print(pref.id)
             self.set_status(200)
+            payload = Payload(value)
+            print(f'TESTING PAYLOAD: {payload.json()}')
             self.write(Payload(value).json())
         self.finish()
 
 
-class UserFoodPreferencesHandler(web.RequestHandler):
-    def get(self, path):
-        value = UserFoodPreferences.get_all()
-        print(f'len of value: {len(value)}')
-        print(f'UserFoodPrefs: {value}')
-        if value is None:
-            self.set_status(404)
-            self.write("ERROR")
-        else:
-            self.set_status(200)
-            self.write(Payload(value).json())
-        self.finish()
+# class UserFoodPreferencesHandler(web.RequestHandler):
+#     def get(self, path):
+#         value = UserFoodPreferences.get_all()
+#         print(f'len of value: {len(value)}')
+#         print(f'UserFoodPrefs: {value}')
+#         if value is None:
+#             self.set_status(404)
+#             self.write("ERROR")
+#         else:
+#             self.set_status(200)
+#             self.write(Payload(value).json())
+#         self.finish()
 
 
 class TestHandler(BaseHandler):
@@ -81,7 +90,7 @@ class TestHandler(BaseHandler):
             self.set_status(200)
             payload = Payload(value)
             print(json_esc(payload.prep()))
-            self.write(Payload(value).prep())
+            self.write(Payload(value).json())
         self.finish()
         # value = yield gen.Task(Test.get_all)
         # try:
