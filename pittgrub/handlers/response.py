@@ -4,8 +4,11 @@ Author: Mark Silvis
 """
 
 import time
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 from util import json_dict, json_esc
+from db import Entity
+from http import HTTPStatus
+import datetime
 import inflect
 p = inflect.engine()
 
@@ -13,87 +16,87 @@ p = inflect.engine()
 class Payload():
     """Response payload"""
 
-    def __init__(self, response: Union[object, List[object]], **links: str):
+    def __init__(self, response: Union[Entity, List[Entity]], **links: str):
         # response
-        if isinstance(response, list):
-            # generate response list
-            if len(response):
-                # list has items
-                typ = type(response[0]).__name__
-                name = p.plural(typ[0].lower()+typ[1:])
-                objs = [res.json() for res in response]
-                self._response = dict({name: objs})
-            else:
-                # empty list --> empty response
-                self._response = dict()
-        else:
-            # generate response object
-            assert response is not None
-            self._response = response.json()
+        assert response is not None, 'Response must not be None'
+        self._response = response
         # links
-        if len(links) > 0:
-            self._links = {'_links': {key.lower(): {'href': val} for key, val in links.items()}}
+        if len(links):
+            self._links = {key.lower(): {'href': val} for key, val in links.items()}
         else:
             self._links = None
 
     @property
-    def response(self) -> Dict[str, Any]:
+    def response(self) -> Union[Entity, List[Entity]]:
         """Get payload response"""
         return self._response
 
     @property
-    def links(self) -> Dict[str, Dict[str, str]]:
+    def links(self) -> Optional[Dict[str, str]]:
         """Get payload links"""
         return self._links
 
-    def add(rel: str, link: str) -> None:
+    def add(self, rel: str, link: str) -> None:
         """Add link to payload
         Overwrites url if link already exists
         rel: relationship to response
         link: link to add
         """
-        self._links['_links'][rel] = link
+        if self._links is None:
+            # links hasn't been created yet
+            # create, then add link with rel
+            self._links = {rel: link}
+        else:
+            self._links[rel] = link
 
-    def add(**links: str) -> None:
-        """Add links to payload
-        Overwrites url if link already exists
-        rel: relationship to response
-        link: link to add
-        """
-        for rel, link in links.items():
-            self.add(rel, link)
-
-    def prep(self) -> Dict[str, Any]:
-        """Prepare payload for JSON serialization"""
-        res = json_dict(self)
-        # replace response with embedded keyword
-        if 'response' in res:
-            res['_embedded'] = res['response']
-            del res['response']
-            print(f'res: {res}')
-        return res
+   # def add(self, **links: str) -> None:
+   #     """Add links to payload
+   #     Overwrites url if link already exists
+   #     rel: relationship to response
+   #     link: link to add
+   #     """
+   #     for rel, link in links.items():
+   #         self.add(rel, link)
 
     def json(self) -> str:
         """Returns escaped JSON encoding of payload"""
-        return json_esc(self.prep())
-
-    def json_test(self) -> str:
-        j = dict()
-        j['_embedded'] = self.response
-        j['_links'] = self.links
-        return json_esc(j)
+        if isinstance(self._response, list):
+            if len(self._response):
+                typ = type(self._response[0]).__name__
+                name = p.plural(typ[0].lower()+typ[1:])
+                embedded = dict({name: [res.json() for res in self._response]})
+            else:
+                embedded = dict()
+            return json_esc(dict({
+                    '_embedded': embedded,
+                    '_links': self._links
+                }))
+        else:
+            res = self._response.json()
+            res['_links'] = self._links
+            return json_esc(res)
 
 
 class ErrorResponse():
     """Error response message"""
 
-    def __init__(self, status: int, error: str, message: str=None):
+    def __init__(self, status: int, message: str=None):
         """
         status: HTTP status
-        error:  HTTP error
         message: error message (default: None)
         """
-        self.timestamp = int(round(time.time()*1000)) # ms
+        # self.timestamp = int(round(time.time()*1000)) # ms
+        self.timestamp = datetime.datetime.now()
         self.status = status
-        self.error = error
+        self.error = HTTPStatus(status).phrase
         self.message = message
+    
+    def json(self) -> str:
+        err = dict({
+            'timestamp': '{0:%Y-%m-%d %H:%M:%S}'.format(self.timestamp),
+            'status': self.status,
+            'error': self.error
+        })
+        if self.message:
+            err['message'] = self.message
+        return json_esc(err)

@@ -15,26 +15,6 @@ def json_dict(obj: object, allow_none: bool=False) -> Dict[str, Any]:
     return: dict({<Property>, <Value>})
     """
     assert obj is not None, 'Object must not be None'
-    # properties = dict()
-    # for prop, typ in vars(type(obj)).items():
-    #     val = obj.__getattribute__(prop)
-    #     if (not prop.startswith('_')
-    #     and isinstance(typ, (property, InstrumentedAttribute))
-    #     and (allow_none or val is not None)):
-    #         if isinstance(val, list):
-    #             name = p.plural(prop[0].lower()+prop[1:])
-    #             if len(val):
-    #                 # list has items
-    #                 objs = [json_dict(v, allow_none=True) for v in val]
-    #                 properties[name] = objs
-    #             else:
-    #                 properties[name] = []
-    #         elif isinstance(val, (int, str, bool, float, complex)):
-    #             properties[prop] = val
-    #         else:
-    #             properties[prop] = json_dict(val)
-    # print(f'properties: {properties}')
-    # return properties
     properties = dict()
     try:
         print(f'obj: {obj}')

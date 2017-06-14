@@ -5,10 +5,11 @@ Author: Mark Silvis
 
 
 import logging
+from typing import Any, List, Dict
 from tornado import web, gen
 from tornado.escape import json_encode
 from sqlalchemy.orm.exc import NoResultFound
-from db import Test, User, FoodPreference
+from db import Test, User, FoodPreference, Event
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler
 import json
@@ -28,7 +29,7 @@ class MainHandler(web.RequestHandler):
         self.finish()
 
 
-class PreferenceHandler(web.RedirectHandler):
+class PreferenceHandler(web.RequestHandler):
     def get(self, path):
         value = FoodPreference.get_all()
         if value is None:
@@ -40,27 +41,40 @@ class PreferenceHandler(web.RedirectHandler):
         self.finish()
 
 
-class UserHandler(web.RequestHandler):
+class UserHandler(BaseHandler):
     def get(self, path):
-        value = User.get_all()
-        print(f'len of value: {len(value)}')
-        if value is None:
-            self.set_status(404)
-            self.write("ERROR")
+        path = path.replace('/', '')
+        # get data
+        print('\n\nGOT PATH\n\n')
+        if path:
+            id = int(path)
+            value = User.get_by_id(id)
         else:
-            print(f'\n\nuser id: {value[0].id}')
-            print(f'user: {value[0]}')
-            print(f'foodprefs: {value[0].foodpreftest}\n\n')
-            print(f'vars: {vars(type(value[0]))}')
-            print(f'\n\njson test: {value[0].json()}\n\n')
-            # for pref in value[0].foodpreftest:
-            #     print(pref.id)
+            value = User.get_all()
+        # response
+        if value is None:
+            self.write_error(404, f'User not found with id: {id}')
+        else:
             self.set_status(200)
             payload = Payload(value)
-            print(f'TESTING PAYLOAD: {payload.json_test()}')
-            self.write(Payload(value).json_test())
-        self.finish()
+            self.finish(payload)
 
+class EventHandler(BaseHandler):
+    def get(self, path):
+        path = path.replace('/', '')
+        # get data
+        if path:
+            id = int(path)
+            value = Event.get_by_id(id)
+        else:
+            value = Event.get_all()
+        # response
+            if value is None:
+                self.write_error(400, f'Event not found with id: {id}')
+            else:
+                self.set_status(200)
+                payload = Payload(value)
+                self.finish(payload)
 
 # class UserFoodPreferencesHandler(web.RequestHandler):
 #     def get(self, path):
@@ -81,16 +95,17 @@ class TestHandler(BaseHandler):
 
     def get(self, path):
         print(f"Path is: {path}")
-        print(f"\nself: href: {self.request.path}\n")
+        print('request: ', self.request)
+        print(f"\nself: href: {self.request.uri}\n")
         value = Test.get_all()
         if value is None:
             self.set_status(404)
             self.write("ERROR")
         else:
+            print('writing payload')
             self.set_status(200)
             payload = Payload(value)
-            print(json_esc(payload.prep()))
-            self.write(Payload(value).json())
+            self.write(payload)
         self.finish()
         # value = yield gen.Task(Test.get_all)
         # try:

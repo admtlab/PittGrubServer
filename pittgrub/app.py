@@ -52,8 +52,11 @@ class App(web.Application):
             (r"/(/*)", MainHandler),
             (r'/test(/*)', TestHandler),
             (r'/test/([0-9]+)', TestHandlerId),
-            (r'/user(/*)', UserHandler),
+            (r'/user(/*)', UserHandler),        # all users
+            (r'/user/(\d+/*)', UserHandler),    # single user
             (r'/p(/*)', PreferenceHandler),
+            (r'/event(/*)', EventHandler),      # all events
+            (r'/event/(\d+/*)', EventHandler),  # single event
             # (r'/userfood(/*)', UserFoodPreferencesHandler)
         ]
         settings = dict(
@@ -73,9 +76,7 @@ class App(web.Application):
         params = '?'+re.sub(',\s*', '&', db_config['options']) if db_config['options'] else ''
 
         # init database engine and session
-        engine = create_engine(f"{server}+{driver}://{user}:{password}@{url}/{database}{params}",
-                               convert_unicode=True,
-                               echo=options.debug)
+        engine = create_engine(f"{server}+{driver}://{user}:{password}@{url}/{database}{params}", convert_unicode=True, echo=options.debug)
         db.init(engine, options.debug)
         self.db = scoped_session(sessionmaker(bind=engine))
 
