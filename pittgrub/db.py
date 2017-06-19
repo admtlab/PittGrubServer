@@ -3,8 +3,9 @@ import sys
 from datetime import datetime
 from typing import Any, Dict, Optional, List, TypeVar
 from passlib.hash import argon2
-from sqlalchemy import Column, Table, ForeignKey, ForeignKeyConstraint, BIGINT, CHAR, INT, VARCHAR, String, type_coerce
+from sqlalchemy import Column, Table, ForeignKey, ForeignKeyConstraint, String, type_coerce
 from sqlalchemy.types import TypeDecorator, DateTime
+from sqlalchemy.types import BIGINT, BOOLEAN, CHAR, INT, VARCHAR
 from sqlalchemy.orm import deferred, scoped_session, sessionmaker, relationship, backref, validates
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
@@ -107,12 +108,16 @@ class User(Base, Entity):
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
     email = Column('email', VARCHAR(255), unique=True, nullable=False)
     password = deferred(Column('password', Password, nullable=False))
+    active = Column('active', BOOLEAN, nullable=False, default=False)
+    disabled = Column('disabled', BOOLEAN, nullable=False, default=False)
     foodpreferences = association_proxy('_user_foodpreferences', 'foodpreference')
 
-    def __init__(self, id: int=None, email: str=None, password: str=None):
+    def __init__(self, id: int=None, email: str=None, password: str=None, active: bool=None, disabled: bool=None):
         self.id = id
         self.email = email
         self.password = password
+        self.active = active
+        self.disabled = disabled
 
     # @property
     # def password(self):
