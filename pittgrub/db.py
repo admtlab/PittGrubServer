@@ -189,7 +189,7 @@ class Event(Base, Entity):
     __tablename__ = 'Event'
 
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
-    organizer_id = Column("owner_id", BIGINT, ForeignKey("User.id"), nullable=False)
+    organizer_id = Column("owner_id", BIGINT, ForeignKey("User.id"), nullable=True)
     organization = Column("organization", VARCHAR(255), nullable=True)
     title = Column('title', VARCHAR(255), nullable=False)
     start_date = Column("start_date", DateTime, nullable=False)
@@ -202,7 +202,8 @@ class Event(Base, Entity):
 
     organizer = relationship("User", foreign_keys=[organizer_id])
 
-    def __init__(self, id: int=None,
+    def __init__(self,
+                 id: int=None,
                  organizer: 'User'=None,
                  organization: str=None,
                  title: str=None,
@@ -223,11 +224,19 @@ class Event(Base, Entity):
         self.address = address
         self.location = location
 
+    @classmethod
+    def add(cls, title, start_date, end_date, details, servings, address, location) -> 'Event':
+        event = Event(title=title, start_date=start_date, end_date=end_date, details=details, servings=servings, address=address, location=location)
+        session.add(event)
+        session.commit()
+        session.refresh(event)
+        return event
+
     def json(self) -> Dict[str, Any]:
         return {
             'id': self.id,
-            'organizer': self.organizer.json(False),
-            'organization': self.organization,
+            # 'organizer': self.organizer.json(False),
+            # 'organization': self.organization,
             'title': self.title,
             'start_date': self.start_date.isoformat(),
             'end_date': self.end_date.isoformat(),
