@@ -33,10 +33,6 @@ finally:
 # options
 define("config", default="./config.ini", type=str,
        help="Config file (default: ./config.ini)")
-# define("port", default=8080, help="app port", type=int)
-# define("procs", default=1, help="number of processes (0 = # CPUs)")
-# define("debug", default=True, help="debug mode")
-# define("autoreload", default=True, help="autoreload setting")
 parse_command_line()
 log.enable_pretty_logging()
 
@@ -44,12 +40,14 @@ log.enable_pretty_logging()
 class App(web.Application):
     """Wrapper around Tornado web application with configuration"""
 
-    def __init__(self, debug: bool, **db_config: Dict[str, str]):
+    def __init__(self, debug: bool, static_path: str=None, **db_config: Dict[str, str]):
         """Initialize application
 
         debug: debug mode enabled
+        static_path: path for static files
         db_config: database config
         """
+
         # tornado web app
         handlers = [
             (r"/(/*)", MainHandler),            # index
@@ -62,16 +60,19 @@ class App(web.Application):
             (r'/event/(\d+/*)', EventHandler),  # single event
             # (r'/userfood(/*)', UserFoodPreferencesHandler)
         ]
+
+        # server settings
         settings = dict(
+            static_path=static_path,
             debug=debug,
             autoreload=debug,
         )
-        web.Application.__init__(self, handlers, **settings)
+        web.Application.__init__(self, handlers, settings)
 
-        # init database engine and session
-        engine = create_engine(f"mysql+pymysql://{db_config['username']}:{db_config['password']}@{db_config['url']}/{db_config['database']}{db_config['params']}", convert_unicode=True, echo=debug)
-        db.init(engine, debug)
-        self.db = scoped_session(sessionmaker(bind=engine))
+        # initialize database
+        db.init(username=db_config['username'], password=db_config['password'],
+                url=db_config['url'], database=db_config['database'],
+                params=db_config['params'], echo=debug, generate=debug)
 
 
 def main():
@@ -82,52 +83,45 @@ def main():
         sys.exit("Error: config file not found")
     config = configparser.ConfigParser()
     config.read(options.config)
-    print(f'type: {type(config)}')
 
     # server configuration
     server_config = config['SERVER']
-    port = server_config['port']
-    procs = server_config['procs']
+    port = server_config.getint('port')
+    procs = server_config.getint('procs')
     debug = server_config.getboolean('debug')
-    if config.has_option('SERVER', 'autoreload'):
-        autoreload = server_config.getboolean('autoreload')
-    else:
-        autoreload = debug
 
     # database configuration
     db_config = config['DB']
-    username = db_config['username']
-    password = db_config['password']
-    url = db_config['url']
-    database = db_config['database']
+    username = db_config.get('username')
+    password = db_config.get('password')
+    url = db_config.get('url')
+    database = db_config.get('database')
     if config.has_option('DB', 'options'):
         # convert options to url parameters
-        params = '?' + re.sub(',\s*', '&', db_config['options'])
+        params = '?' + re.sub(',\s*', '&', db_config.get('options'))
     else:
         params = ''
 
     # logging configuration
     log_config = config['LOG']
-    filename = log_config['file']
-    level = log_config['level']
-    fmt = log_config['format']
+    filename = log_config.get('file')
+    level = log_config.get('level')
+    fmt = log_config.get('format')
     logging.basicConfig(filename=filename, level=level, format=fmt)
 
     # start server
+    app = App(debug, username=username, password=password,
+              url=url, database=database, params=params)
+    server = httpserver.HTTPServer(app)
     if (procs == 1):
         # single process
-        server = httpserver.HTTPServer(
-            App(debug, username=username, password=password, url=url, database=database, params=params))
         server.listen(port)
         server.start()
-        IOLoop.current().start()
     else:
         # multiple processes
-        server = httpserver.HTTPServer(
-            App(debug, username=username, password=password, url=url, database=database, params=params))
         server.bind(port)
         server.start(procs)
-        IOLoop.current().start()
+    IOLoop.current().start()
 
 
 if __name__ == '__main__':

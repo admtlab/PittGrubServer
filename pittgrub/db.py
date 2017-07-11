@@ -3,6 +3,7 @@ import sys
 from datetime import datetime
 from typing import Any, Dict, Optional, List, TypeVar
 from passlib.hash import argon2
+from sqlalchemy import create_engine
 from sqlalchemy import Column, Table, ForeignKey, ForeignKeyConstraint, String, type_coerce
 from sqlalchemy.types import TypeDecorator, DateTime
 from sqlalchemy.types import BIGINT, BOOLEAN, CHAR, INT, VARCHAR
@@ -41,11 +42,25 @@ DEFAULTS = dict({
 E = TypeVar('Entity', bound='Entity')
 
 
-def init(engine, create=False):
-    """Initialize database"""
+def init(username: str, password: str, url: str, database: str,
+         params: str, echo: bool=False, generate: bool=False):
+    """Initialize database
+
+    username: username
+    password: user's password
+    url:      database url
+    database: database name
+    params:   parameters
+    echo:     log commands
+    generate: generate tables dynamically
+    """
+
     global session
+    engine = create_engine(f"mysql+pymysql://{username}:{password}"
+                           f"@{url}/{database}{params}",
+                           convert_unicode=True, echo=echo)
     session = scoped_session(sessionmaker(bind=engine))
-    if create:
+    if generate:
         Base.metadata.create_all(bind=engine)
         # add default rows
         for entity, values in DEFAULTS.items():
