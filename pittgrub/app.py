@@ -10,6 +10,7 @@ import logging
 import os.path
 import re
 import sys
+from typing import Dict
 
 # modules
 import db
@@ -30,11 +31,12 @@ finally:
 
 
 # options
-define("config", default="./config.ini", type=str, help="config file")
-define("port", default=8080, help="app port", type=int)
-define("procs", default=1, help="number of processes (0 = # CPUs)")
-define("debug", default=True, help="debug mode")
-define("autoreload", default=True, help="autoreload setting")
+define("config", default="./config.ini", type=str,
+       help="Config file (default: ./config.ini)")
+# define("port", default=8080, help="app port", type=int)
+# define("procs", default=1, help="number of processes (0 = # CPUs)")
+# define("debug", default=True, help="debug mode")
+# define("autoreload", default=True, help="autoreload setting")
 parse_command_line()
 log.enable_pretty_logging()
 
@@ -42,14 +44,15 @@ log.enable_pretty_logging()
 class App(web.Application):
     """Wrapper around Tornado web application with configuration"""
 
-    def __init__(self, config):
+    def __init__(self, debug: bool, **db_config: Dict[str, str]):
         """Initialize application
-        config: db configuration
+
+        debug: debug mode enabled
+        db_config: database config
         """
-        print(f"type of config: {type(config)}")
         # tornado web app
         handlers = [
-            (r"/(/*)", MainHandler),
+            (r"/(/*)", MainHandler),            # index
             (r'/test(/*)', TestHandler),
             (r'/test/([0-9]+)', TestHandlerId),
             (r'/user(/*)', UserHandler),        # all users
@@ -60,57 +63,70 @@ class App(web.Application):
             # (r'/userfood(/*)', UserFoodPreferencesHandler)
         ]
         settings = dict(
-            debug=options.debug,
-            autoreload=options.autoreload,
+            debug=debug,
+            autoreload=debug,
         )
         web.Application.__init__(self, handlers, **settings)
 
-        # database config
-        db_config = config['DB']
-        server = db_config['server']
-        driver = db_config['driver']
-        user = db_config['username']
-        password = db_config['password']
-        url = db_config['url']
-        database = db_config['database']
-        params = '?'+re.sub(',\s*', '&', db_config['options']) if db_config['options'] else ''
-
         # init database engine and session
-        engine = create_engine(f"{server}+{driver}://{user}:{password}@{url}/{database}{params}", convert_unicode=True, echo=options.debug)
-        db.init(engine, options.debug)
+        engine = create_engine(f"mysql+pymysql://{db_config['username']}:{db_config['password']}@{db_config['url']}/{db_config['database']}{db_config['params']}", convert_unicode=True, echo=debug)
+        db.init(engine, debug)
         self.db = scoped_session(sessionmaker(bind=engine))
 
 
 def main():
     """Make application"""
 
-    # get configuration
+    # get configuration file
     if not os.path.isfile(options.config):
         sys.exit("Error: config file not found")
     config = configparser.ConfigParser()
     config.read(options.config)
+    print(f'type: {type(config)}')
+
+    # server configuration
+    server_config = config['SERVER']
+    port = server_config['port']
+    procs = server_config['procs']
+    debug = server_config.getboolean('debug')
+    if config.has_option('SERVER', 'autoreload'):
+        autoreload = server_config.getboolean('autoreload')
+    else:
+        autoreload = debug
+
+    # database configuration
+    db_config = config['DB']
+    username = db_config['username']
+    password = db_config['password']
+    url = db_config['url']
+    database = db_config['database']
+    if config.has_option('DB', 'options'):
+        # convert options to url parameters
+        params = '?' + re.sub(',\s*', '&', db_config['options'])
+    else:
+        params = ''
 
     # logging configuration
     log_config = config['LOG']
     filename = log_config['file']
     level = log_config['level']
-    format = log_config['format']
-    logging.basicConfig(filename=filename,
-                        level=level,
-                        format=format)
+    fmt = log_config['format']
+    logging.basicConfig(filename=filename, level=level, format=fmt)
 
     # start server
-    if (options.procs == 1):
+    if (procs == 1):
         # single process
-        server = httpserver.HTTPServer(App(config))
-        server.listen(options.port)
+        server = httpserver.HTTPServer(
+            App(debug, username=username, password=password, url=url, database=database, params=params))
+        server.listen(port)
         server.start()
         IOLoop.current().start()
     else:
         # multiple processes
-        server = httpserver.HTTPServer(App(config))
-        server.bind(options.port)
-        server.start(options.procs)
+        server = httpserver.HTTPServer(
+            App(debug, username=username, password=password, url=url, database=database, params=params))
+        server.bind(port)
+        server.start(procs)
         IOLoop.current().start()
 
 
