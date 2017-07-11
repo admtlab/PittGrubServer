@@ -5,9 +5,10 @@ Author: Mark Silvis
 
 
 import logging
+from datetime import datetime
 from typing import Any, List, Dict
 from tornado import web, gen
-from tornado.escape import json_encode
+from tornado.escape import json_encode, json_decode
 from sqlalchemy.orm.exc import NoResultFound
 from db import Test, User, FoodPreference, Event
 from handlers.response import Payload, ErrorResponse
@@ -75,6 +76,29 @@ class EventHandler(BaseHandler):
                 self.set_status(200)
                 payload = Payload(value)
                 self.finish(payload)
+    
+    def post(self, path):
+        # title = self.get_argument('title')
+        # start_date = datetime.strptime(self.get_argument('start_date'))
+        # end_date = datetime.strptime(self.get_argument('end_date'))
+        # details = self.get_argument('details')
+        # servings = self.get_argument('servings')
+        # address = self.get_argument('address')
+        # location = self.get_argument('location')
+        data = json_decode(self.request.body)
+        print('data: ', data)
+        title = data['title']
+        # start_date = datetime.strptime(data['start_date'], '%y-%m-%d %H:%M:%S')
+        # end_date = datetime.strptime(data['end_date'], '%y-%m-%d %H:%M:%S')
+        details = data['details']
+        servings = data['servings']
+        address = data['address']
+        location = data['location']
+        event = Event.add(title, datetime.now(), datetime.now(), details, servings, address, location)
+        self.set_status(201)
+        payload = Payload(event)
+        self.finish(payload)
+
 
 # class UserFoodPreferencesHandler(web.RequestHandler):
 #     def get(self, path):

@@ -3,8 +3,9 @@ import sys
 from datetime import datetime
 from typing import Any, Dict, Optional, List, TypeVar
 from passlib.hash import argon2
-from sqlalchemy import Column, Table, ForeignKey, ForeignKeyConstraint, BIGINT, CHAR, INT, VARCHAR, String, type_coerce
+from sqlalchemy import Column, Table, ForeignKey, ForeignKeyConstraint, String, type_coerce
 from sqlalchemy.types import TypeDecorator, DateTime
+from sqlalchemy.types import BIGINT, BOOLEAN, CHAR, INT, VARCHAR
 from sqlalchemy.orm import deferred, scoped_session, sessionmaker, relationship, backref, validates
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
@@ -107,12 +108,16 @@ class User(Base, Entity):
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
     email = Column('email', VARCHAR(255), unique=True, nullable=False)
     password = deferred(Column('password', Password, nullable=False))
+    active = Column('active', BOOLEAN, nullable=False, default=False)
+    disabled = Column('disabled', BOOLEAN, nullable=False, default=False)
     foodpreferences = association_proxy('_user_foodpreferences', 'foodpreference')
 
-    def __init__(self, id: int=None, email: str=None, password: str=None):
+    def __init__(self, id: int=None, email: str=None, password: str=None, active: bool=None, disabled: bool=None):
         self.id = id
         self.email = email
         self.password = password
+        self.active = active
+        self.disabled = disabled
 
     # @property
     # def password(self):
@@ -184,7 +189,7 @@ class Event(Base, Entity):
     __tablename__ = 'Event'
 
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
-    organizer_id = Column("owner_id", BIGINT, ForeignKey("User.id"), nullable=False)
+    organizer_id = Column("owner_id", BIGINT, ForeignKey("User.id"), nullable=True)
     organization = Column("organization", VARCHAR(255), nullable=True)
     title = Column('title', VARCHAR(255), nullable=False)
     start_date = Column("start_date", DateTime, nullable=False)
@@ -197,7 +202,8 @@ class Event(Base, Entity):
 
     organizer = relationship("User", foreign_keys=[organizer_id])
 
-    def __init__(self, id: int=None,
+    def __init__(self,
+                 id: int=None,
                  organizer: 'User'=None,
                  organization: str=None,
                  title: str=None,
@@ -218,11 +224,19 @@ class Event(Base, Entity):
         self.address = address
         self.location = location
 
+    @classmethod
+    def add(cls, title, start_date, end_date, details, servings, address, location) -> 'Event':
+        event = Event(title=title, start_date=start_date, end_date=end_date, details=details, servings=servings, address=address, location=location)
+        session.add(event)
+        session.commit()
+        session.refresh(event)
+        return event
+
     def json(self) -> Dict[str, Any]:
         return {
             'id': self.id,
-            'organizer': self.organizer.json(False),
-            'organization': self.organization,
+            # 'organizer': self.organizer.json(False),
+            # 'organization': self.organization,
             'title': self.title,
             'start_date': self.start_date.isoformat(),
             'end_date': self.end_date.isoformat(),
