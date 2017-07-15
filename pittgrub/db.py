@@ -31,7 +31,8 @@ DEFAULTS = dict({
     #     (2, 4),
     # ],
     # 'Event': [
-    #     (1, 1, 'Test Org', 'Free Food Event!', datetime.now(), datetime.now(), 'Test details', 20, 'Sennott Sq', 'Room 6412'),
+    #     (1, 1, 'Test Org', 'Free Food Event!', datetime.now(), datetime.now(),
+    #      'Test details', 20, 'Sennott Sq', 'Room 6412'),
     # ],
     # 'EventFoodPreferences': [
     #     (1, 1)
@@ -116,6 +117,7 @@ class Password(TypeDecorator):
                 return False
             else:
                 return argon2.verify(other, self.expr)
+
 
 class User(Base, Entity):
     __tablename__ = 'User'
@@ -269,7 +271,7 @@ class EventFoodPreferences(Base):
     __tablename__ = 'EventFoodPreferences'
 
     event_id = Column('event_id', BIGINT, ForeignKey('Event.id'), primary_key=True)
-    foodpref_id = Column('foodpreference_id', BIGINT, ForeignKey('FoodPreference.id', primary_key=True))
+    foodpref_id = Column('foodpreference_id', BIGINT, ForeignKey('FoodPreference.id'), primary_key=True)
 
     event = relationship(Event, backref=backref('_event_foodpreferences'))
     foodpreference = relationship(FoodPreference)
