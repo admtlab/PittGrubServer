@@ -62,6 +62,7 @@ class UserHandler(BaseHandler):
 
 class EventHandler(BaseHandler):
     def get(self, path):
+        time.sleep(1)
         path = path.replace('/', '')
         # get data
         if path:

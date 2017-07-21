@@ -261,7 +261,7 @@ class Event(Base, Entity):
             'servings': self.servings,
             'address': self.address,
             'location': self.location,
-            'foodpreferences': [
+            'foodPreferences': [
                 f.json() for f in self.foodpreferences
             ]
         }
