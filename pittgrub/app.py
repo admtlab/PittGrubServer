@@ -58,6 +58,10 @@ class App(web.Application):
             (r'/p(/*)', PreferenceHandler),
             (r'/events(/*)', EventHandler),      # all events
             (r'/events/(\d+/*)', EventHandler),  # single event
+            (r'/events/recommended/(\d+/*)', RecommendedEventHandler),  # recommended events for a user
+            (r'/events/accepted/(\d+/*)', AcceptedEventHandler),        # accepted events for a user
+            (r'/events/(\d+)/accept/(\d+/*)', AcceptEventHandler),      # accept an event for a user
+
             # (r'/userfood(/*)', UserFoodPreferencesHandler)
         ]
 

@@ -68,8 +68,7 @@ class EventHandler(BaseHandler):
 
         # get data
         if path:
-            id = int(path)
-            value = Event.get_by_id(id)
+            value = Event.get_by_id(path)
         else:
             value = Event.get_all()
 
@@ -107,18 +106,27 @@ class EventHandler(BaseHandler):
             fields = ", ".join(set(event_keys)-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')
 
-# class UserFoodPreferencesHandler(web.RequestHandler):
-#     def get(self, path):
-#         value = UserFoodPreferences.get_all()
-#         print(f'len of value: {len(value)}')
-#         print(f'UserFoodPrefs: {value}')
-#         if value is None:
-#             self.set_status(404)
-#             self.write("ERROR")
-#         else:
-#             self.set_status(200)
-#             self.write(Payload(value).json())
-#         self.finish()
+
+class RecommendedEventHandler(BaseHandler):
+    pass
+
+
+class AcceptedEventHandler(BaseHandler):
+
+    def get(self, path):
+        path = path.replace('/', '')
+
+        # get data
+        user = User.get_by_id(path)
+        events = user.accepted_events
+        print(events[0].json())
+        self.set_status(200)
+        payload = Payload(events)
+        self.finish(payload)
+
+
+class AcceptEventHandler(BaseHandler):
+    pass
 
 
 class TestHandler(BaseHandler):
