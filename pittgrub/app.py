@@ -53,20 +53,18 @@ class App(web.Application):
             (r"/(/*)", MainHandler),            # index
             (r'/test(/*)', TestHandler),
             (r'/test/([0-9]+)', TestHandlerId),
-            (r'/user(/*)', UserHandler),        # all users
-            (r'/user/(\d+/*)', UserHandler),    # single user
+            (r'/users(/*)', UserHandler),        # all users
+            (r'/users/(\d+/*)', UserHandler),    # single user
             (r'/p(/*)', PreferenceHandler),
-            (r'/event(/*)', EventHandler),      # all events
-            (r'/event/(\d+/*)', EventHandler),  # single event
+            (r'/events(/*)', EventHandler),      # all events
+            (r'/events/(\d+/*)', EventHandler),  # single event
             # (r'/userfood(/*)', UserFoodPreferencesHandler)
         ]
 
         # server settings
         settings = dict(
             static_path=static_path,
-            debug=debug,
-            autoreload=debug,
-        )
+            debug=debug)
         web.Application.__init__(self, handlers, settings)
 
         # initialize database

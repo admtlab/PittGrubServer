@@ -6,11 +6,12 @@ Author: Mark Silvis
 
 import logging
 from datetime import datetime
+import dateutil.parser
 from typing import Any, List, Dict
 from tornado import web, gen
 from tornado.escape import json_encode, json_decode
 from sqlalchemy.orm.exc import NoResultFound
-from db import Test, User, FoodPreference, Event
+from db import Test, User, FoodPreference, Event, EventFoodPreference
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler
 import json
@@ -60,46 +61,51 @@ class UserHandler(BaseHandler):
             payload = Payload(value)
             self.finish(payload)
 
+
 class EventHandler(BaseHandler):
     def get(self, path):
-        time.sleep(1)
         path = path.replace('/', '')
+
         # get data
         if path:
             id = int(path)
             value = Event.get_by_id(id)
         else:
             value = Event.get_all()
-        # response
-            if value is None:
-                self.write_error(400, f'Event not found with id: {id}')
-            else:
-                self.set_status(200)
-                payload = Payload(value)
-                self.finish(payload)
-    
-    def post(self, path):
-        # title = self.get_argument('title')
-        # start_date = datetime.strptime(self.get_argument('start_date'))
-        # end_date = datetime.strptime(self.get_argument('end_date'))
-        # details = self.get_argument('details')
-        # servings = self.get_argument('servings')
-        # address = self.get_argument('address')
-        # location = self.get_argument('location')
-        data = json_decode(self.request.body)
-        print('data: ', data)
-        title = data['title']
-        # start_date = datetime.strptime(data['start_date'], '%y-%m-%d %H:%M:%S')
-        # end_date = datetime.strptime(data['end_date'], '%y-%m-%d %H:%M:%S')
-        details = data['details']
-        servings = data['servings']
-        address = data['address']
-        location = data['location']
-        event = Event.add(title, datetime.now(), datetime.now(), details, servings, address, location)
-        self.set_status(201)
-        payload = Payload(event)
-        self.finish(payload)
 
+        # response
+        if value is None:
+            self.write_error(404, f'Event not found with id: {id}')
+        else:
+            self.set_status(200)
+            payload = Payload(value)
+            self.finish(payload)
+
+    def post(self, path):
+        # required json keys
+        event_keys = ["title", "start_date", "end_date",
+                      "address", "food_preferences"]
+        # decode json
+        data = json_decode(self.request.body)
+        # validate data
+        if all(key in data for key in event_keys):
+            try:
+                data['start_date'] = dateutil.parser.parse(data['start_date'])
+                data['end_date'] = dateutil.parser.parse(data['end_date'])
+                # add event
+                event = Event.add(**data)
+                if event:
+                    # add food preferences
+                    EventFoodPreferences.add(event.id, data['food_preferences'])
+                    self.set_status(201)
+                    payload = Payload(event)
+                    self.write(payload)
+                    self.finish()
+            except Exception as e:
+                self.write_error(400, f'Error: {e}')
+        else:
+            fields = ", ".join(set(event_keys)-data.keys())
+            self.write_error(400, f'Error: missing field(s) {fields}')
 
 # class UserFoodPreferencesHandler(web.RequestHandler):
 #     def get(self, path):

@@ -1,7 +1,7 @@
 import json
 import sys
-from datetime import datetime
-from typing import Any, Dict, Optional, List, TypeVar
+import datetime
+from typing import Any, Dict, Optional, List, Tuple, Union, TypeVar
 from passlib.hash import argon2
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Table, ForeignKey, ForeignKeyConstraint, String, type_coerce
@@ -25,18 +25,30 @@ DEFAULTS = dict({
         (1, 'xyz@pitt.edu', '1234567890'),
         (2, 'abc@pitt.edu', '5432109876')
     ],
-    # 'UserFoodPreferences': [
-    #     (1, 1),
-    #     (1, 3),
-    #     (2, 4),
-    # ],
-    # 'Event': [
-    #     (1, 1, 'Test Org', 'Free Food Event!', datetime.now(), datetime.now(),
-    #      'Test details', 20, 'Sennott Sq', 'Room 6412'),
-    # ],
-    # 'EventFoodPreferences': [
-    #     (1, 1)
-    # ],
+    'UserFoodPreference': [
+        (1, 1),
+        (1, 3),
+        (2, 4),
+    ],
+    'Event': [
+        (1, 1, 'Sodexo', 'Free pizza',
+         datetime.datetime.now()+datetime.timedelta(minutes=2),
+         datetime.datetime.now()+datetime.timedelta(hours=2),
+         'Come try out our new pizza toppings!',
+         100, '3990 Fifth Ave.', 'Ground floor of Towers'),
+        (2, 1, 'Sodexo', 'Coffee hour',
+         datetime.datetime.now()+datetime.timedelta(minutes=2),
+         datetime.datetime.now()+datetime.timedelta(hours=1, minutes=2),
+         'Come stop by every week for a free coffee!',
+         500, '3959 Fifth Ave.', 'William Pitt Union patio'),
+    ],
+    'EventFoodPreference': [
+        (1, 4),
+        (2, 1),
+        (2, 2),
+        (2, 3),
+        (2, 4)
+    ],
 })
 
 # typing
@@ -67,6 +79,7 @@ def init(username: str, password: str, url: str, database: str,
         for entity, values in DEFAULTS.items():
             # get class of entity
             cls = getattr(sys.modules[__name__], entity)
+            print(f'inserting {getattr(sys.modules[__name__], entity)}')
             # merge values
             # this avoids duplicate errors
             for i in values:
@@ -88,19 +101,26 @@ class Entity:
     """Base queries for entities"""
 
     @classmethod
-    def get_all(cls) -> List[E]:
+    def get_all(cls, filters: List[Tuple[str, Any]]=None,
+                orders: List[str]=None) -> List[E]:
+        # query = session.query(cls)
+        # if filters:
+        #     query = query.filter_by(**)
+        # if orders:
+        #     query = query.order_by(*orders)
+        print(f'session query: {session.query(cls)}')
         return session.query(cls).all()
 
     @classmethod
     def get_by_id(cls, id: int) -> Optional[E]:
         return session.query(cls).get(id)
 
-    def json(cls) -> Dict[str, Any]:
+    def json(cls, deep: bool=False) -> Dict[str, Any]:
         pass
 
 
 class Password(TypeDecorator):
-    """Argon2 password hash"""
+    """Password hash"""
     impl = CHAR(74)
 
     def process_bind_param(self, value: str, dialect) -> str:
@@ -127,9 +147,14 @@ class User(Base, Entity):
     password = deferred(Column('password', Password, nullable=False))
     active = Column('active', BOOLEAN, nullable=False, default=False)
     disabled = Column('disabled', BOOLEAN, nullable=False, default=False)
-    foodpreferences = association_proxy('_user_foodpreferences', 'foodpreference')
 
-    def __init__(self, id: int=None, email: str=None, password: str=None, active: bool=None, disabled: bool=None):
+    # mappings
+    food_preferences = association_proxy('_user_foodpreferences', 'food_preference')
+    recommended_events = association_proxy('_user_recommended_events', 'event')
+    accepted_events = association_proxy('_user_accepted_events', 'event')
+
+    def __init__(self, id: int=None, email: str=None, password: str=None,
+                 active: bool=None, disabled: bool=None):
         self.id = id
         self.email = email
         self.password = password
@@ -158,7 +183,7 @@ class User(Base, Entity):
             'email': cls.email,
         })
         if sub:
-            json['foodpreferences'] = [f.json() for f in cls.foodpreferences]
+            json['food_preferences'] = [f.json() for f in cls.food_preferences]
         return json
 
 
@@ -182,23 +207,38 @@ class FoodPreference(Base, Entity):
         }
 
 
-class UserFoodPreferences(Base):
-    __tablename__ = 'UserFoodPreferences'
+class UserFoodPreference(Base):
+    __tablename__ = 'UserFoodPreference'
 
     user_id = Column('user_id', BIGINT, ForeignKey('User.id'), primary_key=True)
     foodpref_id = Column("foodpreference_id", BIGINT, ForeignKey('FoodPreference.id'), primary_key=True)
 
     user = relationship(User, backref=backref('_user_foodpreferences'))
-    foodpreference = relationship(FoodPreference)
+    food_preference = relationship(FoodPreference)
 
-    def __init__(self, user: 'User'=None, foodpreference: 'FoodPreference'=None):
-        self.user = user
-        self.foodpreference = foodpreference
+    def __init__(self, user: int=None, foodpreference: int=None):
+        self.user_id = user
+        self.foodpref_id = foodpreference
+
+    @classmethod
+    def add(cls, use_id: int, foodpreference: Union[int, List[int]]) -> Union['UserFoodPreference', List['UserFoodPreference']]:
+
+        if isinstance(foodpreference, list):
+            user_foodpreferences = []
+            for fp in foodpreference:
+                user_foodpreference = UserFoodPreference(user_id, fp)
+                session.add(user_foodpreference)
+                user_foodpreferences.append(user_foodpreference)
+        else:
+            user_foodpreferences = UserFoodPreference(user_id, foodpreference)
+            session.add(user_foodpreference)
+        session.commit()
+        return user_foodpreferences
 
     def json(cls) -> Dict[str, Any]:
         return {
             'user': cls.user_id,
-            'foodpreference': cls.foodpref_id
+            'food_preference': cls.foodpref_id
         }
 
 
@@ -212,26 +252,24 @@ class Event(Base, Entity):
     start_date = Column("start_date", DateTime, nullable=False)
     end_date = Column("end_date", DateTime, nullable=False)
     details = Column("details", VARCHAR(500), nullable=True)
-    servings = Column("servings", INT, nullable=False)
+    servings = Column("servings", INT, nullable=True)
     address = Column("address", VARCHAR(255), nullable=False)
     location = Column("location", VARCHAR(255), nullable=False)
-    foodpreferences = association_proxy('_event_foodpreferences', 'foodpreference')
+
+    # mappings
+    food_preferences = association_proxy('_event_foodpreferences', 'food_preference')
+    recommended_users = association_proxy('_event_recommended_users', 'user')
+    accepted_users = association_proxy('_event_accepted_users', 'user')
 
     organizer = relationship("User", foreign_keys=[organizer_id])
 
-    def __init__(self,
-                 id: int=None,
-                 organizer: 'User'=None,
-                 organization: str=None,
-                 title: str=None,
-                 start_date: datetime=None,
-                 end_date: datetime=None,
-                 details: str=None,
-                 servings: int=None,
-                 address: str=None,
-                 location: str=None):
+    def __init__(self, id: int=None, organizer: int=None,
+                 organization: str=None, title: str=None,
+                 start_date: datetime=None, end_date: datetime=None,
+                 details: str=None, servings: int=None,
+                 address: str=None, location: str=None):
         self.id = id
-        self.organizer = organizer
+        self.organizer_id = organizer
         self.organization = organization
         self.title = title
         self.start_date = start_date
@@ -242,15 +280,28 @@ class Event(Base, Entity):
         self.location = location
 
     @classmethod
-    def add(cls, title, start_date, end_date, details, servings, address, location) -> 'Event':
-        event = Event(title=title, start_date=start_date, end_date=end_date, details=details, servings=servings, address=address, location=location)
+    def add(cls, title: str, start_date: datetime, end_date: datetime,
+            details: str, servings: int, address: str, location: str) -> 'Event':
+        event = Event(title=title, start_date=start_date, end_date=end_date,
+                      details=details, servings=servings, address=address,
+                      location=location)
         session.add(event)
         session.commit()
         session.refresh(event)
         return event
 
-    def json(self) -> Dict[str, Any]:
-        return {
+    @validates('start_date')
+    def validate_start_date(self, key: datetime, start_date: datetime) -> datetime:
+        assert start_date >= datetime.datetime.now(), "Start date must be after current time"
+        return start_date
+
+    @validates('end_date')
+    def validate_end_date(self, key: datetime, end_date: datetime) -> datetime:
+        assert end_date > self.start_date, "End date must come after start date"
+        return end_date
+
+    def json(self, deep: bool=False) -> Dict[str, Any]:
+        data = {
             'id': self.id,
             # 'organizer': self.organizer.json(False),
             # 'organization': self.organization,
@@ -261,29 +312,49 @@ class Event(Base, Entity):
             'servings': self.servings,
             'address': self.address,
             'location': self.location,
-            'foodPreferences': [
-                f.json() for f in self.foodpreferences
+            'food_preferences': [
+                f.json() for f in self.food_preferences
             ]
         }
 
+        if deep:
+            data['organizer'] = self.organizer.json(False)
 
-class EventFoodPreferences(Base):
-    __tablename__ = 'EventFoodPreferences'
+        return data
+
+
+class EventFoodPreference(Base):
+    __tablename__ = 'EventFoodPreference'
 
     event_id = Column('event_id', BIGINT, ForeignKey('Event.id'), primary_key=True)
     foodpref_id = Column('foodpreference_id', BIGINT, ForeignKey('FoodPreference.id'), primary_key=True)
 
     event = relationship(Event, backref=backref('_event_foodpreferences'))
-    foodpreference = relationship(FoodPreference)
+    food_preference = relationship(FoodPreference)
 
-    def __init__(self, event: 'Event'=None, foodpreference: 'FoodPreference'=None):
-        self.event = event
-        self.foodpreference = foodpreference
+    def __init__(self, event: int=None, foodpreference: int=None):
+        self.event_id = event
+        self.foodpref_id = foodpreference
+
+    @classmethod
+    def add(cls, event_id: int, foodpreference: Union[int, List[int]]) -> Union['EventFoodPreferences', List['EventFoodPreferences']]:
+
+        if isinstance(foodpreference, list):
+            event_foodpreferences = []
+            for fp in foodpreference:
+                event_foodpreference = EventFoodPreferences(event_id, fp)
+                session.add(event_foodpreference)
+                event_foodpreferences.append(event_foodpreference)
+        else:
+            event_foodpreferences = EventFoodPreferences(event_id, foodpreference)
+            session.add(event_foodpreferences)
+        session.commit()
+        return event_foodpreferences
 
     def json(cls) -> Dict[str, Any]:
         return {
             'event': cls.event_id,
-            'foodpreference': cls.foodpref_id
+            'food_preference': cls.foodpref_id
         }
 
 
@@ -324,6 +395,46 @@ class EventTypeRel(Base):
         return {
             'event': cls.event_id,
             'type': cls.event_type_id
+        }
+
+
+class UserRecommendedEvents(Base):
+    __tablename__ = 'UserRecommendedEvents'
+
+    event_id = Column('event_id', BIGINT, ForeignKey('Event.id'), primary_key=True)
+    user_id = Column('user_id', BIGINT, ForeignKey('User.id'), primary_key=True)
+
+    event = relationship(Event, backref=backref('_event_recommended_users'))
+    user = relationship(User, backref=backref('_user_recommended_events'))
+
+    def __init__(self, event: 'Event'=None, user: 'User'=None):
+        self.event = event
+        self.user = user
+
+    def json(cls) -> Dict[str, Any]:
+        return {
+            'event': cls.event_id,
+            'user': cls.user_id
+        }
+
+
+class UserAcceptedEvents(Base):
+    __tablename__ = 'UserAcceptedEvents'
+
+    event_id = Column('event_id', BIGINT, ForeignKey('Event.id'), primary_key=True)
+    user_id = Column('user_id', BIGINT, ForeignKey('User.id'), primary_key=True)
+
+    event = relationship(Event, backref=backref('_event_accepted_users'))
+    user = relationship(User, backref=backref('_user_accepted_events'))
+
+    def __init__(self, event: 'Event'=None, user: 'User'=None):
+        self.event = event
+        self.user = user
+
+    def json(cls) -> Dict[str, Any]:
+        return {
+            'event': cls.event_id,
+            'user': cls.user_id
         }
 
 

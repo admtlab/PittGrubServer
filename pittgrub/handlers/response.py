@@ -90,7 +90,7 @@ class ErrorResponse():
         self.status = status
         self.error = HTTPStatus(status).phrase
         self.message = message
-    
+
     def json(self) -> str:
         err = dict({
             'timestamp': '{0:%Y-%m-%d %H:%M:%S}'.format(self.timestamp),

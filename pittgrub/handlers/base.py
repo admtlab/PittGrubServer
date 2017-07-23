@@ -30,7 +30,7 @@ class BaseHandler(web.RequestHandler):
         chunk = utf8(chunk)
         self._write_buffer.append(chunk)
 
-    def write_error(self, status: int, message=None):
+    def write_error(self, status: int, message: str=None):
         self.set_status(status)
         error = ErrorResponse(status, message=message)
         self.finish(error)
