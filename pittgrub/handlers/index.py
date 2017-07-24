@@ -33,6 +33,7 @@ def send_push_message(event: 'Event'):
     users = User.get_all()
     print(f'{len(users)} users')
     expo_tokens = [user.expo_token for user in users]
+    print(type(expo_tokens[0]))
     messages = [PushMessage(to=token, body='New event!', data='New event created') for token in expo_tokens]
     try:
         response = PushClient.publish_multiple(messages)
