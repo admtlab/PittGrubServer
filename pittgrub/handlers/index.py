@@ -177,24 +177,20 @@ class EventHandler(BaseHandler):
         print(f'\ndata:\n{data}')
         # validate data
         if all(key in data for key in event_keys):
-            try:
-                data['start_date'] = dateutil.parser.parse(data['start_date'])
-                data['start_date'] = data['start_date'].replace(tzinfo=None)
-                data['end_date'] = dateutil.parser.parse(data['end_date'])
-                data['end_date'] = data['end_date'].replace(tzinfo=None)                
-                foodprefs = data.pop('food_preferences')
-                # add event
-                event = Event.add(**data)
-                if event:
-                    # add food preferences
-                    EventFoodPreference.add(event.id, foodprefs)
-                    self.set_status(201)
-                    payload = Payload(event)
-                    self.success(201, payload)
-                    send_push_message(event)
-            except Exception as e:
-                self.set_status(400)
-                self.write('Error: {e}')
+            data['start_date'] = dateutil.parser.parse(data['start_date'])
+            data['start_date'] = data['start_date'].replace(tzinfo=None)
+            data['end_date'] = dateutil.parser.parse(data['end_date'])
+            data['end_date'] = data['end_date'].replace(tzinfo=None)                
+            foodprefs = data.pop('food_preferences')
+            # add event
+            event = Event.add(**data)
+            if event:
+                # add food preferences
+                EventFoodPreference.add(event.id, foodprefs)
+                self.set_status(201)
+                payload = Payload(event)
+                self.success(201, payload)
+                send_push_message(event)
         else:
             fields = ", ".join(set(event_keys)-data.keys())
             self.set_status(400)
