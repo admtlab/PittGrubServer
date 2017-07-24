@@ -28,7 +28,7 @@ DEFAULTS = dict({
         (4, 'Vegan', "No animal products, including, but not limited to, dairy (milk products), eggs, meat (red meat, poultry, and seafood), and honey."),
     ],
     'User': [
-        (1, 'xyz@pitt.edu', '12345', True, False, 'ExponentPushToken[NsV1cTOVuOvp-GCbk_HVtM]'),
+        (1, 'xyz@pitt.edu', '12345'),
         (2, 'abc@pitt.edu', '12345')
     ],
     'UserFoodPreference': [
