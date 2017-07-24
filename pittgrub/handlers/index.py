@@ -12,6 +12,7 @@ from db import Test, User, FoodPreference, Event, EventFoodPreference, UserAccep
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler
 from requests.exceptions import ConnectionError, HTTPError
+import requests
 import json
 import time
 from util import json_esc
@@ -80,8 +81,8 @@ def send_notification(event: 'Event'):
 
     for user in User.get_all():
         p = deepcopy(payload)
-        p['to'] = user.expo_token
-        r = requests.post(url, data=json.dumps(payload) headers=headers)
+        p[0]['to'] = user.expo_token
+        r = requests.post(url, data=json.dumps(payload), headers=headers)
 
     #messages = [PushMessage(to=token, body='New event!', data='New event created') for token in expo_tokens]
     #try:
