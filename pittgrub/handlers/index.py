@@ -41,7 +41,7 @@ def send_push_message(event: 'Event'):
             print(token.startswith('ExponentPushToken'))
         else:
             try:
-                message = PushMessage(to=token, body='New event!', data='New event created')
+                message = PushMessage(to=token, body='New event!', data={'data': 'A new event was recently created'})
                 response = PushClient().publish(message)
                 response.validate_response()
             except PushServerError as e:
@@ -191,11 +191,14 @@ class EventHandler(BaseHandler):
                 payload = Payload(event)
                 self.success(201, payload)
                 send_push_message(event)
+            else:
+                self.set_status(400)
+                self.finish()
         else:
             fields = ", ".join(set(event_keys)-data.keys())
             self.set_status(400)
             self.write(f'Error: missing field(s) {fields}')
-        self.finish()
+            self.finish()
 
 
 class RecommendedEventHandler(BaseHandler):
