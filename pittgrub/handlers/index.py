@@ -7,6 +7,7 @@ Author: Mark Silvis
 import logging
 from datetime import datetime
 import dateutil.parser
+from copy import deepcopy
 from db import Test, User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler
@@ -61,6 +62,26 @@ def send_push_message(event: 'Event'):
             except PushResponseError as e:
                 print('per-notification error')
                 print(e)
+
+
+def send_notification(event: 'Event'):
+    url = 'https://expo.host/--/api/v2/push/send'
+    headers = {
+        "Accept": "application/json",
+        "Accept-Encoding": "gzip, deflate",
+        "Content-Type": "application/json"
+    }
+    payload = [{
+        "badge": 1,        
+        "sound": "default",
+        "title": "New event",
+        "body": f'{event.title} starts at {event.start_date}'
+    }]
+
+    for user in User.get_all():
+        p = deepcopy(payload)
+        p['to'] = user.expo_token
+        r = requests.post(url, data=json.dumps(payload) headers=headers)
 
     #messages = [PushMessage(to=token, body='New event!', data='New event created') for token in expo_tokens]
     #try:
@@ -190,7 +211,8 @@ class EventHandler(BaseHandler):
                 self.set_status(201)
                 payload = Payload(event)
                 self.success(201, payload)
-                send_push_message(event)
+                #send_push_message(event)
+                send_notification(event)
             else:
                 self.set_status(400)
                 self.finish()
