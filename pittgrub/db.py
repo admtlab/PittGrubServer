@@ -2,15 +2,21 @@ import json
 import sys
 import datetime
 from typing import Any, Dict, Optional, List, Tuple, Union, TypeVar
-from passlib.hash import bcrypt
-from sqlalchemy import create_engine
-from sqlalchemy import Column, Table, ForeignKey, ForeignKeyConstraint, String, type_coerce
-from sqlalchemy.types import TypeDecorator, DateTime
-from sqlalchemy.types import BIGINT, BOOLEAN, CHAR, INT, VARCHAR
-from sqlalchemy.orm import deferred, scoped_session, sessionmaker, relationship, backref, validates
-from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.hybrid import hybrid_property, Comparator
+try:
+    import tornado
+except ModuleNotFoundError:
+    # DB10 fix
+    sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
+finally:
+    from passlib.hash import bcrypt
+    from sqlalchemy import create_engine
+    from sqlalchemy import Column, Table, ForeignKey, ForeignKeyConstraint, String, type_coerce
+    from sqlalchemy.types import TypeDecorator, DateTime
+    from sqlalchemy.types import BIGINT, BOOLEAN, CHAR, INT, VARCHAR
+    from sqlalchemy.orm import deferred, scoped_session, sessionmaker, relationship, backref, validates
+    from sqlalchemy.ext.associationproxy import association_proxy
+    from sqlalchemy.ext.declarative import declarative_base
+    from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 
 Base = declarative_base()
 
