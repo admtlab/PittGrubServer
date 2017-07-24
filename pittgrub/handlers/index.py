@@ -32,30 +32,58 @@ def send_push_message(event: 'Event'):
     # notify users
     users = User.get_all()
     print(f'{len(users)} users')
-    expo_tokens = [user.expo_token for user in users]
-    print(type(expo_tokens[0]))
-    messages = [PushMessage(to=token, body='New event!', data='New event created') for token in expo_tokens]
-    try:
-        response = PushClient.publish_multiple(messages)
-    except PushServerError as e:
-        print('Push server error\n')
-        print(e)
-        print(e.args)
-    except (ConnectionError, HTTPError) as e:
-        print('Connect error')
-        print(e)
-    # responses
-    if response is not None:
-        print(f'response: {response}')
-        try:
-            response.validate_response()
-        except DeviceNotRegisteredError:
-            # push token is not active
-            # PushToken.bojects.filter
-            print(f'inactive token for user {user.id}')
-        except PushResponseError as e:
-            print('per-notification error')
-            print(e)
+    expo_tokens = [str(user.expo_token) for user in users]
+    for token in expo_tokens:
+        is_token = PushClient().is_exponent_push_token(token)
+        print(f'is expo token: {is_token}')
+        if not is_token:
+            print(type(token) is str)
+            print(token.startswith('ExponentPushToken'))
+        else:
+            try:
+                message = PushMessage(to=token, body='New event!', data='New event created')
+                response = PushClient().publish(message)
+                response.validate_response()
+            except PushServerError as e:
+                print('Push server error\n')
+                print(e)
+                print('response')
+                print(e.response)
+                print(e.args)
+                raise
+            except (ConnectionError, HTTPError) as e:
+                print('Connect error')
+                print(e)
+            except DeviceNotRegisteredError:
+                # push token is not active
+                # PushToken.bojects.filter
+                print(f'inactive token for user {user.id}')
+            except PushResponseError as e:
+                print('per-notification error')
+                print(e)
+
+    #messages = [PushMessage(to=token, body='New event!', data='New event created') for token in expo_tokens]
+    #try:
+    #    response = PushClient().publish_multiple(messages)
+    #except PushServerError as e:
+    #    print('Push server error\n')
+    #    print(e)
+    #    print(e.args)
+    #except (ConnectionError, HTTPError) as e:
+    #    print('Connect error')
+    #    print(e)
+    ## responses
+    #if response is not None:
+    #    print(f'response: {response}')
+    #    try:
+    #        response.validate_response()
+    #    except DeviceNotRegisteredError:
+    #        # push token is not active
+    #        # PushToken.bojects.filter
+    #        print(f'inactive token for user {user.id}')
+    #    except PushResponseError as e:
+    #        print('per-notification error')
+    #        print(e)
 
 
 class MainHandler(web.RequestHandler):
