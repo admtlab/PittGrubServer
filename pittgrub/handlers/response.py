@@ -62,7 +62,6 @@ class Payload():
     def json(self, deep: bool=False) -> str:
         """Returns escaped JSON encoding of payload"""
         if isinstance(self._response, (list, _AssociationList)):
-            print('response is instance of list')
             if len(self._response):
                 typ = type(self._response[0]).__name__
                 name = p.plural(typ[0].lower()+typ[1:])
@@ -74,7 +73,6 @@ class Payload():
                     '_links': self._links
                 }))
         else:
-            print('response is an entity')
             res = self._response.json(deep)
             res['_links'] = self._links
             return json_esc(res)

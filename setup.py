@@ -18,6 +18,7 @@ setup(
         'sqlalchemy>=1.1.10',
         'passlib>=1.7.1',
         'argon2_cffi>=16.3.0',
+        'exponent-server-sdk>=0.1.1',
         'sockjs>=0.6.0',
         'inflect>=0.2.5',
         'flake8>=3.3.0'

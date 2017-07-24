@@ -7,17 +7,52 @@ Author: Mark Silvis
 import logging
 from datetime import datetime
 import dateutil.parser
-from typing import Any, List, Dict
-from tornado import web, gen
-from tornado.escape import json_encode, json_decode
-from sqlalchemy.orm.exc import NoResultFound
 from db import Test, User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler
+from requests.exceptions import ConnectionError, HTTPError
 import json
 import time
 from util import json_esc
 
+try:
+    import tornado
+except ModuleNotFoundError:
+    # DB10 fix
+    sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
+finally:
+    from typing import Any, List, Dict
+    from tornado import web, gen
+    from tornado.escape import json_encode, json_decode
+    from sqlalchemy.orm.exc import NoResultFound
+    from exponent_server_sdk import PushClient, PushMessage, PushServerError, PushResponseError
+
+
+def send_push_message(event: 'Event'):
+    # notify users
+    users = User.get_all()
+    for user in users:
+        try:
+            response = PushClient().publish(
+                PushMessage(to=user.expo_token,
+                            body=f'New event: {event.title}',
+                            data=f'Starting at {event.start_date}'))
+        except PushServerError as e:
+            print('Push server error\n')
+            print(e)
+        except (ConnectionError, HTTPError) as e:
+            print('Connect error')
+            print(e)
+        # responses
+        try:
+            response.validate_response()
+        except DeviceNotRegisteredError:
+            # push token is not active
+            # PushToken.bojects.filter
+            print(f'inactive token for user {user.id}')
+        except PushResponseError as e:
+            print('per-notification error')
+            print(e)
 
 class MainHandler(web.RequestHandler):
     """Hello world request"""
@@ -107,11 +142,14 @@ class EventHandler(BaseHandler):
                       "address", "food_preferences"]
         # decode json
         data = json_decode(self.request.body)
+        print(f'\ndata:\n{data}')
         # validate data
         if all(key in data for key in event_keys):
             try:
                 data['start_date'] = dateutil.parser.parse(data['start_date'])
+                data['start_date'] = data['start_date'].replace(tzinfo=None)
                 data['end_date'] = dateutil.parser.parse(data['end_date'])
+                data['end_date'] = data['end_date'].replace(tzinfo=None)                
                 foodprefs = data.pop('food_preferences')
                 # add event
                 event = Event.add(**data)
@@ -121,6 +159,7 @@ class EventHandler(BaseHandler):
                     self.set_status(201)
                     payload = Payload(event)
                     self.success(201, payload)
+                    send_push_message(event)
             except Exception as e:
                 self.write_error(400, f'Error: {e}')
         else:
