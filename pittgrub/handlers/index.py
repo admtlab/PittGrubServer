@@ -212,8 +212,8 @@ class EventHandler(BaseHandler):
                 self.set_status(201)
                 payload = Payload(event)
                 self.success(201, payload)
-                #send_push_message(event)
-                send_notification(event)
+                send_push_message(event)
+                # send_notification(event)
             else:
                 self.set_status(400)
                 self.finish()
