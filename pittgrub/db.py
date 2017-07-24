@@ -360,10 +360,11 @@ class Event(Base, Entity):
             ]
         }
 
-        if deep:
-            data['organizer'] = self.organizer.json(False)
-        else:
-            data['organizer'] = self.organizer.id
+        if self.organizer is not None:
+            if deep:
+                data['organizer'] = self.organizer.json(False)
+            else:
+                data['organizer'] = self.organizer.id
 
         return data
 

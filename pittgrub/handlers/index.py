@@ -112,15 +112,15 @@ class EventHandler(BaseHandler):
             try:
                 data['start_date'] = dateutil.parser.parse(data['start_date'])
                 data['end_date'] = dateutil.parser.parse(data['end_date'])
+                foodprefs = data.pop('food_preferences')
                 # add event
                 event = Event.add(**data)
                 if event:
                     # add food preferences
-                    EventFoodPreferences.add(event.id, data['food_preferences'])
+                    EventFoodPreference.add(event.id, foodprefs)
                     self.set_status(201)
                     payload = Payload(event)
-                    self.write(payload)
-                    self.finish()
+                    self.success(201, payload)
             except Exception as e:
                 self.write_error(400, f'Error: {e}')
         else:
