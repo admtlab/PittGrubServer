@@ -11,7 +11,7 @@ from typing import Any, List, Dict
 from tornado import web, gen
 from tornado.escape import json_encode, json_decode
 from sqlalchemy.orm.exc import NoResultFound
-from db import Test, User, FoodPreference, Event, EventFoodPreference
+from db import Test, User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler
 import json
@@ -43,6 +43,16 @@ class PreferenceHandler(web.RequestHandler):
         self.finish()
 
 
+class LoginHandler(BaseHandler):
+    def post(self, path):
+        data = json_decode(self.request.body)
+        if User.verify(data['email'], data['password']):
+            payload = dict({'user': User.get_by_email(data['email']).id})
+            self.success(payload=payload)
+        else:
+            self.write_error(401, f'Incorrect email or password')
+
+
 class UserHandler(BaseHandler):
     def get(self, path):
         path = path.replace('/', '')
@@ -60,6 +70,17 @@ class UserHandler(BaseHandler):
             self.set_status(200)
             payload = Payload(value)
             self.finish(payload)
+
+
+class NotificationTokenHandler(BaseHandler):
+    def post(self, path):
+        data = json_decode(self.request.body)
+        if all(key in data for key in('user', 'token')):
+            success = User.add_expo_token(data['user'], data['token'])
+            if success:
+                self.success()
+            else:
+                self.write_error(400, 'Error adding expo token')
 
 
 class EventHandler(BaseHandler):
@@ -108,7 +129,16 @@ class EventHandler(BaseHandler):
 
 
 class RecommendedEventHandler(BaseHandler):
-    pass
+    
+    def get(self, path):
+        path = path.replace('/', '')
+
+        # get data
+        user = User.get_by_id(path)
+        events = user.recommended_events
+        self.set_status(200)
+        payload = Payload(events)
+        self.finish(payload)
 
 
 class AcceptedEventHandler(BaseHandler):
@@ -119,14 +149,16 @@ class AcceptedEventHandler(BaseHandler):
         # get data
         user = User.get_by_id(path)
         events = user.accepted_events
-        print(events[0].json())
         self.set_status(200)
         payload = Payload(events)
         self.finish(payload)
 
 
 class AcceptEventHandler(BaseHandler):
-    pass
+    def post(self, event, user):
+        UserAcceptedEvent.add(event, user)
+        self.set_status(204)
+        print(f'accepted event {event} for user {user}')
 
 
 class TestHandler(BaseHandler):

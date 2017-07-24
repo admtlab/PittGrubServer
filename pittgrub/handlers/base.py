@@ -1,15 +1,24 @@
 from tornado import escape, web
 from tornado.escape import utf8
 from tornado.util import unicode_type
-from typing import Union, Dict
+from typing import Union, Dict, TypeVar
 from handlers.response import Payload, ErrorResponse
 from util import json_dict
+
+# typing
+P = TypeVar('P', bytes, unicode_type, Dict, Payload, object)
 
 
 class BaseHandler(web.RequestHandler):
     """Common handler"""
 
-    def write(self, chunk: Union[bytes, unicode_type, Dict, Payload, object]):
+    def success(self, status: int=200, payload: P=None):
+        self.set_status(status)
+        if payload is not None:
+            self.write(payload)
+        self.finish()
+
+    def write(self, chunk: P):
         """Writes chunk to output buffer
         Reference: https://git.io/vHgiA
         """

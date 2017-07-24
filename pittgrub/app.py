@@ -55,6 +55,8 @@ class App(web.Application):
             (r'/test/([0-9]+)', TestHandlerId),
             (r'/users(/*)', UserHandler),        # all users
             (r'/users/(\d+/*)', UserHandler),    # single user
+            (r'/token(/*)', NotificationTokenHandler),  # add notification token
+            (r'/login(/*)', LoginHandler),       # log-in with credentials
             (r'/p(/*)', PreferenceHandler),
             (r'/events(/*)', EventHandler),      # all events
             (r'/events/(\d+/*)', EventHandler),  # single event

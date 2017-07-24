@@ -2,7 +2,7 @@ import json
 import sys
 import datetime
 from typing import Any, Dict, Optional, List, Tuple, Union, TypeVar
-from passlib.hash import argon2
+from passlib.hash import bcrypt
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Table, ForeignKey, ForeignKeyConstraint, String, type_coerce
 from sqlalchemy.types import TypeDecorator, DateTime
@@ -22,8 +22,8 @@ DEFAULTS = dict({
         (4, 'Vegan', "No animal products, including, but not limited to, dairy (milk products), eggs, meat (red meat, poultry, and seafood), and honey."),
     ],
     'User': [
-        (1, 'xyz@pitt.edu', '1234567890'),
-        (2, 'abc@pitt.edu', '5432109876')
+        (1, 'xyz@pitt.edu', '12345'),
+        (2, 'abc@pitt.edu', '12345')
     ],
     'UserFoodPreference': [
         (1, 1),
@@ -94,11 +94,9 @@ def init(username: str, password: str, url: str, database: str,
         for entity, values in DEFAULTS.items():
             # get class of entity
             cls = getattr(sys.modules[__name__], entity)
-            print(f'inserting {getattr(sys.modules[__name__], entity)}')
             # merge values
             # this avoids duplicate errors
             for i in values:
-                print(*i)
                 session.merge(cls(*i))
             session.commit()
         # user = User.get_by_id(1)
@@ -123,7 +121,7 @@ class Entity:
         #     query = query.filter_by(**)
         # if orders:
         #     query = query.order_by(*orders)
-        print(f'session query: {session.query(cls)}')
+        # print(f'session query: {session.query(cls)}')
         return session.query(cls).all()
 
     @classmethod
@@ -136,14 +134,12 @@ class Entity:
 
 class Password(TypeDecorator):
     """Password hash"""
-    impl = CHAR(74)
+    impl = CHAR(60)
 
     def process_bind_param(self, value: str, dialect) -> str:
-        print(f'bind value: {value}')
-        return argon2.hash(value)
+        return bcrypt.hash(value)
 
     def process_result_value(self, value: str, dialect) -> str:
-        print(f'result value: {value}')
         return value
 
     class comparator_factory(String.comparator_factory):
@@ -151,7 +147,7 @@ class Password(TypeDecorator):
             if other is None:
                 return False
             else:
-                return argon2.verify(other, self.expr)
+                return bcrypt.verify(other, self.expr)
 
 
 class User(Base, Entity):
@@ -162,6 +158,7 @@ class User(Base, Entity):
     password = deferred(Column('password', Password, nullable=False))
     active = Column('active', BOOLEAN, nullable=False, default=False)
     disabled = Column('disabled', BOOLEAN, nullable=False, default=False)
+    expo_token = Column('expo_token', VARCHAR(255), nullable=True)
 
     # mappings
     food_preferences = association_proxy('_user_foodpreferences', 'food_preference')
@@ -170,12 +167,13 @@ class User(Base, Entity):
     checkedin_events = association_proxy('_user_checkedin_events', 'event')
 
     def __init__(self, id: int=None, email: str=None, password: str=None,
-                 active: bool=None, disabled: bool=None):
+                 active: bool=None, disabled: bool=None, expo_token: str=None):
         self.id = id
         self.email = email
         self.password = password
         self.active = active
         self.disabled = disabled
+        self.expo_token = expo_token;
 
     # @property
     # def password(self):
@@ -192,6 +190,27 @@ class User(Base, Entity):
     def validate_email(self, key: str, email: str) -> str:
         assert email.endswith('@pitt.edu')
         return email
+
+    @classmethod
+    def get_by_email(cls, email: str) -> Optional['User']:
+        return session.query(cls).filter(User.email == email).one_or_none()
+
+    @classmethod
+    def verify(cls, email: str, password: str) -> bool:
+        user = User.get_by_email(email)
+        if user is None:
+            return False
+        return bcrypt.verify(password, user.password)
+
+    @classmethod
+    def add_expo_token(cls, id: int, expo_token: str) -> bool:
+        try:
+            user = User.get_by_id(id)
+            user.expo_token = expo_token
+            session.commit()
+            return True
+        except:
+            return False
 
     def json(cls, deep: bool=True) -> Dict[str, Any]:
         json = dict({
@@ -363,17 +382,25 @@ class EventFoodPreference(Base):
         self.foodpref_id = foodpreference
 
     @classmethod
-    def add(cls, event_id: int, foodpreference: Union[int, List[int]]) -> Union['EventFoodPreferences', List['EventFoodPreferences']]:
+    def get_by_id(cls, event_id: int, foodpreference_id: int) -> Optional['EventFoodPreference']:
+        return session.query(cls).get([event_id, foodpreference_id])
+
+    @classmethod
+    def add(cls, event_id: int, foodpreference: Union[int, List[int]]) -> Union['EventFoodPreference', List['EventFoodPreference']]:
 
         if isinstance(foodpreference, list):
             event_foodpreferences = []
             for fp in foodpreference:
-                event_foodpreference = EventFoodPreferences(event_id, fp)
-                session.add(event_foodpreference)
+                event_foodpreference = EventFoodPreference.get_by_id(event_id, fp)
+                if not event_foodpreference:
+                    event_foodpreference = EventFoodPreference(event_id, fp)
+                    session.add(event_foodpreference)
                 event_foodpreferences.append(event_foodpreference)
         else:
-            event_foodpreferences = EventFoodPreferences(event_id, foodpreference)
-            session.add(event_foodpreferences)
+            event_foodpreferences = EventFoodPreference.get_by_id(event_id, foodpreference)
+            if not event_foodpreferences:
+                event_foodpreferences = EventFoodPreference(event_id, foodpreference)
+                session.add(event_foodpreferences)
         session.commit()
         return event_foodpreferences
 
@@ -443,6 +470,10 @@ class UserRecommendedEvent(Base):
         self.event_id = event_id
         self.user_id = user_id
 
+    @classmethod
+    def find_by_id(cls, event_id: int, user_id: int) -> Optional['UserRecommendedEvent']:
+        return session.query(cls).get([event_id, user_id])
+
     def json(cls, deep: bool=False) -> Dict[str, Any]:
         if deep:
             return {
@@ -469,6 +500,20 @@ class UserAcceptedEvent(Base):
         self.event_id = event_id
         self.user_id = user_id
 
+    @classmethod
+    def find_by_id(cls, event_id: int, user_id: int) -> Optional['UserAcceptedEvent']:
+        return session.query(cls).get([event_id, user_id])
+
+    @classmethod
+    def add(cls, event_id: int, user_id: int) -> 'UserAcceptedEvent':
+
+        user_accepted_event = UserAcceptedEvent.find_by_id(event_id, user_id)
+        if not user_accepted_event:
+            user_accepted_event = UserAcceptedEvent(event_id, user_id)
+            session.add(user_accepted_event)
+            session.commit()
+        return user_accepted_event
+
     def json(cls, deep: bool=False) -> Dict[str, Any]:
         if deep:
             return {
@@ -494,6 +539,10 @@ class UserCheckedInEvent(Base):
     def __init__(self, event_id: int, user_id: int):
         self.event_id = event_id
         self.user_id = user_id
+
+    @classmethod
+    def find_by_id(cls, event_id: int, user_id: int) -> Optional['UserCheckedInEvent']:
+        return session.query(cls).get([event_id, user_id])
 
     def json(cls, deep: bool=False) -> Dict[str, Any]:
         if deep:
