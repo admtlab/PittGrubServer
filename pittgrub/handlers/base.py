@@ -42,5 +42,4 @@ class BaseHandler(web.RequestHandler):
     def write_error(self, status: int, message: str=None):
         self.set_status(status)
         error = ErrorResponse(status, message=message)
-        self.finish(error)
-
+        self.write(error)

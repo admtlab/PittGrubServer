@@ -193,11 +193,13 @@ class EventHandler(BaseHandler):
                     self.success(201, payload)
                     send_push_message(event)
             except Exception as e:
-                self.write_error(400, f'Error: {e}')
-                return
+                self.set_status(400)
+                self.write('Error: {e}')
         else:
             fields = ", ".join(set(event_keys)-data.keys())
-            self.write_error(400, f'Error: missing field(s) {fields}')
+            self.set_status(400)
+            self.write(f'Error: missing field(s) {fields}')
+        self.finish()
 
 
 class RecommendedEventHandler(BaseHandler):
