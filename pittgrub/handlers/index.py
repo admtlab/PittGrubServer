@@ -31,19 +31,21 @@ finally:
 def send_push_message(event: 'Event'):
     # notify users
     users = User.get_all()
-    for user in users:
-        try:
-            response = PushClient().publish(
-                PushMessage(to=user.expo_token,
-                            body=f'New event: {event.title}',
-                            data=f'Starting at {event.start_date}'))
-        except PushServerError as e:
-            print('Push server error\n')
-            print(e)
-        except (ConnectionError, HTTPError) as e:
-            print('Connect error')
-            print(e)
-        # responses
+    print(f'{len(users)} users')
+    expo_tokens = [user.expo_token for user in users]
+    messages = [PushMessage(to=token, body='New event!', data='New event created') for token in expo_tokens]
+    try:
+        response = PushClient.publish_multiple(messages)
+    except PushServerError as e:
+        print('Push server error\n')
+        print(e)
+        print(e.args)
+    except (ConnectionError, HTTPError) as e:
+        print('Connect error')
+        print(e)
+    # responses
+    if response is not None:
+        print(f'response: {response}')
         try:
             response.validate_response()
         except DeviceNotRegisteredError:
@@ -53,6 +55,7 @@ def send_push_message(event: 'Event'):
         except PushResponseError as e:
             print('per-notification error')
             print(e)
+
 
 class MainHandler(web.RequestHandler):
     """Hello world request"""
@@ -162,6 +165,7 @@ class EventHandler(BaseHandler):
                     send_push_message(event)
             except Exception as e:
                 self.write_error(400, f'Error: {e}')
+                return
         else:
             fields = ", ".join(set(event_keys)-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')
