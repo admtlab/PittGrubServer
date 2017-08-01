@@ -81,7 +81,7 @@ def send_notification(event: 'Event'):
     for user in User.get_all():
         p = deepcopy(payload)
         p[0]['to'] = user.expo_token
-        r = requests.post(url, data=json.dumps(payload) headers=headers)
+        r = requests.post(url, data=json.dumps(payload), headers=headers)
 
     #messages = [PushMessage(to=token, body='New event!', data='New event created') for token in expo_tokens]
     #try:
