@@ -14,7 +14,11 @@ from typing import Dict
 
 # modules
 import db
-from handlers.index import *
+from handlers.index import (
+    MainHandler, UserHandler, NotificationTokenHandler, LoginHandler,
+    PreferenceHandler, EventHandler, RecommendedEventHandler,
+    AcceptedEventHandler, AcceptEventHandler
+)
 
 # dependencies
 try:
@@ -51,8 +55,6 @@ class App(web.Application):
         # tornado web app
         handlers = [
             (r"/(/*)", MainHandler),            # index
-            (r'/test(/*)', TestHandler),
-            (r'/test/([0-9]+)', TestHandlerId),
             (r'/users(/*)', UserHandler),        # all users
             (r'/users/(\d+/*)', UserHandler),    # single user
             (r'/token(/*)', NotificationTokenHandler),  # add notification token
@@ -70,7 +72,7 @@ class App(web.Application):
         # server settings
         settings = dict(
             static_path=static_path,
-            debug=debug)
+            debug=debug,)
         web.Application.__init__(self, handlers, settings)
 
         # initialize database
