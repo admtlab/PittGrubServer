@@ -1,22 +1,26 @@
 import sys
 from datetime import datetime, timedelta
+
 from .schema import (
-    User, FoodPreference, UserFoodPreference, UserRecommendedEvent,
-    UserAcceptedEvent, UserCheckedInEvent, Event, EventFoodPreference,
-    EventType, EventTypeRel
+    Event, EventFoodPreference, EventType, EventTypeRel, FoodPreference,
+    User, UserAcceptedEvent, UserCheckedInEvent, UserFoodPreference, 
+    UserRecommendedEvent
 )
 from .base import Entity
+
 try:
     from sqlalchemy import create_engine
     from sqlalchemy.orm import scoped_session, sessionmaker
 except ModuleNotFoundError:
     # DB10 fix
     sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
+
     from sqlalchemy import create_engine
     from sqlalchemy.orm import scoped_session, sessionmaker
 
 
 # database session
+# initialized by init()
 session = None
 
 # database default values
@@ -29,8 +33,9 @@ DEFAULTS = dict({
             "includes milk, butter, cheese, and cream."),
         (3, 'Vegetarian',
             "No meat, which includes red meat, poultry, and seafood."),
-        (4, 'Vegan', "No animal products, including, but not limited to, "
-            "dairy (milk products), eggs, meat (red meat, poultry, and seafood"
+        (4, 'Vegan',
+            "No animal products, including, but not limited to, dairy "
+            "(milk products), eggs, meat (red meat, poultry, and seafood"
             "), and honey."),
     ],
     'User': [
