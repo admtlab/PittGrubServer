@@ -1,16 +1,17 @@
+from typing import Any, Dict, List, Optional, Tuple, TypeVar
+
 import db
-from typing import (
-    Any, Dict, List, Optional, Tuple, TypeVar
-)
+
 try:
-    from passlib.hash import bcrypt
+    from passlib.hash import bcrypt_sha256
     from sqlalchemy import String, TypeDecorator
     from sqlalchemy.types import CHAR
 except ModuleNotFoundError:
     # DB 10 fix
     import sys
     sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
-    from passlib.hash import bcrypt
+
+    from passlib.hash import bcrypt_sha256
     from sqlalchemy import String, TypeDecorator
     from sqlalchemy.types import CHAR
 
@@ -43,10 +44,10 @@ class Entity:
 
 class Password(TypeDecorator):
     """Password hash"""
-    impl = CHAR(60)
+    impl = CHAR(75)
 
     def process_bind_param(self, value: str, dialect) -> str:
-        return bcrypt.hash(value)
+        return bcrypt_sha256.hash(value)
 
     def process_result_value(self, value: str, dialect) -> str:
         return value
@@ -56,4 +57,4 @@ class Password(TypeDecorator):
             if other is None:
                 return False
             else:
-                return bcrypt.verify(other, self.expr)
+                return bcrypt_sha256.verify(other, self.expr)
