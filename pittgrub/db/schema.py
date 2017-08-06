@@ -1,37 +1,38 @@
 import datetime
 import json
+from typing import Any, Dict, List, Optional, Union
+
 import db
-from typing import (
-    Any, Dict, Optional, List, Union
-)
 from db.base import Entity, Password
+
 try:
-    from passlib.hash import bcrypt
-    from sqlalchemy import Column, Table, ForeignKey, ForeignKeyConstraint
-    from sqlalchemy.types import TypeDecorator, DateTime
+    from passlib.hash import bcrypt_sha256
+    from sqlalchemy import Column, ForeignKey, ForeignKeyConstraint, Table
+    from sqlalchemy.types import DateTime, TypeDecorator
     from sqlalchemy.types import BIGINT, BOOLEAN, CHAR, INT, VARCHAR
     from sqlalchemy.orm import (
-        deferred, scoped_session, sessionmaker,
-        relationship, backref, validates
+        backref, deferred, relationship,
+        scoped_session, sessionmaker, validates
     )
     from sqlalchemy.ext.associationproxy import association_proxy
     from sqlalchemy.ext.declarative import declarative_base
-    from sqlalchemy.ext.hybrid import hybrid_property, Comparator
+    from sqlalchemy.ext.hybrid import Comparator, hybrid_property
 except ModuleNotFoundError:
     # DB10 fix
     import sys
     sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
-    from passlib.hash import bcrypt
-    from sqlalchemy import Column, Table, ForeignKey, ForeignKeyConstraint
-    from sqlalchemy.types import TypeDecorator, DateTime
+
+    from passlib.hash import bcrypt_sha256
+    from sqlalchemy import Column, ForeignKey, ForeignKeyConstraint, Table
+    from sqlalchemy.types import DateTime, TypeDecorator
     from sqlalchemy.types import BIGINT, BOOLEAN, CHAR, INT, VARCHAR
     from sqlalchemy.orm import (
-        deferred, scoped_session, sessionmaker,
-        relationship, backref, validates
+        backref, deferred, relationship,
+        scoped_session, sessionmaker, validates
     )
     from sqlalchemy.ext.associationproxy import association_proxy
     from sqlalchemy.ext.declarative import declarative_base
-    from sqlalchemy.ext.hybrid import hybrid_property, Comparator
+    from sqlalchemy.ext.hybrid import Comparator, hybrid_property
 
 
 # database db.session variables
@@ -77,7 +78,7 @@ class User(Base, Entity):
         user = User.get_by_email(email)
         if user is None:
             return False
-        return bcrypt.verify(password, user.password)
+        return bcrypt_sha256.verify(password, user.password)
 
     @classmethod
     def add_expo_token(cls, id: int, expo_token: str) -> bool:
@@ -340,13 +341,15 @@ class UserRecommendedEvent(Base):
 
     event_id = Column('event_id', BIGINT, ForeignKey('Event.id'), primary_key=True)
     user_id = Column('user_id', BIGINT, ForeignKey('User.id'), primary_key=True)
+    time = Column('time', DateTime, default=datetime.datetime.utcnow, nullable=False)
 
     event = relationship(Event, backref=backref('_event_recommended_users'))
     user = relationship(User, backref=backref('_user_recommended_events'))
 
-    def __init__(self, event_id: int, user_id: int):
+    def __init__(self, event_id: int, user_id: int, time: datetime=None):
         self.event_id = event_id
         self.user_id = user_id
+        self.time = time
 
     @classmethod
     def find_by_id(cls, event_id: int, user_id: int) -> Optional['UserRecommendedEvent']:
@@ -356,12 +359,14 @@ class UserRecommendedEvent(Base):
         if deep:
             return {
                 'event': cls.event.json(deep),
-                'user': cls.user.json(False)
+                'user': cls.user.json(False),
+                'time': cls.time
             }
         else:
             return {
                 'event': cls.event_id,
-                'user': cls.user_id
+                'user': cls.user_id,
+                'time': cls.time
             }
 
 
@@ -370,13 +375,15 @@ class UserAcceptedEvent(Base):
 
     event_id = Column('event_id', BIGINT, ForeignKey('Event.id'), primary_key=True)
     user_id = Column('user_id', BIGINT, ForeignKey('User.id'), primary_key=True)
+    time = Column('time', DateTime, default=datetime.datetime.utcnow, nullable=False)
 
     event = relationship(Event, backref=backref('_event_accepted_users'))
     user = relationship(User, backref=backref('_user_accepted_events'))
 
-    def __init__(self, event_id: int, user_id: int):
+    def __init__(self, event_id: int, user_id: int, time: datetime=None):
         self.event_id = event_id
         self.user_id = user_id
+        self.time = time
 
     @classmethod
     def find_by_id(cls, event_id: int, user_id: int) -> Optional['UserAcceptedEvent']:
@@ -396,12 +403,14 @@ class UserAcceptedEvent(Base):
         if deep:
             return {
                 'event': cls.event.json(deep),
-                'user': cls.user.json(False)
+                'user': cls.user.json(False),
+                'time': cls.time
             }
         else:
             return {
                 'event': cls.event_id,
                 'user': cls.user_id,
+                'time': cls.time
             }
 
 
@@ -410,13 +419,15 @@ class UserCheckedInEvent(Base):
 
     event_id = Column('event_id', BIGINT, ForeignKey('Event.id'), primary_key=True)
     user_id = Column('user_id', BIGINT, ForeignKey('User.id'), primary_key=True)
+    time = Column('time', DateTime, default=datetime.datetime.utcnow, nullable=False)
 
     event = relationship(Event, backref=backref('_event_checkedin_users'))
     user = relationship(User, backref=backref('_user_checkedin_events'))
 
-    def __init__(self, event_id: int, user_id: int):
+    def __init__(self, event_id: int, user_id: int, time: datetime=None):
         self.event_id = event_id
         self.user_id = user_id
+        self.time = time
 
     @classmethod
     def find_by_id(cls, event_id: int, user_id: int) -> Optional['UserCheckedInEvent']:
@@ -426,25 +437,23 @@ class UserCheckedInEvent(Base):
         if deep:
             return {
                 'event': cls.event.json(deep),
-                'user': cls.user.json(False)
+                'user': cls.user.json(False),
+                'time': cls.time
             }
         else:
             return {
                 'event': cls.event_id,
-                'user': cls.user_id
+                'user': cls.user_id,
+                'time': cls.time
             }
 
 
-class Test(Base, Entity):
-    __tablename__ = 'Test'
-
-    id = Column('id', INT, primary_key=True)
-    _password = Column('password', CHAR(64), nullable=True)
-    private = Column('private', VARCHAR(255), nullable=True)
-
-
-    def to_json(self):
-        return(json.dumps({u'id': self.id}))
-
-    def dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+# class Test(Base, Entity):
+#     __tablename__ = 'Test'
+#     id = Column('id', INT, primary_key=True)
+#     _password = Column('password', CHAR(64), nullable=True)
+#     private = Column('private', VARCHAR(255), nullable=True)
+#     def to_json(self):
+#         return(json.dumps({u'id': self.id}))
+#     def dict(self):
+#         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
