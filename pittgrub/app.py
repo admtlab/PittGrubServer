@@ -15,10 +15,15 @@ from typing import Dict
 # modules
 import db
 from handlers.index import (
-    MainHandler, UserHandler, NotificationTokenHandler, LoginHandler,
+    MainHandler, NotificationTokenHandler,
     PreferenceHandler, EventHandler, RecommendedEventHandler,
     AcceptedEventHandler, AcceptEventHandler
 )
+from handlers.auth import (
+    LoginHandler, LogoutHandler, SignupHandler,
+    TokenRefreshHandler, TokenValidationHandler
+)
+from handlers.user import UserHandler, UserActivationHandler
 
 # dependencies
 try:
@@ -57,8 +62,13 @@ class App(web.Application):
             (r"/(/*)", MainHandler),            # index
             (r'/users(/*)', UserHandler),        # all users
             (r'/users/(\d+/*)', UserHandler),    # single user
+            (r'/users/activate(/*)', UserActivationHandler),
             (r'/token(/*)', NotificationTokenHandler),  # add notification token
+            (r'/signup(/*)', SignupHandler),
             (r'/login(/*)', LoginHandler),       # log-in with credentials
+            (r'/login/refresh(/*)', TokenRefreshHandler),
+            (r'/login/validate(/*)', TokenValidationHandler),
+            (r'/logout(/*)', LogoutHandler),
             (r'/p(/*)', PreferenceHandler),
             (r'/events(/*)', EventHandler),      # all events
             (r'/events/(\d+/*)', EventHandler),  # single event
