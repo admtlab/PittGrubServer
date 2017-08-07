@@ -217,6 +217,7 @@ class EventHandler(BaseHandler):
                 self.set_status(400)
                 self.finish()
         else:
+            # missing required field
             fields = ", ".join(set(event_keys)-data.keys())
             self.set_status(400)
             self.write(f'Error: missing field(s) {fields}')
