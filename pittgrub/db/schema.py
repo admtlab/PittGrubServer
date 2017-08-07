@@ -1,5 +1,6 @@
 import datetime
 import json
+import uuid
 from typing import Any, Dict, List, Optional, Union
 
 import db
@@ -56,7 +57,7 @@ class User(Base, Entity):
     checkedin_events = association_proxy('_user_checkedin_events', 'event')
 
     def __init__(self, id: int=None, email: str=None, password: str=None,
-                 active: bool=None, disabled: bool=None, expo_token: str=None):
+                 active: bool=False, disabled: bool=False, expo_token: str=None):
         self.id = id
         self.email = email
         self.password = password
@@ -69,9 +70,23 @@ class User(Base, Entity):
         assert email.endswith('@pitt.edu')
         return email
 
+    @property
+    def valid(self):
+        return self.active and not self.disabled
+
+    @classmethod
+    def add(cls, email: str, password: str) -> 'User':
+        if User.get_by_email(email) is not None:
+            return None
+        user = User(email=email, password=password)
+        db.session.add(user)
+        db.session.commit()
+        db.session.refresh(user)
+        return user
+
     @classmethod
     def get_by_email(cls, email: str) -> Optional['User']:
-        return db.session.query(cls).filter(User.email == email).one_or_none()
+        return db.session.query(cls).filter_by(email=email).one_or_none()
 
     @classmethod
     def verify(cls, email: str, password: str) -> bool:
@@ -79,6 +94,17 @@ class User(Base, Entity):
         if user is None:
             return False
         return bcrypt_sha256.verify(password, user.password)
+
+    @classmethod
+    def activate(cls, activation_id: str) -> bool:
+        activation = UserActivation.get_by_id(activation_id)
+        if activation:
+            user = cls.get_by_id(activation.user_id)
+            user.active = True
+            UserActivation.delete(activation_id)
+            db.session.commit()
+            return True
+        return False
 
     @classmethod
     def add_expo_token(cls, id: int, expo_token: str) -> bool:
@@ -91,10 +117,10 @@ class User(Base, Entity):
             return False
 
     def json(cls, deep: bool=True) -> Dict[str, Any]:
-        json = dict({
-            'id': cls.id,
-            'email': cls.email,
-        })
+        json = dict(
+            id=cls.id,
+            email=cls.email,
+        )
         if deep:
             json['food_preferences'] = [f.json() for f in cls.food_preferences]
         else:
@@ -136,7 +162,7 @@ class UserFoodPreference(Base):
         self.foodpref_id = foodpreference
 
     @classmethod
-    def add(cls, use_id: int, foodpreference: Union[int, List[int]]) -> Union['UserFoodPreference', List['UserFoodPreference']]:
+    def add(cls, user_id: int, foodpreference: Union[int, List[int]]) -> Union['UserFoodPreference', List['UserFoodPreference']]:
 
         if isinstance(foodpreference, list):
             user_foodpreferences = []
@@ -161,6 +187,33 @@ class UserFoodPreference(Base):
                 'user': cls.user_id,
                 'food_preferences': cls.foodpref_id
             }
+
+
+class UserActivation(Base, Entity):
+    __tablename__ = 'UserActivation'
+
+    id = Column('id', CHAR(32), primary_key=True)
+    user_id = Column('user_id', BIGINT, ForeignKey('User.id'), unique=True, nullable=False)
+
+    def __init__(self, id: str, user: int):
+        self.id = id
+        self.user_id = user
+
+    @classmethod
+    def add(cls, user: int, id: str=None) -> 'UserActivation':
+        assert user is not None
+        uid = id or uuid.uuid4().hex
+        activation = UserActivation(uid, user)
+        db.session.add(activation)
+        db.session.commit()
+        db.session.refresh(activation)
+        return activation
+
+    @classmethod
+    def delete(cls, id: str) -> bool:
+        success = db.session.query(cls).filter_by(id=id).delete()
+        db.session.commit()
+        return success
 
 
 class Event(Base, Entity):
@@ -352,7 +405,7 @@ class UserRecommendedEvent(Base):
         self.time = time
 
     @classmethod
-    def find_by_id(cls, event_id: int, user_id: int) -> Optional['UserRecommendedEvent']:
+    def get_by_id(cls, event_id: int, user_id: int) -> Optional['UserRecommendedEvent']:
         return db.session.query(cls).get([event_id, user_id])
 
     def json(cls, deep: bool=False) -> Dict[str, Any]:
@@ -386,13 +439,13 @@ class UserAcceptedEvent(Base):
         self.time = time
 
     @classmethod
-    def find_by_id(cls, event_id: int, user_id: int) -> Optional['UserAcceptedEvent']:
+    def get_by_id(cls, event_id: int, user_id: int) -> Optional['UserAcceptedEvent']:
         return db.session.query(cls).get([event_id, user_id])
 
     @classmethod
     def add(cls, event_id: int, user_id: int) -> 'UserAcceptedEvent':
 
-        user_accepted_event = UserAcceptedEvent.find_by_id(event_id, user_id)
+        user_accepted_event = UserAcceptedEvent.get_by_id(event_id, user_id)
         if not user_accepted_event:
             user_accepted_event = UserAcceptedEvent(event_id, user_id)
             db.session.add(user_accepted_event)
@@ -430,7 +483,7 @@ class UserCheckedInEvent(Base):
         self.time = time
 
     @classmethod
-    def find_by_id(cls, event_id: int, user_id: int) -> Optional['UserCheckedInEvent']:
+    def get_by_id(cls, event_id: int, user_id: int) -> Optional['UserCheckedInEvent']:
         return db.session.query(cls).get([event_id, user_id])
 
     def json(cls, deep: bool=False) -> Dict[str, Any]:
@@ -446,6 +499,80 @@ class UserCheckedInEvent(Base):
                 'user': cls.user_id,
                 'time': cls.time
             }
+
+
+class AccessToken(Base, Entity):
+    __tablename__ = 'AccessToken'
+
+    id = Column('id', CHAR(32), primary_key=True)
+    user_id = Column('user_id', BIGINT, ForeignKey('User.id'), unique=True)
+    expires = Column('expires', DateTime, nullable=False)
+
+    def __init__(self, id: str, user_id: str, expires: datetime):
+        self.id = id
+        self.user_id = user_id
+        self.expires = expires
+
+    @property
+    def valid(self) -> bool:
+        return self.expires > datetime.datetime.utcnow()
+
+    # @validates('expires')
+    # def validate_expires(self, key: str, expires: datetime) -> str:
+    #     """Expiration date should be after current time"""
+    #     assert expires > datetime.datetime.now()
+    #     return expires
+
+    @classmethod
+    def add(cls, id: str, user_id: int, expires: datetime) -> Optional['AccessToken']:
+        # validate
+        assert expires > datetime.datetime.now()
+        assert User.get_by_id(user_id) is not None
+
+        access_token = AccessToken(id, user_id, expires)
+        db.session.add(access_token)
+        db.session.commit()
+        db.session.refresh(access_token)
+        return access_token
+
+    @classmethod
+    def get_by_user(cls, user_id: int) -> Optional['AccessToken']:
+        return db.session.query(cls).filter_by(user_id=user_id).one_or_none()
+
+    @classmethod
+    def is_valid(cls, id: str) -> bool:
+        token = db.session.query(cls).get(id)
+        return token.valid
+
+    @classmethod
+    def invalidate(cls, id: str):
+        token = db.session.query(cls).get(id)
+        token.expire()
+        db.session.commit()
+
+    # @classmethod
+    # def refresh(cls, id: str, expires: datetime) -> 'AccessToken':
+    #     token = db.session.query(cls).get(id)
+    #     token.expires = expires
+    #     db.session.commit()
+    #     db.session.refresh(token)
+    #     return token
+
+    @classmethod
+    def delete(cls, id: str) -> bool:
+        success = db.session.query(cls).filter_by(id=id).delete()
+        db.session.commit()
+        return success
+
+    def expire(self):
+        self.expires = datetime.datetime.now()
+
+    def json(cls) -> Dict[str, Any]:
+        return dict(
+            token=cls.id,
+            user=cls.user_id,
+            expires=cls.expires
+        )
 
 
 # class Test(Base, Entity):

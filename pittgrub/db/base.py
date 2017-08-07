@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple, TypeVar
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 
 import db
 
@@ -24,8 +24,7 @@ class Entity:
     """Base queries for entities"""
 
     @classmethod
-    def get_all(cls, filters: List[Tuple[str, Any]]=None,
-                orders: List[str]=None) -> List[E]:
+    def get_all(cls, filters: List[Tuple[str, Any]]=[], orders: List[str]=[]) -> List[E]:
         # query = session.query(cls)
         # if filters:
         #     query = query.filter_by(**)
@@ -35,8 +34,14 @@ class Entity:
         return db.session.query(cls).all()
 
     @classmethod
-    def get_by_id(cls, id: int) -> Optional[E]:
+    def get_by_id(cls, id: Union[int, str]) -> Optional[E]:
         return db.session.query(cls).get(id)
+
+    @classmethod
+    def delete(cls, id: Union[int, str]) -> bool:
+        success = db.session.query(cls).filter_by(id=id).delete()
+        db.session.commit()
+        return success
 
     def json(cls, deep: bool=False) -> Dict[str, Any]:
         pass

@@ -1,10 +1,11 @@
 import sys
+import uuid
 from datetime import datetime, timedelta
 
 from .schema import (
-    Event, EventFoodPreference, EventType, EventTypeRel, FoodPreference,
-    User, UserAcceptedEvent, UserCheckedInEvent, UserFoodPreference, 
-    UserRecommendedEvent
+    AccessToken, Event, EventFoodPreference, EventType, EventTypeRel,
+    FoodPreference, User, UserAcceptedEvent, UserActivation,
+    UserCheckedInEvent, UserFoodPreference, UserRecommendedEvent
 )
 from .base import Entity
 
@@ -41,6 +42,10 @@ DEFAULTS = dict({
     'User': [
         (1, 'xyz@pitt.edu', '12345'),
         (2, 'abc@pitt.edu', '12345')
+    ],
+    'AccessToken': [
+        # ('4ec1f791944d4c319822bd27f151f38d', 1, datetime.now()+timedelta(days=7)),
+        # ('d33318c4a9f1459cb4f5789c208e0e78', 2, datetime.now()+timedelta(days=7)),
     ],
     'UserFoodPreference': [
         (1, 1),
