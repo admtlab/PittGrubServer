@@ -1,8 +1,26 @@
-from tornado.web import MissingArgumentError
+import random
+import string
 
 from .response import Payload
 from .base import BaseHandler
 from db import User, UserActivation
+
+try:
+    from tornado.escape import json_decode, json_encode
+    from tornado.web import MissingArgumentError
+except ModuleNotFoundError:
+    # DB10 fix
+    import sys
+    sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
+
+    from tornado.escape import json_decode, json_encode
+    from tornado.web import MissingArgumentError
+
+
+def create_activation_code(length: int=6) -> str:
+    chars = string.ascii_uppercase + string.digits
+    code = random.choices(chars, k=length)
+    return ''.join(code)
 
 
 class UserHandler(BaseHandler):
@@ -34,3 +52,15 @@ class UserActivationHandler(BaseHandler):
                 self.write_error(404)
         except MissingArgumentError:
             self.write_error(404)
+
+    def post(self, path):
+        # decode json
+        data = json_decode(self.request.body)
+        if 'activation' in data:
+            activation = data['activation']
+            if User.activate(activation):
+                self.success(status=204)
+            else:
+                self.write_error(400, 'Invalid activation code')
+        else:
+            self.write_error(400, 'Missing activation code')

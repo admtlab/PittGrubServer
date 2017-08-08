@@ -42,6 +42,7 @@ except ModuleNotFoundError:
 VERIFICATION_ENDPOINT = "users/activate"
 VERIFICATION_SUBJECT = "PittGrub Verification"
 VERIFICATION_BODY = "Please verify your email address with PittGrub:"
+VERIFICATION_CODE = "Your PittGrub verification code is:"
 
 
 def send_verification_email(to: str, activation: str):
@@ -54,7 +55,8 @@ def send_verification_email(to: str, activation: str):
     host = email_config.get('server')
     port = email_config.getint('port')
     url = config['SERVER'].get('url')
-    html = f"{VERIFICATION_BODY} https://{url}/{VERIFICATION_ENDPOINT}?id={activation}"
+    # html = f"{VERIFICATION_BODY} https://{url}/{VERIFICATION_ENDPOINT}?id={activation}"
+    html = f"{VERIFICATION_CODE} {activation}"
 
     # configure server
     server = smtplib.SMTP(f'{host}:{port}')
@@ -93,7 +95,7 @@ def create_jwt(owner: int,
     # set values to defaults
     id = id or uuid4().hex
     issued = issued or datetime.utcnow()
-    expires = expires or datetime.utcnow()+timedelta(minutes=30)
+    expires = expires or datetime.utcnow()+timedelta(weeks=2)
 
     # get app secret
     config = configparser.ConfigParser()
@@ -174,14 +176,19 @@ class LoginHandler(BaseHandler):
         if all(key in data for key in ('email', 'password')):
             if User.verify(data['email'], data['password']):
                 user = User.get_by_email(data['email'])
-                jwt_token = AccessToken.get_by_user(user.id)
-                if jwt_token is None or not jwt_token.valid():
-                    jwt_token = create_jwt(owner=user.id)
+                jwt_token = create_jwt(owner=user.id)
                 decoded = decode_jwt(jwt_token)
-                self.success(payload=dict(token=jwt_token.decode(),
+                self.success(payload=dict(user=user.json(deep=False),
+                                          token=jwt_token.decode(),
                                           expires=decoded['exp'],
                                           issued=decoded['iat'],
                                           type=decoded['tok']))
+                if not user.active:
+                    activation = UserActivation.get_by_user(user.id)
+                    if not activation:
+                        activation = UserActivation.add(user=user.id)
+                    send_verification_email(to=data['email'], activation=activation.id)
+                        
         else:
             fields = ", ".join(set(['email', 'password'])-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')

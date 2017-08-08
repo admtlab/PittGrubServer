@@ -1,5 +1,7 @@
 import datetime
 import json
+import random
+import string
 import uuid
 from typing import Any, Dict, List, Optional, Union
 
@@ -120,6 +122,7 @@ class User(Base, Entity):
         json = dict(
             id=cls.id,
             email=cls.email,
+            active=cls.active,
         )
         if deep:
             json['food_preferences'] = [f.json() for f in cls.food_preferences]
@@ -192,7 +195,7 @@ class UserFoodPreference(Base):
 class UserActivation(Base, Entity):
     __tablename__ = 'UserActivation'
 
-    id = Column('id', CHAR(32), primary_key=True)
+    id = Column('id', CHAR(6), primary_key=True)
     user_id = Column('user_id', BIGINT, ForeignKey('User.id'), unique=True, nullable=False)
 
     def __init__(self, id: str, user: int):
@@ -200,14 +203,18 @@ class UserActivation(Base, Entity):
         self.user_id = user
 
     @classmethod
-    def add(cls, user: int, id: str=None) -> 'UserActivation':
+    def add(cls, user: int, code: str=None) -> 'UserActivation':
         assert user is not None
-        uid = id or uuid.uuid4().hex
-        activation = UserActivation(uid, user)
+        code = code or ''.join(random.choices(string.ascii_uppercase+string.digits, k=6))
+        activation = UserActivation(code, user)
         db.session.add(activation)
         db.session.commit()
         db.session.refresh(activation)
         return activation
+
+    @classmethod
+    def get_by_user(cls, user_id: int) -> Optional['UserActivation']:
+        return db.session.query(cls).filter_by(user_id=user_id).one_or_none()
 
     @classmethod
     def delete(cls, id: str) -> bool:
