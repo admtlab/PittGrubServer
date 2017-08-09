@@ -14,7 +14,18 @@ from typing import Dict
 
 # modules
 import db
-from handlers.index import *
+from handlers.index import (
+    MainHandler, NotificationTokenHandler,
+    PreferenceHandler, EventHandler, RecommendedEventHandler,
+    AcceptedEventHandler, AcceptEventHandler
+)
+from handlers.auth import (
+    LoginHandler, LogoutHandler, SignupHandler,
+    TokenRefreshHandler, TokenValidationHandler
+)
+from handlers.user import (
+    UserHandler, UserActivationHandler, UserPreferenceHandler
+)
 
 # dependencies
 try:
@@ -51,12 +62,16 @@ class App(web.Application):
         # tornado web app
         handlers = [
             (r"/(/*)", MainHandler),            # index
-            (r'/test(/*)', TestHandler),
-            (r'/test/([0-9]+)', TestHandlerId),
             (r'/users(/*)', UserHandler),        # all users
             (r'/users/(\d+/*)', UserHandler),    # single user
+            (r'/users/activate(/*)', UserActivationHandler),
+            (r'/users/preferences(/*)', UserPreferenceHandler),
             (r'/token(/*)', NotificationTokenHandler),  # add notification token
+            (r'/signup(/*)', SignupHandler),
             (r'/login(/*)', LoginHandler),       # log-in with credentials
+            (r'/login/refresh(/*)', TokenRefreshHandler),
+            (r'/login/validate(/*)', TokenValidationHandler),
+            (r'/logout(/*)', LogoutHandler),
             (r'/p(/*)', PreferenceHandler),
             (r'/events(/*)', EventHandler),      # all events
             (r'/events/(\d+/*)', EventHandler),  # single event
@@ -70,7 +85,7 @@ class App(web.Application):
         # server settings
         settings = dict(
             static_path=static_path,
-            debug=debug)
+            debug=debug,)
         web.Application.__init__(self, handlers, settings)
 
         # initialize database

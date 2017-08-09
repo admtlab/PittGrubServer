@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 import dateutil.parser
 from copy import deepcopy
-from db import Test, User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent
+from db import User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent, UserRecommendedEvent
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler
 from requests.exceptions import ConnectionError, HTTPError
@@ -28,6 +28,43 @@ finally:
     from tornado.escape import json_encode, json_decode
     from sqlalchemy.orm.exc import NoResultFound
     from exponent_server_sdk import PushClient, PushMessage, PushServerError, PushResponseError
+
+
+def should_recommend(user: 'User', event: 'Event') -> bool:
+    event_food_preferences = [fp.id for fp in event.food_preferences]    
+    user_food_preferences = [fp.id for fp in user.food_preferences]
+    return all(fp in event_food_preferences for fp in user_food_preferences)
+
+
+def event_recommendation(event: 'Event'):
+    user = Users.get_all()
+    for user in users:
+        if should_recommend(user, event):
+            UserRecommendedEvent.add(user.id, event.id)
+            send_push_notification(user: 'User', event: 'Event')
+
+
+def send_push_notification(user: 'User', event: 'Event'):
+    expo_token = user.expo_token
+    if expo_token:
+        if PushClient().is_exponent_push_token(expo_token):
+            try:
+                message = PushMessage(to=expo_token, body='PittGrub: New event added', data={'data': 'A new event was added to PittGrub!'})
+                response = PushClient().publish(message)
+                response.validate_response()
+            except PushServerError as e:
+                print('push server error')
+                print(e)
+                print(f'Response: {e.response}')
+                print(f'Args: {e.args}')
+            except (ConnetionError, HTTPError) as e:
+                print('Connection/HTTP error')
+                print(e)
+            except DeviceNotRegisteredError as e:
+                print(f'Inactive token for user: {user.id}')
+            except PushResponseError as e:
+                print('notification error')
+                print(e)
 
 
 def send_push_message(event: 'Event'):
@@ -212,12 +249,14 @@ class EventHandler(BaseHandler):
                 self.set_status(201)
                 payload = Payload(event)
                 self.success(201, payload)
-                send_push_message(event)
+                # send_push_message(event)
+                event_recommendation(event)
                 # send_notification(event)
             else:
                 self.set_status(400)
                 self.finish()
         else:
+            # missing required field
             fields = ", ".join(set(event_keys)-data.keys())
             self.set_status(400)
             self.write(f'Error: missing field(s) {fields}')
@@ -255,96 +294,3 @@ class AcceptEventHandler(BaseHandler):
         UserAcceptedEvent.add(event, user)
         self.set_status(204)
         print(f'accepted event {event} for user {user}')
-
-
-class TestHandler(BaseHandler):
-    """Test entity requests"""
-
-    def get(self, path):
-        print(f"Path is: {path}")
-        print('request: ', self.request)
-        print(f"\nself: href: {self.request.uri}\n")
-        value = Test.get_all()
-        if value is None:
-            self.set_status(404)
-            self.write("ERROR")
-        else:
-            print('writing payload')
-            self.set_status(200)
-            payload = Payload(value)
-            self.write(payload)
-        self.finish()
-        # value = yield gen.Task(Test.get_all)
-        # try:
-        #     if isinstance(value.result(), Exception):
-        #         logging.warn("GOT EXCEPTION")                
-        #         raise value.result()
-        # except Exception as e:
-        #     self.set_status(500)
-        #     self.write("Internal server error")
-        # else:
-        #     if isinstance(value.result(), Test):
-        #         self.set_status(200)
-        #         self.write(payload(Tests=[i.dict() for i in value]))
-        #     else:
-        #         self.set_status(500)
-        #         self.write("uh oh")
-        # self.finish()
-        # self.finish('{ "Tests": ' + str([i.dict() for i in value]) + ' }')
-        # self.finish('{ "Tests": {} }'.format(value))
-        # self.finish(json.dumps(value[0].dict()))
-        # self.write(dict({'Tests': [i.dict() for i in value]}))
-        # self.write(payload(Tests=[i.dict() for i in value]))
-
-
-class TestHandlerId(BaseHandler):
-    def get(self, id):
-        value = Test.get_by_id(id)
-        print(f"\nself: href: {self.request.path}\n")        
-        if value is None:
-            self.set_status(404)
-            self.write(error(404, 'Not Found', f'Test not found with id {id}'))
-        else:
-            self.write(value.to_json())
-        self.finish()
-
-        # value = yield gen.Task(Test.get_by_id, int(id))
-        # try:
-        #     if isinstance(value.result(), Exception):
-        #         logging.warn("GOT EXCEPTION")
-        #         raise value.result()
-        # except Exception as e:
-        #     self.set_status(500)
-        #     self.write("Internal server error")
-        # else:
-        #     if isinstance(value.result(), Test):
-        #         self.set_status(200)
-        #         self.write(value.result().to_json())
-        #     else:
-        #         self.set_status(500)
-        #         self.write("uh oh")
-        # self.finish()
-
-    # @web.asynchronous
-    # def get(self, id):
-    #     value = yield gen.Task(Test.get_by_id, int(id))
-    #     try:
-    #         if isinstance(value.result(), Exception):
-    #             raise value.result()
-    #     except Exception as e:
-    #         self.set_status(500)
-    #         self.write("Internal server error")
-    #     else:
-    #         if isinstance(value.result(), Test):
-    #             self.set_status(200)
-    #             self.write(value.result().serialize())
-    #     self.finish()
-
-
-def payload(**kwargs):
-    return dict({'_embedded': kwargs})
-
-
-def error(status, error, message):
-    timestamp = int(round(time.time()*1000))
-    return dict({'timestamp': timestamp, 'status': status, 'error': error, 'message': message})
