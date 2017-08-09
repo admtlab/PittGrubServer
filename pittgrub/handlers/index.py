@@ -40,7 +40,7 @@ def event_recommendation(event: 'Event'):
     for user in users:
         if should_recommend(user, event):
             UserRecommendedEvent.add(user.id, event.id)
-            send_push_notification(user: 'User', event: 'Event')
+            send_push_notification(user, event)
 
 
 def send_push_notification(user: 'User', event: 'Event'):
