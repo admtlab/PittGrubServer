@@ -36,7 +36,7 @@ def should_recommend(user: 'User', event: 'Event') -> bool:
 
 
 def event_recommendation(event: 'Event'):
-    user = Users.get_all()
+    user = User.get_all()
     for user in users:
         if should_recommend(user, event):
             UserRecommendedEvent.add(user.id, event.id)
