@@ -50,7 +50,9 @@ class User(Base, Entity):
     password = deferred(Column('password', Password, nullable=False))
     active = Column('active', BOOLEAN, nullable=False, default=False)
     disabled = Column('disabled', BOOLEAN, nullable=False, default=False)
+    admin = Column('admin', BOOLEAN, nullable=False, default=False)
     expo_token = Column('expo_token', VARCHAR(255), nullable=True)
+    login_count = Column('login_count', INT, nullable=True)
 
     # mappings
     food_preferences = association_proxy('_user_foodpreferences', 'food_preference')
@@ -59,12 +61,15 @@ class User(Base, Entity):
     checkedin_events = association_proxy('_user_checkedin_events', 'event')
 
     def __init__(self, id: int=None, email: str=None, password: str=None,
-                 active: bool=False, disabled: bool=False, expo_token: str=None):
+                 active: bool=False, disabled: bool=False, admin: bool=False,
+                 login_count: int=0, expo_token: str=None):
         self.id = id
         self.email = email
         self.password = password
         self.active = active
         self.disabled = disabled
+        self.admin = admin
+        self.login_count = login_count
         self.expo_token = expo_token
 
     @validates('email')
@@ -80,7 +85,7 @@ class User(Base, Entity):
     def add(cls, email: str, password: str) -> 'User':
         if User.get_by_email(email) is not None:
             return None
-        user = User(email=email, password=password)
+        user = User(email=email, password=password, login_count=0)
         db.session.add(user)
         db.session.commit()
         db.session.refresh(user)
@@ -109,6 +114,16 @@ class User(Base, Entity):
         return False
 
     @classmethod
+    def administrate(cls, id: int) -> bool:
+        assert id is not None
+        user = User.get_by_id(id)
+        if user:
+            user.admin = True
+            db.session.commit()
+            return True
+        return False
+
+    @classmethod
     def add_expo_token(cls, id: int, expo_token: str) -> bool:
         try:
             user = User.get_by_id(id)
@@ -118,11 +133,25 @@ class User(Base, Entity):
         except:
             return False
 
+    @classmethod
+    def increment_login(cls, id: int):
+        assert int is not None
+        user = User.get_by_id(id)
+        user.login_count += 1
+        db.session.commit()
+
+    @classmethod
+    def update_preferences(cls, id: int, preferences: List):
+        assert id is not None
+        assert preferences is not None
+        UserFoodPreference.update(id, preferences)
+
     def json(cls, deep: bool=True) -> Dict[str, Any]:
         json = dict(
             id=cls.id,
             email=cls.email,
             active=cls.active,
+            admin=cls.admin
         )
         if deep:
             json['food_preferences'] = [f.json() for f in cls.food_preferences]
@@ -143,7 +172,7 @@ class FoodPreference(Base, Entity):
         self.name = name
         self.description = description
 
-    def json(cls) -> Dict[str, Any]:
+    def json(cls, deep: bool=False) -> Dict[str, Any]:
         return {
             'id': cls.id,
             'name': cls.name,
@@ -166,7 +195,6 @@ class UserFoodPreference(Base):
 
     @classmethod
     def add(cls, user_id: int, foodpreference: Union[int, List[int]]) -> Union['UserFoodPreference', List['UserFoodPreference']]:
-
         if isinstance(foodpreference, list):
             user_foodpreferences = []
             for fp in foodpreference:
@@ -179,17 +207,24 @@ class UserFoodPreference(Base):
         db.session.commit()
         return user_foodpreferences
 
+    @classmethod
+    def update(cls, user_id: int, foodpreferences: Union[int, List[int]]):
+        cls.delete(user_id)
+        cls.add(user_id, foodpreferences)
+
+    @classmethod
+    def delete(cls, user_id: int):
+        prefs = db.session.query(cls).filter_by(user_id=user_id)
+        prefs.delete()
+        db.session.commit()
+
     def json(cls, deep: bool=False) -> Dict[str, Any]:
         if deep:
-            return {
-                'user': cls.user.json(False),
-                'food_preference': cls.food_preference.json()
-            }
+            return {'user': cls.user.json(False),
+                    'food_preference': cls.food_preference.json(deep)}
         else:
-            return {
-                'user': cls.user_id,
-                'food_preferences': cls.foodpref_id
-            }
+            return {'user': cls.user_id,
+                    'food_preferences': cls.foodpref_id}
 
 
 class UserActivation(Base, Entity):
@@ -414,6 +449,18 @@ class UserRecommendedEvent(Base):
     @classmethod
     def get_by_id(cls, event_id: int, user_id: int) -> Optional['UserRecommendedEvent']:
         return db.session.query(cls).get([event_id, user_id])
+
+    @classmethod
+    def add(cls, event_id: int, user_id: int):
+
+    @classmethod
+    def add(cls, user_id: int, event_id: int) -> 'UserRecommendedEvent':
+        user_recommended_event = UserRecommendedEvent(event_id, user_id)
+        db.session.add(user_recommended_event)
+        db.session.commit()
+        db.session.refresh(user_recommended_event)
+        return user_recommended_event
+
 
     def json(cls, deep: bool=False) -> Dict[str, Any]:
         if deep:

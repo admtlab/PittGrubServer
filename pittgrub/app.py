@@ -23,7 +23,9 @@ from handlers.auth import (
     LoginHandler, LogoutHandler, SignupHandler,
     TokenRefreshHandler, TokenValidationHandler
 )
-from handlers.user import UserHandler, UserActivationHandler
+from handlers.user import (
+    UserHandler, UserActivationHandler, UserPreferenceHandler
+)
 
 # dependencies
 try:
@@ -63,6 +65,7 @@ class App(web.Application):
             (r'/users(/*)', UserHandler),        # all users
             (r'/users/(\d+/*)', UserHandler),    # single user
             (r'/users/activate(/*)', UserActivationHandler),
+            (r'/users/preferences(/*)', UserPreferenceHandler),
             (r'/token(/*)', NotificationTokenHandler),  # add notification token
             (r'/signup(/*)', SignupHandler),
             (r'/login(/*)', LoginHandler),       # log-in with credentials

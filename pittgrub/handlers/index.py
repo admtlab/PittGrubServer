@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 import dateutil.parser
 from copy import deepcopy
-from db import User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent
+from db import User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent, UserRecommendedEvent
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler
 from requests.exceptions import ConnectionError, HTTPError
@@ -27,6 +27,43 @@ finally:
     from tornado.escape import json_encode, json_decode
     from sqlalchemy.orm.exc import NoResultFound
     from exponent_server_sdk import PushClient, PushMessage, PushServerError, PushResponseError
+
+
+def should_recommend(user: 'User', event: 'Event') -> bool:
+    event_food_preferences = [fp.id for fp in event.food_preferences]    
+    user_food_preferences = [fp.id for fp in user.food_preferences]
+    return all(fp in event_food_preferences for fp in user_food_preferences)
+
+
+def event_recommendation(event: 'Event'):
+    user = Users.get_all()
+    for user in users:
+        if should_recommend(user, event):
+            UserRecommendedEvent.add(user.id, event.id)
+            send_push_notification(user: 'User', event: 'Event')
+
+
+def send_push_notification(user: 'User', event: 'Event'):
+    expo_token = user.expo_token
+    if expo_token:
+        if PushClient().is_exponent_push_token(expo_token):
+            try:
+                message = PushMessage(to=expo_token, body='PittGrub: New event added', data={'data': 'A new event was added to PittGrub!'})
+                response = PushClient().publish(message)
+                response.validate_response()
+            except PushServerError as e:
+                print('push server error')
+                print(e)
+                print(f'Response: {e.response}')
+                print(f'Args: {e.args}')
+            except (ConnetionError, HTTPError) as e:
+                print('Connection/HTTP error')
+                print(e)
+            except DeviceNotRegisteredError as e:
+                print(f'Inactive token for user: {user.id}')
+            except PushResponseError as e:
+                print('notification error')
+                print(e)
 
 
 def send_push_message(event: 'Event'):
@@ -211,7 +248,8 @@ class EventHandler(BaseHandler):
                 self.set_status(201)
                 payload = Payload(event)
                 self.success(201, payload)
-                send_push_message(event)
+                # send_push_message(event)
+                event_recommendation(event)
                 # send_notification(event)
             else:
                 self.set_status(400)

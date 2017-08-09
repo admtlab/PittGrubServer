@@ -40,8 +40,8 @@ DEFAULTS = dict({
             "), and honey."),
     ],
     'User': [
-        (1, 'xyz@pitt.edu', '12345'),
-        (2, 'abc@pitt.edu', '12345')
+        (1, 'xyz@pitt.edu', '12345', True, False, True, 0),
+        (2, 'abc@pitt.edu', '12345', True, False, False, 0)
     ],
     'AccessToken': [
         # ('4ec1f791944d4c319822bd27f151f38d', 1, datetime.now()+timedelta(days=7)),
@@ -78,10 +78,10 @@ DEFAULTS = dict({
         (3, 3),
     ],
     'UserAcceptedEvent': [
-        (1, 1),
-        (1, 2),
-        (2, 1),
-        (3, 1),
+        (1, 1, datetime.utcnow()),
+        (1, 2, datetime.utcnow()),
+        (2, 1, datetime.utcnow()),
+        (3, 1, datetime.utcnow()),
     ],
     'UserRecommendedEvent': [
         (2, 2),

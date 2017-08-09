@@ -59,22 +59,20 @@ def send_verification_email(to: str, activation: str):
     html = f"{VERIFICATION_CODE} {activation}"
 
     # configure server
-    server = smtplib.SMTP(f'{host}:{port}')
+    server = smtplib.SMTP_SSL(host, port)
 
     # construct message
     msg = MIMEMultipart()
     msg['Subject'] = VERIFICATION_SUBJECT
     msg['From'] = username
     msg['To'] = to
-    msg['Reply-To'] = 'mark@admtlab.org'
     body = MIMEText(html, 'html')
     msg.attach(body)
 
     # send message
     server.ehlo()
-    server.starttls()
-    server.ehlo()
     server.login(username, password)
+    server.ehlo()    
     server.sendmail(msg['From'], msg['To'], msg.as_string())
     server.quit()
 
@@ -183,6 +181,7 @@ class LoginHandler(BaseHandler):
                                           expires=decoded['exp'],
                                           issued=decoded['iat'],
                                           type=decoded['tok']))
+                User.increment_login(user.id)
                 if not user.active:
                     activation = UserActivation.get_by_user(user.id)
                     if not activation:
