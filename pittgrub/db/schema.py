@@ -451,9 +451,6 @@ class UserRecommendedEvent(Base):
         return db.session.query(cls).get([event_id, user_id])
 
     @classmethod
-    def add(cls, event_id: int, user_id: int):
-
-    @classmethod
     def add(cls, user_id: int, event_id: int) -> 'UserRecommendedEvent':
         user_recommended_event = UserRecommendedEvent(event_id, user_id)
         db.session.add(user_recommended_event)
