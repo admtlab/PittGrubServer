@@ -145,6 +145,14 @@ def verify_jwt(token: str) -> bool:
 
 
 class SignupHandler(BaseHandler):
+
+    def set_default_headers(self):
+        print("setting headers")
+        self.set_header("Access-Control-Allow-Origin", "*");
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
+
     def post(self, path: str):
         # new user signup
         print(f'path: {path}')
