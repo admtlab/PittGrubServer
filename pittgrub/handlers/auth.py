@@ -148,9 +148,9 @@ class SignupHandler(BaseHandler):
 
     def set_default_headers(self):
         print("setting headers")
-        self.set_header("Access-Control-Allow-Origin", "*");
-        self.set_header("Access-Control-Allow-Headers", "Content-Type")
-        self.set_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self.set_header("Access-Control-Allow-Methods", "POST, OPTIONS")
 
 
     def post(self, path: str):
