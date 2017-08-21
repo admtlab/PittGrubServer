@@ -150,7 +150,7 @@ class SignupHandler(BaseHandler):
         print("setting headers")
         self.set_header("Access-Control-Allow-Origin", "*");
         self.set_header("Access-Control-Allow-Headers", "x-requested-with")
-        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.set_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
 
 
     def post(self, path: str):
@@ -174,6 +174,10 @@ class SignupHandler(BaseHandler):
             # missing required field
             fields = ", ".join(set(['email', 'password'])-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')
+
+    def options(self, path: str):
+        self.set_status(204)
+        self.finish()
 
 
 class LoginHandler(BaseHandler):
