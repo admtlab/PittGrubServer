@@ -149,7 +149,7 @@ class SignupHandler(BaseHandler):
     def set_default_headers(self):
         print("setting headers")
         self.set_header("Access-Control-Allow-Origin", "*");
-        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
         self.set_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
 
 
