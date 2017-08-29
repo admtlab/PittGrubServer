@@ -18,8 +18,9 @@ from typing import Any, Dict, List, Union
 from uuid import uuid4
 
 from db import AccessToken, User, UserActivation
+from auth import decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
-from handlers.base import BaseHandler
+from handlers.base import BaseHandler, CORSHandler, SecureHandler
 
 try:
     import jwt
@@ -76,87 +77,10 @@ def send_verification_email(to: str, activation: str):
     server.sendmail(msg['From'], msg['To'], msg.as_string())
     server.quit()
 
-
-def create_jwt(owner: int,
-               id: str=None,
-               issuer: str='ADMT Lab',
-               issued: datetime=None,
-               expires: datetime=None) -> bytes:
-    """Creates new JWT for user
-    Note: If a JWT currently exists for the user, it is deleted"""
-    assert owner is not None
-    assert id is None or len(id) == 32
-    assert issuer is not None
-    assert issued is None or issued <= datetime.utcnow()
-    assert expires is None or expires >= datetime.utcnow()
-
-    # set values to defaults
-    id = id or uuid4().hex
-    issued = issued or datetime.utcnow()
-    expires = expires or datetime.utcnow()+timedelta(weeks=2)
-
-    # get app secret
-    config = configparser.ConfigParser()
-    config.read(options.config)
-    secret = config['SERVER'].get('secret')
-
-    # delete old token
-    token = AccessToken.get_by_user(owner)
-    if token is not None:
-        AccessToken.delete(token.id)
-
-    # encode jwt
-    encoded = jwt.encode({'id': id, 'own': owner, 'iss': issuer,
-                          'iat': issued, 'exp': expires, 'tok': 'Bearer'},
-                         secret, algorithm='HS256')
-    # encoded = jwt.encode({'own': owner, 'iss': issuer,
-                        #   'iat': issued, 'exp': expires, 'tok': 'Bearer'},
-                        #  secret, algorithm='HS256')
-    AccessToken.add(id, owner, expires)
-    return encoded
-
-
-def decode_jwt(token: str, verify_exp: bool=False) -> Dict[str, Union[int, str, datetime]]:
-    assert token is not None
-
-    # get app secret
-    config = configparser.ConfigParser()
-    config.read(options.config)
-    secret = config['SERVER'].get('secret')
-
-    # verify jwt
-    decoded = jwt.decode(token, secret, algorithms=['HS256'], options={'verify_exp': verify_exp})
-    return decoded
-
-
-def verify_jwt(token: str) -> bool:
-    assert token is not None
-
-    # get app secret
-    config = configparser.ConfigParser()
-    config.read(options.config)
-    secret = config['SERVER'].get('secret')
-
-    try:
-        jwt.decode(token, secret)
-        return True
-    except ExpiredSignatureError:
-        return False
-
-
-class SignupHandler(BaseHandler):
-
-    def set_default_headers(self):
-        print("setting headers")
-        self.set_header("Access-Control-Allow-Origin", "*")
-        self.set_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        self.set_header("Access-Control-Allow-Methods", "POST, OPTIONS")
-
+class SignupHandler(CORSHandler):
 
     def post(self, path: str):
         # new user signup
-        print(f'path: {path}')
-
         # decode json
         data = json_decode(self.request.body)
         # validate data
@@ -174,11 +98,6 @@ class SignupHandler(BaseHandler):
             # missing required field
             fields = ", ".join(set(['email', 'password'])-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')
-
-    def options(self, path: str):
-        self.set_status(204)
-        self.finish()
-
 
 class LoginHandler(BaseHandler):
     def post(self, path):
