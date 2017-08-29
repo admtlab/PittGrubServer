@@ -6,7 +6,7 @@ import uuid
 from typing import Any, Dict, List, Optional, Union
 
 import db
-from db.base import Entity, Password
+from pittgrub.db.base import Entity, Password
 
 try:
     from passlib.hash import bcrypt_sha256
@@ -625,6 +625,12 @@ class AccessToken(Base, Entity):
             expires=cls.expires
         )
 
+
+class Image(Base, Entity):
+    __tablename__ = "Image"
+
+    id = Column('id', BIGINT, primary_key=True, autoincrement=True)
+    event_id = Column('event', BIGINT, ForeignKey('Event.id'), unique=False)
 
 # class Test(Base, Entity):
 #     __tablename__ = 'Test'
