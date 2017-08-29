@@ -19,7 +19,7 @@ from handlers.index import (
     PreferenceHandler, EventHandler, RecommendedEventHandler,
     AcceptedEventHandler, AcceptEventHandler
 )
-from handlers.auth import (
+from handlers.login import (
     LoginHandler, LogoutHandler, SignupHandler,
     TokenRefreshHandler, TokenValidationHandler
 )
@@ -78,7 +78,6 @@ class App(web.Application):
             (r'/events/recommended/(\d+/*)', RecommendedEventHandler),  # recommended events for a user
             (r'/events/accepted/(\d+/*)', AcceptedEventHandler),        # accepted events for a user
             (r'/events/(\d+)/accept/(\d+/*)', AcceptEventHandler),      # accept an event for a user
-
             # (r'/userfood(/*)', UserFoodPreferencesHandler)
         ]
 
