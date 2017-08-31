@@ -73,6 +73,7 @@ class ImageStore:
         """Save image to file system
         :id: image id
         :image: image to save (opened with PIL/PILLOW)
+        :returns: True if successful, False if not
         """
         # convert image to jpeg
         if not (image.filename.endswith('jpg') or image.filename.endswith('jpeg')):
@@ -91,6 +92,11 @@ class ImageStore:
         return True
 
     def update_image(self, id: int, image: Image) -> bool:
+        """Updates image
+        :id: image id
+        :image: image to update (opened with PIL/PILLOW)
+        :returns: True if successful
+        """
         # convert image to jpeg
         if not (image.filename.endswith('jpg') or image.filename.endswith('jpeg')):
             image = image.convert('RGB')
@@ -104,7 +110,11 @@ class ImageStore:
             image.save(image_loc, "JPEG", quality=self.quality, optimize=self.optimize)
         return True
 
-    def fetch_image(self, id: int) -> Image:
+    def fetch_image(self, id: int) -> Optional[Image]:
+        """Read image from filesystem
+        :id: image id
+        :returns: image if found, None if not
+        """
         image_name = self.get_name(id)
         image_path = self.get_path(image_name)
         image_loc = self.get_location(id)
