@@ -4,7 +4,7 @@ import string
 from .response import Payload
 from .base import BaseHandler
 from db import FoodPreference, User, UserActivation, UserFoodPreference
-from pittgrub.handlers.auth import decode_jwt
+from pittgrub.auth import decode_jwt
 
 try:
     from tornado.escape import json_decode, json_encode
