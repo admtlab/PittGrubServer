@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Union
 from uuid import uuid4
 
 from db import AccessToken, User, UserActivation
-from auth import decode_jwt, verify_jwt
+from auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, CORSHandler, SecureHandler
 
