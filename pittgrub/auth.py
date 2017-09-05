@@ -8,6 +8,7 @@ from uuid import uuid4
 try:
     import jwt
     from jwt import DecodeError, ExpiredSignatureError
+    from tornado.options import options
 except ModuleNotFoundError:
     # DB10 fix
     import sys
@@ -15,6 +16,7 @@ except ModuleNotFoundError:
 
     import jwt
     from jwt import DecodeError, ExpiredSignatureError
+    from tornado.options import options
 
 def create_jwt(owner: int,
                id: str=None,
