@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 
-import db
+from pittgrub import db
 
 try:
     from passlib.hash import bcrypt_sha256

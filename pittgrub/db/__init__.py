@@ -3,8 +3,8 @@ import uuid
 from datetime import datetime, timedelta
 
 from .schema import (
-    AccessToken, Event, EventFoodPreference, EventType, EventTypeRel,
-    FoodPreference, User, UserAcceptedEvent, UserActivation,
+    AccessToken, Event, EventFoodPreference, EventImage, EventType,
+    EventTypeRel, FoodPreference, User, UserAcceptedEvent, UserActivation,
     UserCheckedInEvent, UserFoodPreference, UserRecommendedEvent
 )
 from .base import Entity
@@ -117,3 +117,4 @@ def init(username: str, password: str, url: str, database: str,
             for i in values:
                 session.merge(cls(*i))
             session.commit()
+

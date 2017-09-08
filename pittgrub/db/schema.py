@@ -5,7 +5,7 @@ import string
 import uuid
 from typing import Any, Dict, List, Optional, Union
 
-import db
+from pittgrub import db
 from pittgrub.db.base import Entity, Password
 
 try:
@@ -626,11 +626,27 @@ class AccessToken(Base, Entity):
         )
 
 
-class Image(Base, Entity):
-    __tablename__ = "Image"
+class EventImage(Base, Entity):
+    __tablename__ = "EventImage"
 
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
     event_id = Column('event', BIGINT, ForeignKey('Event.id'), unique=False)
+
+    def __init__(self, id: int=None, event_id: int=None):
+        self.id = id
+        self.event_id = event_id
+
+    @classmethod
+    def add(cls, event_id: id) -> 'EventImage':
+        event_image = EventImage(event_id=event_id)
+        db.session.add(event_image)
+        db.session.commit()
+        db.session.refresh(event_image)
+        return event_image
+
+    @classmethod
+    def get_by_event(cls, event_id: int) -> Optional['EventImage']:
+        return db.session.query(cls).filter_by(event_id=event_id).one_or_none()
 
 # class Test(Base, Entity):
 #     __tablename__ = 'Test'
