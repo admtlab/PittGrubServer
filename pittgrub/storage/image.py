@@ -77,7 +77,7 @@ class ImageStore:
         """
         # convert image to jpeg
         print(f'filename: {image.filename}')
-        if not (image.filename.endswith(b'jpg') or image.filename.endswith(b'jpeg')):
+        if not (image.filename.endswith('jpg') or image.filename.endswith('jpeg')):
             image = image.convert('RGB')
         image_name = self.get_name(id)
         image_path = self.get_path(image_name)
