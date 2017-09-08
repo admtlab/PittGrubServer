@@ -99,7 +99,7 @@ class SignupHandler(CORSHandler):
             fields = ", ".join(set(['email', 'password'])-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')
 
-class LoginHandler(BaseHandler):
+class LoginHandler(CORSHandler):
     def post(self, path):
         data = json_decode(self.request.body)
         if all(key in data for key in ('email', 'password')):
