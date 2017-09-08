@@ -8,10 +8,10 @@ from io import BytesIO
 from PIL import Image
 
 from pittgrub.db import Event, EventImage
-from pittgrub.handlers import SecureHandler
+from pittgrub.handlers import BaseHandler, SecureHandler
 from pittgrub.storage import ImageStore
 
-class EventImageHandler(SecureHandler):
+class EventImageHandler(BaseHandler):
 
     def initialize(self, image_store: ImageStore):
         self.image_store = image_store
@@ -37,12 +37,12 @@ class EventImageHandler(SecureHandler):
                     self.write(stream)
 
     def post(self, event_id, path):
-        requester = self.get_jwt()['own']
+        #requester = self.get_jwt()['own']
         event = Event.get_by_id(event_id)
         if event is None:
             self.write_error(404, f'Event not found with id: {id}')
-        elif not requester == event.organizer_id:
-            self.write_error(403, 'Only the event organizer can upload images')
+        #elif not requester == event.organizer_id:
+        #    self.write_error(403, 'Only the event organizer can upload images')
         else:
             image = self.request.files['image'][0]
             if image is None:
