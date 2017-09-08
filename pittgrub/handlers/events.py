@@ -3,7 +3,7 @@ Handler for event endpoints
 Author: Mark Silvis
 """
 
-import io
+from io import BytesIO
 
 from PIL import Image
 
@@ -29,7 +29,7 @@ class EventImageHandler(SecureHandler):
                 if image is None:
                     self.write_error(400, 'Error reading image')
                 else:
-                    out = io.BytesIO()
+                    out = BytesIO()
                     image.save(out, format="JPEG")
                     stream = out.getvalue()
                     self.set_header("Content-Type", "image/jpeg")
@@ -44,12 +44,11 @@ class EventImageHandler(SecureHandler):
         elif not requester == event.organizer_id:
             self.write_error(403, 'Only the event organizer can upload images')
         else:
-            image = self.request.body_arguments['image'][0]
+            image = self.request.files['image'][0]
             if image is None:
                 self.write_error(400, 'Missing image file')
-                img.show()
             else:
-                image = Image.open(image)
+                image = Image.open(BytesIO(image['body']))
                 event_image = EventImage.add(event_id)
                 image_id = event_image.id
                 if self.image_store.save_image(image_id, image):
