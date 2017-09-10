@@ -12,24 +12,22 @@ import re
 import sys
 from typing import Dict
 
-# modules
 from pittgrub import db
-from handlers.index import (
+from pittgrub.handlers.index import (
     MainHandler, NotificationTokenHandler,
     PreferenceHandler, EventHandler, RecommendedEventHandler,
     AcceptedEventHandler, AcceptEventHandler
 )
-from handlers.login import (
+from pittgrub.handlers.login import (
     LoginHandler, LogoutHandler, SignupHandler,
     TokenRefreshHandler, TokenValidationHandler
 )
-from handlers.user import (
+from pittgrub.handlers.user import (
     UserHandler, UserActivationHandler, UserPreferenceHandler
 )
-from handlers.events import EventImageHandler
-from storage import ImageStore
+from pittgrub.handlers.events import EventImageHandler
+from pittgrub.storage import ImageStore
 
-# dependencies
 try:
     from tornado import httpserver, log, web
     from tornado.ioloop import IOLoop
@@ -137,9 +135,11 @@ def main():
     fmt = log_config.get('format')
     logging.basicConfig(filename=filename, level=level, format=fmt)
 
-    # start server
+    # create app
     app = App(debug, image_store=image_store, username=username, password=password,
               url=url, database=database, params=params)
+
+    # start server
     server = httpserver.HTTPServer(app)
     if (procs == 1):
         # single process
