@@ -118,7 +118,8 @@ class LoginHandler(CORSHandler):
                     if not activation:
                         activation = UserActivation.add(user=user.id)
                     send_verification_email(to=data['email'], activation=activation.id)
-                        
+            else:
+                self.write_error(400, 'Incorrect username or password')
         else:
             fields = ", ".join(set(['email', 'password'])-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')

@@ -1,7 +1,7 @@
 import random
 import string
 
-from .base import BaseHandler
+from .base import BaseHandler, SecureHandler
 from handlers.response import Payload
 from pittgrub.auth import decode_jwt
 from pittgrub.db import FoodPreference, User, UserActivation, UserFoodPreference
@@ -42,6 +42,21 @@ class UserHandler(BaseHandler):
             payload = Payload(value)
             self.finish(payload)
 
+class UserPasswordHandler(SecureHandler):
+    def post(self):
+        user_id = self.get_jwt()['own']
+        user = User.get_by_id(user_id)
+        print(user.password)
+        data = json_decode(self.request.body)
+        if all(key in data for key in ('old_password', 'new_password')):
+            if User.verify(user.email, data['old_password']):
+                User.change_password(user_id, data['new_password'])
+                self.success(status=200)
+            else:
+                self.write(400, f'Incorrect email or password')
+        else:
+            fields = ", ".join(set('old_password', 'new_password') - data.keys())
+            self.write(400, f'Missing field(s): {fields}')
 
 class UserPreferenceHandler(BaseHandler):
     def get(self, path):

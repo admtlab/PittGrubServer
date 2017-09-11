@@ -146,6 +146,14 @@ class User(Base, Entity):
         assert preferences is not None
         UserFoodPreference.update(id, preferences)
 
+    @classmethod
+    def change_password(cls, id: int, new_password: str):
+        assert not not new_password
+        user = User.get_by_id(id)
+        user.password = new_password
+        db.session.commit()
+
+
     def json(cls, deep: bool=True) -> Dict[str, Any]:
         json = dict(
             id=cls.id,

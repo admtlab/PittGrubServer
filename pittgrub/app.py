@@ -23,7 +23,8 @@ from pittgrub.handlers.login import (
     TokenRefreshHandler, TokenValidationHandler
 )
 from pittgrub.handlers.user import (
-    UserHandler, UserActivationHandler, UserPreferenceHandler
+    UserHandler, UserActivationHandler, UserPreferenceHandler,
+    UserPasswordHandler
 )
 from pittgrub.handlers.events import EventImageHandler
 from pittgrub.storage import ImageStore
@@ -72,6 +73,7 @@ class App(web.Application):
             (r'/token(/*)', NotificationTokenHandler),  # add notification token
             (r'/signup(/*)', SignupHandler),
             (r'/login(/*)', LoginHandler),       # log-in with credentials
+            (r'/password', UserPasswordHandler), # Change user password
             (r'/login/refresh(/*)', TokenRefreshHandler),
             (r'/login/validate(/*)', TokenValidationHandler),
             (r'/logout(/*)', LogoutHandler),
