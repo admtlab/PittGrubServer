@@ -1,10 +1,10 @@
 import random
 import string
 
-from .response import Payload
 from .base import BaseHandler
-from db import FoodPreference, User, UserActivation, UserFoodPreference
+from handlers.response import Payload
 from pittgrub.auth import decode_jwt
+from pittgrub.db import FoodPreference, User, UserActivation, UserFoodPreference
 
 try:
     from tornado.escape import json_decode, json_encode
@@ -27,8 +27,8 @@ def create_activation_code(length: int=6) -> str:
 class UserHandler(BaseHandler):
     def get(self, path):
         path = path.replace('/', '')
+
         # get data
-        print('\n\nGOT PATH\n\n')
         if path:
             id = int(path)
             value = User.get_by_id(id)

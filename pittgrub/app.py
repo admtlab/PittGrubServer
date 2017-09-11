@@ -63,7 +63,7 @@ class App(web.Application):
         """
 
         # tornado web app
-        handlers = [
+        endpoints = [
             (r"/(/*)", MainHandler),            # index
             (r'/users(/*)', UserHandler),        # all users
             (r'/users/(\d+/*)', UserHandler),    # single user
@@ -89,7 +89,7 @@ class App(web.Application):
         settings = dict(
             static_path=static_path,
             debug=debug,)
-        web.Application.__init__(self, handlers, settings)
+        web.Application.__init__(self, endpoints, settings)
 
         # initialize database
         db.init(username=db_config['username'], password=db_config['password'],

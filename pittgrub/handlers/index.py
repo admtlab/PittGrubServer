@@ -8,9 +8,9 @@ import logging
 from datetime import datetime
 import dateutil.parser
 from copy import deepcopy
-from db import User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent, UserRecommendedEvent
+from pittgrub.db import User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent, UserRecommendedEvent
 from handlers.response import Payload, ErrorResponse
-from handlers.base import BaseHandler
+from pittgrub.handlers.base import BaseHandler
 from requests.exceptions import ConnectionError, HTTPError
 import requests
 import json

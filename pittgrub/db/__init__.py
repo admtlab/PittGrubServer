@@ -1,5 +1,4 @@
 import sys
-import uuid
 from datetime import datetime, timedelta
 
 from .schema import (
@@ -117,4 +116,3 @@ def init(username: str, password: str, url: str, database: str,
             for i in values:
                 session.merge(cls(*i))
             session.commit()
-
