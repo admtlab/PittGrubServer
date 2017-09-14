@@ -67,7 +67,7 @@ class CORSHandler(BaseHandler):
         self.set_header("Access-Control-Allow-Headers", 'Content-Type, Authorization')
         self.set_header("Access-Control-Allow-Methods", 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
 
-    def options(self, path: str):
+    def options(self, path: str=None):
         self.set_status(204)
         self.finish()
 
