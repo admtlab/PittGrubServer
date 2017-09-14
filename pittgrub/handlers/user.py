@@ -1,7 +1,7 @@
 import random
 import string
 
-from .base import BaseHandler, SecureHandler
+from .base import BaseHandler, CORSHandler, SecureHandler
 from handlers.response import Payload
 from pittgrub.auth import decode_jwt
 from pittgrub.db import FoodPreference, User, UserActivation, UserFoodPreference
@@ -42,7 +42,7 @@ class UserHandler(BaseHandler):
             payload = Payload(value)
             self.finish(payload)
 
-class UserPasswordHandler(SecureHandler):
+class UserPasswordHandler(CORSHandler, SecureHandler):
     def post(self):
         user_id = self.get_jwt()['own']
         user = User.get_by_id(user_id)
