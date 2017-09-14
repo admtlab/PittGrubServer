@@ -155,6 +155,10 @@ class User(Base, Entity):
         user.password = new_password
         db.session.commit()
 
+    def make_admin(self):
+        self.admin = True
+        db.session.commit()
+        db.session.refresh(self)
 
     def json(cls, deep: bool=True) -> Dict[str, Any]:
         json = dict(
@@ -175,11 +179,13 @@ class UserReferral(Base):
     requester = Column('requester', BIGINT, ForeignKey('User.id'), primary_key=True)
     reference = Column('reference', BIGINT, ForeignKey('User.id'))
     status = Column('status', Enum(ReferralStatus), nullable=False, default=ReferralStatus.REQUESTED)
+    time = Column('time', DateTime, default=datetime.datetime.utcnow, nullable=False)
 
-    def __init__(self, requester: int=None, reference: int=None, status: ReferralStatus=None):
+    def __init__(self, requester: int=None, reference: int=None, status: ReferralStatus=None, time: datetime=None):
         self.requester = requester
         self.reference = reference
         self.status = status
+        self.time = time
 
     @classmethod
     def add(cls, requester: int, reference: int) -> 'UserReferral':
@@ -196,17 +202,42 @@ class UserReferral(Base):
         return referral
 
     @classmethod
-    def get_referrals(cls, referrer_id: int) -> List['UserReferral']:
-        assert referrer_id > 0
-        referrals = db.session.query(cls).filter_by(referrer=referrer_id)
+    def get_referrals(cls, reference_id: int) -> List['UserReferral']:
+        assert reference_id > 0
+        referrals = db.session.query(cls).filter_by(reference=reference_id).all()
         return referrals
 
     @classmethod
-    def get_approved(cls, referrer_id: int) -> List['UserReferral']:
-        assert referrer_id > 0
-        referrals = db.session.query(cls).filter_by(referrer=referrer_id).filter_by(status=ReferralStatus.APPROVED)
+    def get_approved(cls, reference_id: int) -> List['UserReferral']:
+        assert reference_id > 0
+        referrals = db.session.query(cls).filter_by(reference=reference_id).filter_by(status=ReferralStatus.APPROVED).all()
         return referrals
 
+    @classmethod
+    def get_requested(cls, reference_id: int) -> List['UserReferral']:
+        assert reference_id > 0
+        referrals = db.session.query(cls).filter_by(reference=reference_id).filter_by(status=ReferralStatus.REQUESTED).all()
+        return referrals
+
+    def approve(self):
+        user = User.get_by_id(self.requester)
+        user.status = UserStatus.APPROVED
+        self.status = ReferralStatus.APPROVED
+        db.session.commit()
+        db.session.refresh(self)
+
+    def deny(self):
+        self.status = ReferralStatus.DENIED
+        db.session.commit()
+        db.session.refresh(self)
+
+    def json(cls, deep: bool=False) -> Dict[str, Any]:
+        return dict(
+            requester=User.get_by_id(cls.requester).json(),
+            reference=cls.reference,
+            status=cls.status.value,
+            timestamp=cls.time.isoformat()
+        )
 
 class FoodPreference(Base, Entity):
     __tablename__ = 'FoodPreference'

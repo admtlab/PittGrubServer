@@ -110,3 +110,8 @@ class SecureHandler(BaseHandler):
         except DecodeError:
             raise
 
+    def get_user_id(self) -> int:
+        """Get user id from JWT
+        return: user id
+        """
+        return self.get_jwt()['own']

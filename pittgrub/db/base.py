@@ -73,6 +73,6 @@ class UserStatus(enum.Enum):
     VERIFIED = 4    # verified,
 
 class ReferralStatus(enum.Enum):
-    REQUESTED = 0   # waiting for approval
-    APPROVED = 1    # referral request approved
-    DENIED = 2      # referral request denied
+    REQUESTED = 'requested' # waiting for approval
+    APPROVED = 'approved'   # referral request approved
+    DENIED = 'denied'       # referral request denied
