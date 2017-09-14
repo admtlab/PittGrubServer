@@ -53,10 +53,10 @@ class UserPasswordHandler(CORSHandler, SecureHandler):
                 User.change_password(user_id, data['new_password'])
                 self.success(status=200)
             else:
-                self.write(400, f'Incorrect email or password')
+                self.write_error(400, 'Incorrect email or password')
         else:
             fields = ", ".join(set('old_password', 'new_password') - data.keys())
-            self.write(400, f'Missing field(s): {fields}')
+            self.write_error(400, f'Missing field(s): {fields}')
 
 class UserPreferenceHandler(BaseHandler):
     def get(self, path):
