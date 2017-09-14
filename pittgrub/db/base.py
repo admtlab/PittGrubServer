@@ -1,3 +1,4 @@
+import enum
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 
 from pittgrub import db
@@ -63,3 +64,15 @@ class Password(TypeDecorator):
                 return False
             else:
                 return bcrypt_sha256.verify(other, self.expr)
+
+class UserStatus(enum.Enum):
+    WAITING = 0     # waiting for referral
+    APPROVED = 1    # referral approved
+    REQUESTED = 2   # requested access
+    ACCEPTED = 3    # request accepted, sent verification
+    VERIFIED = 4    # verified,
+
+class ReferralStatus(enum.Enum):
+    REQUESTED = 0   # waiting for approval
+    APPROVED = 1    # referral request approved
+    DENIED = 2      # referral request denied

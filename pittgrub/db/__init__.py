@@ -3,10 +3,10 @@ from datetime import datetime, timedelta
 
 from .schema import (
     AccessToken, Event, EventFoodPreference, EventImage, EventType,
-    EventTypeRel, FoodPreference, User, UserAcceptedEvent, UserActivation,
-    UserCheckedInEvent, UserFoodPreference, UserRecommendedEvent
+    EventTypeRel, FoodPreference, User, UserAcceptedEvent, UserReferral,
+    UserActivation, UserCheckedInEvent, UserFoodPreference, UserRecommendedEvent
 )
-from .base import Entity
+from .base import Entity, ReferralStatus, UserStatus
 
 try:
     from sqlalchemy import create_engine
@@ -39,8 +39,8 @@ DEFAULTS = dict({
             "), and honey."),
     ],
     'User': [
-        (1, 'xyz@pitt.edu', '12345', True, False, True, 0),
-        (2, 'abc@pitt.edu', '12345', True, False, False, 0)
+        (1, 'xyz@pitt.edu', '12345', UserStatus.VERIFIED, True, False, True, 0),
+        (2, 'abc@pitt.edu', '12345', UserStatus.VERIFIED, True, False, False, 0)
     ],
     'AccessToken': [
         # ('4ec1f791944d4c319822bd27f151f38d', 1, datetime.now()+timedelta(days=7)),

@@ -6,13 +6,13 @@ import uuid
 from typing import Any, Dict, List, Optional, Union
 
 from pittgrub import db
-from pittgrub.db.base import Entity, Password
+from pittgrub.db.base import Entity, Password, UserStatus, ReferralStatus
 
 try:
     from passlib.hash import bcrypt_sha256
     from sqlalchemy import Column, ForeignKey, ForeignKeyConstraint, Table
     from sqlalchemy.types import DateTime, TypeDecorator
-    from sqlalchemy.types import BIGINT, BOOLEAN, CHAR, INT, VARCHAR
+    from sqlalchemy.types import BIGINT, BOOLEAN, CHAR, Enum, INT, VARCHAR
     from sqlalchemy.orm import (
         backref, deferred, relationship,
         scoped_session, sessionmaker, validates
@@ -47,7 +47,8 @@ class User(Base, Entity):
 
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
     email = Column('email', VARCHAR(255), unique=True, nullable=False)
-    password = deferred(Column('password', Password, nullable=False))
+    password = Column('password', Password, nullable=False)
+    status = Column('status', Enum(UserStatus), nullable=False, default=UserStatus.REQUESTED)
     active = Column('active', BOOLEAN, nullable=False, default=False)
     disabled = Column('disabled', BOOLEAN, nullable=False, default=False)
     admin = Column('admin', BOOLEAN, nullable=False, default=False)
@@ -61,21 +62,22 @@ class User(Base, Entity):
     checkedin_events = association_proxy('_user_checkedin_events', 'event')
 
     def __init__(self, id: int=None, email: str=None, password: str=None,
-                 active: bool=False, disabled: bool=False, admin: bool=False,
-                 login_count: int=0, expo_token: str=None):
+                 status: UserStatus=None, active: bool=False, disabled: bool=False,
+                 admin: bool=False, login_count: int=0, expo_token: str=None):
         self.id = id
         self.email = email
         self.password = password
+        self.status = status
         self.active = active
         self.disabled = disabled
         self.admin = admin
         self.login_count = login_count
         self.expo_token = expo_token
 
-    @validates('email')
-    def validate_email(self, key: str, email: str) -> str:
-        assert email.endswith('@pitt.edu')
-        return email
+    # @validates('email')
+    # def validate_email(self, key: str, email: str) -> str:
+    #     assert email.endswith('@pitt.edu')
+    #     return email
 
     @property
     def valid(self):
@@ -166,6 +168,44 @@ class User(Base, Entity):
         else:
             json['food_preferences'] = [f.id for f in cls.food_preferences]
         return json
+
+class UserReferral(Base):
+    __tablename__ = 'UserReferral'
+
+    requester = Column('requester', BIGINT, ForeignKey('User.id'), primary_key=True)
+    reference = Column('reference', BIGINT, ForeignKey('User.id'))
+    status = Column('status', Enum(ReferralStatus), nullable=False, default=ReferralStatus.REQUESTED)
+
+    def __init__(self, requester: int=None, reference: int=None, status: ReferralStatus=None):
+        self.requester = requester
+        self.reference = reference
+        self.status = status
+
+    @classmethod
+    def add(cls, requester: int, reference: int) -> 'UserReferral':
+        user_referral = UserReferral(requester, reference)
+        db.session.add(user_referral)
+        db.session.commit()
+        db.session.refresh(user_referral)
+        return user_referral
+
+    @classmethod
+    def get_referral(cls, requester_id: int) -> Optional['UserReferral']:
+        assert requester_id > 0
+        referral = db.session.query(cls).filter_by(requester=requester_id).one_or_none()
+        return referral
+
+    @classmethod
+    def get_referrals(cls, referrer_id: int) -> List['UserReferral']:
+        assert referrer_id > 0
+        referrals = db.session.query(cls).filter_by(referrer=referrer_id)
+        return referrals
+
+    @classmethod
+    def get_approved(cls, referrer_id: int) -> List['UserReferral']:
+        assert referrer_id > 0
+        referrals = db.session.query(cls).filter_by(referrer=referrer_id).filter_by(status=ReferralStatus.APPROVED)
+        return referrals
 
 
 class FoodPreference(Base, Entity):
@@ -655,13 +695,3 @@ class EventImage(Base, Entity):
     @classmethod
     def get_by_event(cls, event_id: int) -> Optional['EventImage']:
         return db.session.query(cls).filter_by(event_id=event_id).one_or_none()
-
-# class Test(Base, Entity):
-#     __tablename__ = 'Test'
-#     id = Column('id', INT, primary_key=True)
-#     _password = Column('password', CHAR(64), nullable=True)
-#     private = Column('private', VARCHAR(255), nullable=True)
-#     def to_json(self):
-#         return(json.dumps({u'id': self.id}))
-#     def dict(self):
-#         return {c.name: getattr(self, c.name) for c in self.__table__.columns}

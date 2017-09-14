@@ -20,7 +20,8 @@ from pittgrub.handlers.index import (
 )
 from pittgrub.handlers.login import (
     LoginHandler, LogoutHandler, SignupHandler,
-    TokenRefreshHandler, TokenValidationHandler
+    TokenRefreshHandler, TokenValidationHandler,
+    ReferralHandler
 )
 from pittgrub.handlers.user import (
     UserHandler, UserActivationHandler, UserPreferenceHandler,
@@ -71,7 +72,8 @@ class App(web.Application):
             (r'/users/activate(/*)', UserActivationHandler),
             (r'/users/preferences(/*)', UserPreferenceHandler),
             (r'/token(/*)', NotificationTokenHandler),  # add notification token
-            (r'/signup(/*)', SignupHandler),
+            (r'/signup(/*)', SignupHandler),     # sign-up
+            (r'/referral(/*)', ReferralHandler), # sign-up with reference
             (r'/login(/*)', LoginHandler),       # log-in with credentials
             (r'/password', UserPasswordHandler), # Change user password
             (r'/login/refresh(/*)', TokenRefreshHandler),
