@@ -106,6 +106,7 @@ class ReferralHandler(CORSHandler):
         # new user signup with referral
         # decode json
         data = json_decode(self.request.body)
+        print(f'data: {data}')
         # validate data
         if all(key in data for key in required):
             # verify referral exists
