@@ -60,7 +60,7 @@ def send_verification_email(to: str, activation: str):
     html = f"{VERIFICATION_CODE} {activation}"
 
     # configure server
-    server = smtplib.SMTP_SSL(host, port)
+    server = smtplib.SMTP(host, port)
 
     # construct message
     msg = MIMEMultipart()
@@ -72,8 +72,8 @@ def send_verification_email(to: str, activation: str):
 
     # send message
     server.ehlo()
+    server.starttls()
     server.login(username, password)
-    server.ehlo()    
     server.sendmail(msg['From'], msg['To'], msg.as_string())
     server.quit()
 
