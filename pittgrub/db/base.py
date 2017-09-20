@@ -66,13 +66,12 @@ class Password(TypeDecorator):
                 return bcrypt_sha256.verify(other, self.expr)
 
 class UserStatus(enum.Enum):
-    WAITING = 0     # waiting for referral
-    APPROVED = 1    # referral approved
-    REQUESTED = 2   # requested access
-    ACCEPTED = 3    # request accepted, sent verification
-    VERIFIED = 4    # verified,
+    REFERRAL = 0    # waiting for referral
+    REQUESTED = 1   # waiting for verification
+    VERIFIED = 2    # verified email account, waiting for activation
+    ACCEPTED = 3    # user accepted; active account
 
 class ReferralStatus(enum.Enum):
-    REQUESTED = 'requested' # waiting for approval
+    PENDING = 'pending'     # waiting for approval
     APPROVED = 'approved'   # referral request approved
     DENIED = 'denied'       # referral request denied

@@ -73,10 +73,10 @@ class UserReferralHandler(CORSHandler, SecureHandler):
             fields = ', '.join(set(keys) - data.keys())
             self.write_error(400, f'Error: missing field(s): {fields}')
 
-class UserRequestedReferralHandler(CORSHandler, SecureHandler):
+class UserPendingReferralHandler(CORSHandler, SecureHandler):
     def get(self, path: str):
         user_id = self.get_user_id()
-        refs = UserReferral.get_requested(user_id)
+        refs = UserReferral.get_pending(user_id)
         self.success(status=200, payload=Payload(refs))
 
 class UserApprovedReferralHandler(CORSHandler, SecureHandler):

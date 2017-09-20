@@ -178,7 +178,7 @@ class UserReferral(Base):
 
     requester = Column('requester', BIGINT, ForeignKey('User.id'), primary_key=True)
     reference = Column('reference', BIGINT, ForeignKey('User.id'))
-    status = Column('status', Enum(ReferralStatus), nullable=False, default=ReferralStatus.REQUESTED)
+    status = Column('status', Enum(ReferralStatus), nullable=False, default=ReferralStatus.PENDING)
     time = Column('time', DateTime, default=datetime.datetime.utcnow, nullable=False)
 
     def __init__(self, requester: int=None, reference: int=None, status: ReferralStatus=None, time: datetime=None):
@@ -214,9 +214,9 @@ class UserReferral(Base):
         return referrals
 
     @classmethod
-    def get_requested(cls, reference_id: int) -> List['UserReferral']:
+    def get_pending(cls, reference_id: int) -> List['UserReferral']:
         assert reference_id > 0
-        referrals = db.session.query(cls).filter_by(reference=reference_id).filter_by(status=ReferralStatus.REQUESTED).all()
+        referrals = db.session.query(cls).filter_by(reference=reference_id).filter_by(status=ReferralStatus.PENDING).all()
         return referrals
 
     def approve(self):
