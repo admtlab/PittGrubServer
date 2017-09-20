@@ -24,7 +24,7 @@ def create_activation_code(length: int=6) -> str:
     return ''.join(code)
 
 
-class UserHandler(BaseHandler):
+class UserHandler(SecureHandler):
     def get(self, path):
         path = path.replace('/', '')
 

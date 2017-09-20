@@ -10,7 +10,7 @@ import dateutil.parser
 from copy import deepcopy
 from pittgrub.db import User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent, UserRecommendedEvent
 from handlers.response import Payload, ErrorResponse
-from pittgrub.handlers.base import BaseHandler
+from pittgrub.handlers.base import BaseHandler, SecureHandler
 from requests.exceptions import ConnectionError, HTTPError
 import requests
 import json
@@ -179,7 +179,7 @@ class LoginHandler(BaseHandler):
             self.write_error(401, f'Incorrect email or password')
 
 
-class UserHandler(BaseHandler):
+class UserHandler(SecureHandler):
     def get(self, path):
         path = path.replace('/', '')
         # get data

@@ -80,11 +80,12 @@ class SecureHandler(BaseHandler):
         if not self.request.method == 'OPTIONS':   # maybe not?
             try:
                 if not self.verify_jwt():
-                    self.write_error(403, 'Authorization token is expired')
-                    raise Finish()
+                    self.write_error(401, 'Invalid authorization token')
+            except ExpiredSignatureError:
+                self.write_error(401, 'Authorization token is expired')
             except:
-                self.write_error(400, 'Invalid token')
-                raise Finish()
+                self.write_error(401, 'Invalid authorization token')
+            raise Finish()
 
     def get_jwt(self, verify: bool=False) -> Optional[Dict[str, Union[int, str, 'datetime']]]:
         """Retrieve decoded JSON web token
@@ -98,17 +99,12 @@ class SecureHandler(BaseHandler):
 
     def verify_jwt(self) -> Optional[bool]:
         """Verify JWT is not expired
-        return: True if not expired
+        :return: True if not expired
                 False if expired
+        :raises ExpiredSignatureError: if token is expired
         :raises DecodeError: if token fails to be decoded
         """
-        try:
-            if self.get_jwt(True) is not None:
-                return True
-        except ExpiredSignatureError:
-            return False
-        except DecodeError:
-            raise
+        return self.get_jwt(True) is not None
 
     def get_user_id(self) -> int:
         """Get user id from JWT
