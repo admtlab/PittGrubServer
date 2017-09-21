@@ -26,6 +26,7 @@ def create_activation_code(length: int=6) -> str:
 
 class UserHandler(SecureHandler):
     def get(self, path):
+        print('*****\nin users handler\n*****')
         path = path.replace('/', '')
 
         # get data
@@ -38,6 +39,7 @@ class UserHandler(SecureHandler):
         if value is None:
             self.write_error(404, f'User not found with id: {id}')
         else:
+            print(f'writing: {value}')
             self.set_status(200)
             payload = Payload(value)
             self.finish(payload)

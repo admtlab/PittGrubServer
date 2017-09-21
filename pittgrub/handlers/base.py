@@ -81,11 +81,13 @@ class SecureHandler(BaseHandler):
             try:
                 if not self.verify_jwt():
                     self.write_error(401, 'Invalid authorization token')
+                    raise Finish()
             except ExpiredSignatureError:
                 self.write_error(401, 'Authorization token is expired')
+                raise Finish()
             except:
                 self.write_error(401, 'Invalid authorization token')
-            raise Finish()
+                raise Finish()
 
     def get_jwt(self, verify: bool=False) -> Optional[Dict[str, Union[int, str, 'datetime']]]:
         """Retrieve decoded JSON web token

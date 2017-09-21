@@ -204,6 +204,7 @@ class TokenRefreshHandler(BaseHandler):
 class TokenValidationHandler(BaseHandler):
     def get(self, path: str):
         # get token
+        print('**********\nin token validation handler\n**********')
         auth = self.request.headers.get('Authorization')
         if auth:
             # verify form
