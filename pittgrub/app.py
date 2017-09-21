@@ -78,7 +78,7 @@ class App(web.Application):
             (r'/signup/referral(/*)', ReferralHandler), # sign-up with reference
             (r'/login(/*)', LoginHandler),       # log-in with credentials
             (r'/referrals(/*)', UserReferralHandler),   # get user referrals
-            (r'/referrals/pending (/*)', UserPendingReferralHandler), # get requested user referrals
+            (r'/referrals/pending(/*)', UserPendingReferralHandler), # get requested user referrals
             (r'/referrals/approved(/*)', UserApprovedReferralHandler),  # get approved user referrals
             (r'/password', UserPasswordHandler), # Change user password
             (r'/login/refresh(/*)', TokenRefreshHandler),
