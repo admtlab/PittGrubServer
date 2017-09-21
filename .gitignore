@@ -1,6 +1,7 @@
 # Server
 *_config.ini
 resources/images/
+nohup.out
 
 # Visual Studio Code
 .vscode/
