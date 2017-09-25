@@ -1,29 +1,22 @@
 import sys
 from datetime import datetime, timedelta
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
+
+from .base import Entity, ReferralStatus, UserStatus
 from .schema import (
     AccessToken, Event, EventFoodPreference, EventImage, EventType,
-    EventTypeRel, FoodPreference, User, UserAcceptedEvent, UserReferral,
-    UserActivation, UserCheckedInEvent, UserFoodPreference, UserRecommendedEvent
+    EventTypeRel, FoodPreference, User, UserAcceptedEvent, UserActivation,
+    UserCheckedInEvent, UserFoodPreference, UserRecommendedEvent, UserReferral
 )
-from .base import Entity, ReferralStatus, UserStatus
-
-try:
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import scoped_session, sessionmaker
-except ModuleNotFoundError:
-    # DB10 fix
-    sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
-
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import scoped_session, sessionmaker
-
 
 # database session
 # initialized by init()
 session = None
 
 # database default values
+# for testing purposes
 DEFAULTS = dict({
     'FoodPreference': [
         (1, 'Gluten Free',
@@ -92,13 +85,13 @@ def init(username: str, password: str, url: str, database: str,
          params: str, echo: bool=False, generate: bool=False):
     """Initialize database
 
-    username: username
-    password: user's password
-    url:      database url
-    database: database name
-    params:   parameters
-    echo:     log commands
-    generate: generate tables dynamically
+    :username: username
+    :password: user's password
+    :url:      database url
+    :database: database name
+    :params:   parameters
+    :echo:     log commands
+    :generate: generate tables dynamically
     """
     global session
     engine = create_engine(f"mysql+pymysql://{username}:{password}"
