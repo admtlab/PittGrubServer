@@ -24,7 +24,7 @@ from pittgrub.handlers.login import (
     ReferralHandler
 )
 from pittgrub.handlers.user import (
-    UserHandler, UserActivationHandler, UserPreferenceHandler,
+    UserHandler, UserVerificationHandler, UserPreferenceHandler,
     UserPasswordHandler
 )
 from pittgrub.handlers.events import EventImageHandler
@@ -70,7 +70,7 @@ class App(web.Application):
             (r"/(/*)", MainHandler),            # index
             (r'/users(/*)', UserHandler),        # all users
             (r'/users/(\d+/*)', UserHandler),    # single user
-            (r'/users/activate(/*)', UserActivationHandler),
+            (r'/users/activate(/*)', UserVerificationHandler),
             (r'/users/preferences(/*)', UserPreferenceHandler),
             (r'/users/admin(/*)', AdminHandler), # make user admin
             (r'/token(/*)', NotificationTokenHandler),  # add notification token

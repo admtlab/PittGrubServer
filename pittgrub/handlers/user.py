@@ -4,7 +4,7 @@ import string
 from .base import BaseHandler, CORSHandler, SecureHandler
 from handlers.response import Payload
 from pittgrub.auth import decode_jwt
-from pittgrub.db import FoodPreference, User, UserActivation, UserFoodPreference
+from pittgrub.db import FoodPreference, User, UserVerification, UserFoodPreference
 
 try:
     from tornado.escape import json_decode, json_encode
@@ -94,7 +94,7 @@ class UserPreferenceHandler(BaseHandler):
             self.write_error(403, 'Authentication is required')
 
 
-class UserActivationHandler(BaseHandler):
+class UserVerificationHandler(BaseHandler):
     def get(self, path):
         try:
             id = self.get_query_argument('id')

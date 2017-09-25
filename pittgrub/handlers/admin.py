@@ -3,7 +3,7 @@ Admin tools handler
 Author: Mark Silvis
 """
 
-from db import AccessToken, User, UserActivation, UserReferral
+from db import AccessToken, User, UserReferral
 from auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, CORSHandler, SecureHandler

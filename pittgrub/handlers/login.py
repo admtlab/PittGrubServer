@@ -17,7 +17,7 @@ from email.mime.multipart import MIMEMultipart
 from typing import Any, Dict, List, Union
 from uuid import uuid4
 
-from db import AccessToken, User, UserActivation, UserReferral
+from db import AccessToken, User, UserVerification, UserReferral
 from auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, CORSHandler, SecureHandler
@@ -89,7 +89,7 @@ class SignupHandler(CORSHandler):
             user = User.add(data['email'], data['password'])
             if user:
                 # add activation code
-                activation = UserActivation.add(user=user.id)
+                activation = UserVerification.add(user=user.id)
                 self.success(payload=Payload(user))
                 send_verification_email(to=user.email, activation=activation.id)
             else:
@@ -118,7 +118,7 @@ class ReferralHandler(CORSHandler):
                 user = User.add(data['email'], data['password'])
                 if user:
                     user_referral = UserReferral.add(user.id, reference.id)
-                    activation = UserActivation.add(user=user.id)
+                    activation = UserVerification.add(user=user.id)
                     self.success(payload=Payload(user))
                     send_verification_email(to=user.email, activation=activation.id)
         else:
@@ -133,9 +133,9 @@ class LoginHandler(CORSHandler):
             if User.verify_credentials(data['email'], data['password']):
                 user = User.get_by_email(data['email'])
                 if not user.active:
-                    activation = UserActivation.get_by_user(user.id)
+                    activation = UserVerification.get_by_user(user.id)
                     if not activation:
-                        activation = UserActivation.add(user=user.id)
+                        activation = UserVerification.add(user=user.id)
                     send_verification_email(to=data['email'], activation=activation.id)
                     self.write_error(403, 'Error: account not verified')
                 else:
