@@ -1,42 +1,19 @@
 import datetime
-import json
 import random
 import string
-import uuid
 from typing import Any, Dict, List, Optional, Union
 
+from passlib.hash import bcrypt_sha256
+from sqlalchemy import Column, ForeignKey
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import backref, relationship, validates
+from sqlalchemy.types import (
+    BIGINT, BOOLEAN, CHAR, DateTime, Enum, INT, VARCHAR
+)
+
 from pittgrub import db
-from pittgrub.db.base import Entity, Password, UserStatus, ReferralStatus
-
-try:
-    from passlib.hash import bcrypt_sha256
-    from sqlalchemy import Column, ForeignKey, ForeignKeyConstraint, Table
-    from sqlalchemy.types import DateTime, TypeDecorator
-    from sqlalchemy.types import BIGINT, BOOLEAN, CHAR, Enum, INT, VARCHAR
-    from sqlalchemy.orm import (
-        backref, deferred, relationship,
-        scoped_session, sessionmaker, validates
-    )
-    from sqlalchemy.ext.associationproxy import association_proxy
-    from sqlalchemy.ext.declarative import declarative_base
-    from sqlalchemy.ext.hybrid import Comparator, hybrid_property
-except ModuleNotFoundError:
-    # DB10 fix
-    import sys
-    sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
-
-    from passlib.hash import bcrypt_sha256
-    from sqlalchemy import Column, ForeignKey, ForeignKeyConstraint, Table
-    from sqlalchemy.types import DateTime, TypeDecorator
-    from sqlalchemy.types import BIGINT, BOOLEAN, CHAR, INT, VARCHAR
-    from sqlalchemy.orm import (
-        backref, deferred, relationship,
-        scoped_session, sessionmaker, validates
-    )
-    from sqlalchemy.ext.associationproxy import association_proxy
-    from sqlalchemy.ext.declarative import declarative_base
-    from sqlalchemy.ext.hybrid import Comparator, hybrid_property
-
+from pittgrub.db.base import Entity, Password, ReferralStatus, UserStatus
 
 # database db.session variables
 Base = declarative_base()
@@ -46,6 +23,7 @@ class User(Base, Entity):
     __tablename__ = 'User'
 
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
+    created = Column('created', DateTime, nullable=False, default=datetime.datetime.utcnow)
     email = Column('email', VARCHAR(255), unique=True, nullable=False)
     password = Column('password', Password, nullable=False)
     status = Column('status', Enum(UserStatus), nullable=False, default=UserStatus.REQUESTED)
@@ -53,7 +31,7 @@ class User(Base, Entity):
     disabled = Column('disabled', BOOLEAN, nullable=False, default=False)
     admin = Column('admin', BOOLEAN, nullable=False, default=False)
     expo_token = Column('expo_token', VARCHAR(255), nullable=True)
-    login_count = Column('login_count', INT, nullable=True)
+    login_count = Column('login_count', INT, nullable=False)
 
     # mappings
     food_preferences = association_proxy('_user_foodpreferences', 'food_preference')
@@ -65,6 +43,7 @@ class User(Base, Entity):
                  status: UserStatus=None, active: bool=False, disabled: bool=False,
                  admin: bool=False, login_count: int=0, expo_token: str=None):
         self.id = id
+        self.created = datetime.datetime.utcnow()
         self.email = email
         self.password = password
         self.status = status
@@ -74,20 +53,15 @@ class User(Base, Entity):
         self.login_count = login_count
         self.expo_token = expo_token
 
-    # @validates('email')
-    # def validate_email(self, key: str, email: str) -> str:
-    #     assert email.endswith('@pitt.edu')
-    #     return email
-
     @property
     def valid(self):
-        return self.active and not self.disabled
+        return self.active and self.status is UserStatus.ACCEPTED and not self.disabled
 
     @classmethod
     def add(cls, email: str, password: str) -> 'User':
-        if User.get_by_email(email) is not None:
-            return None
-        user = User(email=email, password=password, login_count=0)
+        """Create new user and add to database
+        """
+        user = User(email=email, password=password)
         db.session.add(user)
         db.session.commit()
         db.session.refresh(user)
@@ -98,7 +72,7 @@ class User(Base, Entity):
         return db.session.query(cls).filter_by(email=email).one_or_none()
 
     @classmethod
-    def verify(cls, email: str, password: str) -> bool:
+    def verify_credentials(cls, email: str, password: str) -> bool:
         user = User.get_by_email(email)
         if user is None:
             return False
@@ -114,26 +88,6 @@ class User(Base, Entity):
             db.session.commit()
             return True
         return False
-
-    @classmethod
-    def administrate(cls, id: int) -> bool:
-        assert id is not None
-        user = User.get_by_id(id)
-        if user:
-            user.admin = True
-            db.session.commit()
-            return True
-        return False
-
-    @classmethod
-    def add_expo_token(cls, id: int, expo_token: str) -> bool:
-        try:
-            user = User.get_by_id(id)
-            user.expo_token = expo_token
-            db.session.commit()
-            return True
-        except:
-            return False
 
     @classmethod
     def increment_login(cls, id: int):
@@ -154,6 +108,20 @@ class User(Base, Entity):
         user = User.get_by_id(id)
         user.password = new_password
         db.session.commit()
+
+    def verify_password(self, password: str) -> bool:
+        return bcrypt_sha256.verify(self.password, password)
+
+    def verification(self, verification_code: str) -> bool:
+        verification = UserVerification.get_by_user(self.id)
+        if verification and verification.code is verification_code:
+            self.active = True
+            UserVerification.delete(verification_code)
+
+    def add_expo_token(self, expo_token: str):
+        self.expo_token = expo_token
+        db.session.commit()
+        db.session.refresh(self)
 
     def make_admin(self):
         self.admin = True
@@ -306,42 +274,62 @@ class UserFoodPreference(Base):
                     'food_preferences': cls.foodpref_id}
 
 
-class UserActivation(Base, Entity):
-    __tablename__ = 'UserActivation'
+class UserVerification(Base):
+    __tablename__ = 'UserVerification'
 
-    id = Column('id', CHAR(6), primary_key=True)
+    code = Column('code', CHAR(6), primary_key=True)
     user_id = Column('user_id', BIGINT, ForeignKey('User.id'), unique=True, nullable=False)
 
-    def __init__(self, id: str, user: int):
-        self.id = id
-        self.user_id = user
+    def __init__(self, code: str, user_id: int):
+        self.code = code
+        self.user_id = user_id
 
     @classmethod
-    def add(cls, user: int, code: str=None) -> 'UserActivation':
-        assert user is not None
-        code = code or ''.join(random.choices(string.ascii_uppercase+string.digits, k=6))
-        activation = UserActivation(code, user)
-        db.session.add(activation)
+    def add(cls, user_id: int, code: str=None) -> 'UserActivation':
+        assert user_id is not None
+        code = code or cls.generate_code()
+        verification = UserVerification(code, user_id)
+        db.session.add(verification)
         db.session.commit()
-        db.session.refresh(activation)
-        return activation
+        db.session.refresh(verification)
+        return verification
 
     @classmethod
-    def get_by_user(cls, user_id: int) -> Optional['UserActivation']:
+    def get_by_code(cls, code: str) -> Optional['UserVerification']:
+        """Get entity by code"""
+        return db.session.query(cls).filter_by(code=code).one_or_none()
+
+    @classmethod
+    def get_by_user(cls, user_id: int) -> Optional['UserVerification']:
+        """Get entity by user"""
         return db.session.query(cls).filter_by(user_id=user_id).one_or_none()
 
     @classmethod
-    def delete(cls, id: str) -> bool:
-        success = db.session.query(cls).filter_by(id=id).delete()
-        db.session.commit()
+    def delete_by_code(cls, code: str) -> bool:
+        """Delete instance"""
+        success = db.session.query(cls).filter_by(code=code).delete()
+        db.session.flush()
         return success
+
+    @classmethod
+    def delete(cls, user_id: int) -> bool:
+        """Delete instance"""
+        success = db.session.query(cls).filter_by(user_id=user_id).delete()
+        db.session.flush()
+        return success
+
+    @classmethod
+    def generate_code(cls) -> str:
+        """Generate a new verification code"""
+        return ''.join(random.choices(string.ascii_uppercase+string.digits, k=6))
 
 
 class Event(Base, Entity):
     __tablename__ = 'Event'
 
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
-    organizer_id = Column("owner_id", BIGINT, ForeignKey("User.id"), nullable=True)
+    created = Column('created', DateTime, nullable=False, default=datetime.datetime.utcnow)
+    organizer_id = Column("organizer", BIGINT, ForeignKey("User.id"), nullable=False)
     organization = Column("organization", VARCHAR(255), nullable=True)
     title = Column('title', VARCHAR(255), nullable=False)
     start_date = Column("start_date", DateTime, nullable=False)

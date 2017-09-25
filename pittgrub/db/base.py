@@ -25,13 +25,7 @@ class Entity:
     """Base queries for entities"""
 
     @classmethod
-    def get_all(cls, filters: List[Tuple[str, Any]]=[], orders: List[str]=[]) -> List[E]:
-        # query = session.query(cls)
-        # if filters:
-        #     query = query.filter_by(**)
-        # if orders:
-        #     query = query.order_by(*orders)
-        # print(f'session query: {session.query(cls)}')
+    def get_all(cls) -> List[E]:
         return db.session.query(cls).all()
 
     @classmethod
@@ -65,11 +59,13 @@ class Password(TypeDecorator):
             else:
                 return bcrypt_sha256.verify(other, self.expr)
 
+
 class UserStatus(enum.Enum):
     REFERRAL = 0    # waiting for referral
     REQUESTED = 1   # waiting for verification
     VERIFIED = 2    # verified email account, waiting for activation
     ACCEPTED = 3    # user accepted; active account
+
 
 class ReferralStatus(enum.Enum):
     PENDING = 'pending'     # waiting for approval
