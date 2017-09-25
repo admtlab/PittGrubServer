@@ -172,7 +172,7 @@ class PreferenceHandler(web.RequestHandler):
 class LoginHandler(BaseHandler):
     def post(self, path):
         data = json_decode(self.request.body)
-        if User.verify(data['email'], data['password']):
+        if User.verify_credentials(data['email'], data['password']):
             payload = dict({'user': User.get_by_email(data['email']).id})
             self.success(payload=payload)
         else:
@@ -202,11 +202,12 @@ class NotificationTokenHandler(BaseHandler):
     def post(self, path):
         data = json_decode(self.request.body)
         if all(key in data for key in('user', 'token')):
-            success = User.add_expo_token(data['user'], data['token'])
-            if success:
+            user = User.get_by_id(data['user'])
+            user.add_expo_token(data['token'])
+            if user.expo_token is not None:
                 self.success()
             else:
-                self.write_error(400, 'Error adding expo token')
+                self.write_error(400, 'Error: failed to add expo token')
 
 
 class EventHandler(BaseHandler):

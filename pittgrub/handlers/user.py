@@ -51,7 +51,7 @@ class UserPasswordHandler(CORSHandler, SecureHandler):
         print(user.password)
         data = json_decode(self.request.body)
         if all(key in data for key in ('old_password', 'new_password')):
-            if User.verify(user.email, data['old_password']):
+            if User.verify_credentials(user.email, data['old_password']):
                 User.change_password(user_id, data['new_password'])
                 self.success(status=200)
             else:

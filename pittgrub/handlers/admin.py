@@ -3,20 +3,6 @@ Admin tools handler
 Author: Mark Silvis
 """
 
-import configparser
-import dateutil.parser
-import json
-import logging
-import smtplib
-import time
-from base64 import b64encode, b64decode
-from copy import deepcopy
-from datetime import datetime, timedelta
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from typing import Any, Dict, List, Union
-from uuid import uuid4
-
 from db import AccessToken, User, UserActivation, UserReferral
 from auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
@@ -44,17 +30,16 @@ class UserReferralHandler(CORSHandler, SecureHandler):
     def get(self, path: str):
         print(f'path: {path}')
         user_id = self.get_user_id()
-        print(f'referrals for: {user_id}')
         refs = UserReferral.get_referrals(user_id)
-        print(f'referrals: {refs}')
         self.success(status=200, payload=Payload(refs))
 
     def post(self, path: str):
         keys = ['user', 'approve']
         user_id = self.get_user_id()
+
         # decode json
         data = json_decode(self.request.body)
-        print(f'data: {data}')
+
         # validate data
         if all(key in data for key in keys):
             referral = UserReferral.get_referral(data['user'])
@@ -65,11 +50,11 @@ class UserReferralHandler(CORSHandler, SecureHandler):
                     referral.approve()
                 else:
                     referral.deny()
-                print(f'updated referral: {referral}')
                 self.success(status=204)
             else:
                 self.write_error(403, 'Error: insufficient permission')
         else:
+            # missing fields
             fields = ', '.join(set(keys) - data.keys())
             self.write_error(400, f'Error: missing field(s): {fields}')
 

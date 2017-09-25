@@ -130,7 +130,7 @@ class LoginHandler(CORSHandler):
     def post(self, path):
         data = json_decode(self.request.body)
         if all(key in data for key in ('email', 'password')):
-            if User.verify(data['email'], data['password']):
+            if User.verify_credentials(data['email'], data['password']):
                 user = User.get_by_email(data['email'])
                 if not user.active:
                     activation = UserActivation.get_by_user(user.id)
@@ -173,7 +173,7 @@ class LogoutHandler(BaseHandler):
 #     def post(self, path: str):
 #         # request token
 #         data = json_decode(self.request.body)
-#         if User.verify(data['email'], data['password']):
+#         if User.verify_credentials(data['email'], data['password']):
 #             payload = dict({'user': User.get_by_email(data['email']).id})
 #             self.success(payload=payload)
 #         else:
