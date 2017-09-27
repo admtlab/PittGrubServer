@@ -1,3 +1,5 @@
+import re
+
 from tornado import escape, web
 from tornado.web import Finish
 from tornado.escape import utf8
@@ -14,6 +16,15 @@ Writable = TypeVar('Writable', bytes, unicode_type, Dict, Payload, object)
 
 class BaseHandler(web.RequestHandler):
     """Common handler"""
+
+    def _check_https(self):
+        """Verify HTTPS"""
+        if ('X-Forwarded-Proto' in self.request.headers and
+                self.request.headers['X-Forwarded-Proto'] != 'https'):
+            self.redirect(re.sub(r'^([^:]+)', 'https', self.request.full_url()))
+
+    def prepare(self):
+        self._check_https()
 
     def success(self, status: int=200, payload: Writable=None):
         """Successful request
@@ -62,7 +73,6 @@ class CORSHandler(BaseHandler):
     """
 
     def set_default_headers(self):
-        print('setting cors headers')
         self.set_header("Access-Control-Allow-Origin", "*")
         self.set_header("Access-Control-Allow-Headers", 'Content-Type, Authorization')
         self.set_header("Access-Control-Allow-Methods", 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
@@ -75,8 +85,7 @@ class SecureHandler(BaseHandler):
     """Secure resource handler
     Verifies authentication prior to completing request
     """
-
-    def prepare(self):
+    def _check_jwt(self):
         if not self.request.method == 'OPTIONS':   # maybe not?
             try:
                 if not self.verify_jwt():
@@ -88,6 +97,10 @@ class SecureHandler(BaseHandler):
             except:
                 self.write_error(401, 'Invalid authorization token')
                 raise Finish()
+
+    def prepare(self):
+        super().prepare()
+        self._check_jwt()
 
     def get_jwt(self, verify: bool=False) -> Optional[Dict[str, Union[int, str, 'datetime']]]:
         """Retrieve decoded JSON web token
