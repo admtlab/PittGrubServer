@@ -3,8 +3,8 @@ import string
 
 from .base import BaseHandler, CORSHandler, SecureHandler
 from handlers.response import Payload
-from pittgrub.auth import decode_jwt
-from pittgrub.db import FoodPreference, User, UserVerification, UserFoodPreference
+from auth import decode_jwt
+from db import FoodPreference, User, UserVerification, UserFoodPreference
 
 try:
     from tornado.escape import json_decode, json_encode

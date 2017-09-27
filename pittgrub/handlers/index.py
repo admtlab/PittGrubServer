@@ -8,9 +8,9 @@ import logging
 from datetime import datetime
 import dateutil.parser
 from copy import deepcopy
-from pittgrub.db import User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent, UserRecommendedEvent
+from db import User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent, UserRecommendedEvent
 from handlers.response import Payload, ErrorResponse
-from pittgrub.handlers.base import BaseHandler, SecureHandler
+from handlers.base import BaseHandler, SecureHandler
 from requests.exceptions import ConnectionError, HTTPError
 import requests
 import json
@@ -145,7 +145,7 @@ def send_notification(event: 'Event'):
     #        print(e)
 
 
-class MainHandler(web.RequestHandler):
+class MainHandler(BaseHandler):
     """Hello world request"""
 
     def get(self, path):
@@ -153,6 +153,10 @@ class MainHandler(web.RequestHandler):
         message = {
             'message': 'Hello, world!'
         }
+        print(f'protocol: {self.request.protocol}')
+        print(f'host: {self.request.host}')
+        print(f'request: {self.request}')
+        print(f'headers: {self.request.headers}')
         self.write(json_encode(message))
         self.finish()
 

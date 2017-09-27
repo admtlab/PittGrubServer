@@ -1,7 +1,7 @@
 import enum
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 
-from pittgrub import db
+import db
 
 try:
     from passlib.hash import bcrypt_sha256

@@ -20,6 +20,7 @@ setup(
         'bcrypt>=3.1.3',
         'pyjwt>=1.5.2',
         'pillow>=4.2.1',
+        'python-dateutil>=2.6.1',
         'exponent-server-sdk>=0.1.1',
         'sockjs>=0.6.0',
         'inflect>=0.2.5',

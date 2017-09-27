@@ -12,8 +12,8 @@ from sqlalchemy.types import (
     BIGINT, BOOLEAN, CHAR, DateTime, Enum, INT, VARCHAR
 )
 
-from pittgrub import db
-from pittgrub.db.base import Entity, Password, ReferralStatus, UserStatus
+import db
+from db.base import Entity, Password, ReferralStatus, UserStatus
 
 # database db.session variables
 Base = declarative_base()

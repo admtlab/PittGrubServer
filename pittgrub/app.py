@@ -12,24 +12,24 @@ import re
 import sys
 from typing import Dict
 
-from pittgrub import db
-from pittgrub.handlers.index import (
+import db
+from handlers.index import (
     MainHandler, NotificationTokenHandler,
     PreferenceHandler, EventHandler, RecommendedEventHandler,
     AcceptedEventHandler, AcceptEventHandler
 )
-from pittgrub.handlers.login import (
+from handlers.login import (
     LoginHandler, LogoutHandler, SignupHandler,
     TokenRefreshHandler, TokenValidationHandler,
     ReferralHandler
 )
-from pittgrub.handlers.user import (
+from handlers.user import (
     UserHandler, UserVerificationHandler, UserPreferenceHandler,
     UserPasswordHandler
 )
-from pittgrub.handlers.events import EventImageHandler
-from pittgrub.handlers.admin import UserReferralHandler, UserApprovedReferralHandler, UserPendingReferralHandler, AdminHandler
-from pittgrub.storage import ImageStore
+from handlers.events import EventImageHandler
+from handlers.admin import UserReferralHandler, UserApprovedReferralHandler, UserPendingReferralHandler, AdminHandler
+from storage import ImageStore
 
 try:
     from tornado import httpserver, log, web

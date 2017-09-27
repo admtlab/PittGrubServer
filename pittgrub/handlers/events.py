@@ -7,9 +7,9 @@ from io import BytesIO
 
 from PIL import Image
 
-from pittgrub.db import Event, EventImage
-from pittgrub.handlers import BaseHandler, SecureHandler
-from pittgrub.storage import ImageStore
+from db import Event, EventImage
+from handlers import BaseHandler, SecureHandler
+from storage import ImageStore
 
 class EventImageHandler(BaseHandler):
 
