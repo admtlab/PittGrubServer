@@ -85,6 +85,7 @@ class SecureHandler(BaseHandler):
     """Secure resource handler
     Verifies authentication prior to completing request
     """
+
     def _check_jwt(self):
         if not self.request.method == 'OPTIONS':   # maybe not?
             try:
@@ -97,6 +98,8 @@ class SecureHandler(BaseHandler):
             except:
                 self.write_error(401, 'Invalid authorization token')
                 raise Finish()
+        else:
+            print(f'OPTIONS headers: {self.request.headers}')
 
     def prepare(self):
         super().prepare()
