@@ -86,13 +86,13 @@ class SignupHandler(CORSHandler):
         if all(key in data for key in ('email', 'password')):
             # add user
             user = User.add(data['email'], data['password'])
-            if user:
+            if user is not None:
                 # add activation code
                 activation = UserVerification.add(user_id=user.id)
                 self.success(payload=Payload(user))
                 send_verification_email(to=user.email, activation=activation.code)
             else:
-                self.write_error(400, f'User already exists with email: {data["email"]}')
+                self.write_error(400, 'Error: user already exists with that email address')
         else:
             # missing required field
             fields = ", ".join(set(['email', 'password'])-data.keys())
@@ -115,11 +115,13 @@ class ReferralHandler(CORSHandler):
             else:
                 # add user
                 user = User.add(data['email'], data['password'])
-                if user:
+                if user is not None:
                     user_referral = UserReferral.add(user.id, reference.id)
                     activation = UserVerification.add(user=user.id)
                     self.success(payload=Payload(user))
                     send_verification_email(to=user.email, activation=activation.code)
+                else:
+                    self.write_error(400, 'Error: user already exists with that email address')
         else:
             fields = ", ".join(set(required)-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')

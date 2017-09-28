@@ -58,9 +58,14 @@ class User(Base, Entity):
         return self.active and self.status is UserStatus.ACCEPTED and not self.disabled
 
     @classmethod
-    def add(cls, email: str, password: str) -> 'User':
+    def add(cls, email: str, password: str) -> Optional['User']:
         """Create new user and add to database
+        :email: user email address
+        :password: user password (will be hashed)
+        :returns: User, or None duplicate email
         """
+        if User.get_by_email(email) is not None:
+            return None
         user = User(email=email, password=password)
         db.session.add(user)
         db.session.commit()
