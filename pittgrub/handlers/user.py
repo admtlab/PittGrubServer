@@ -60,7 +60,7 @@ class UserPasswordHandler(CORSHandler, SecureHandler):
             fields = ", ".join(set('old_password', 'new_password') - data.keys())
             self.write_error(400, f'Missing field(s): {fields}')
 
-class UserPreferenceHandler(BaseHandler):
+class UserPreferenceHandler(SecureHandler):
     def get(self, path):
          # check token
         authorization = self.request.headers.get('Authorization')[7:]
