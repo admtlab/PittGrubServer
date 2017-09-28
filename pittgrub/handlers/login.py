@@ -41,12 +41,13 @@ except ModuleNotFoundError:
 
 
 VERIFICATION_ENDPOINT = "users/activate"
-VERIFICATION_SUBJECT = "PittGrub Verification"
+VERIFICATION_SUBJECT = "PittGrub Account Verification"
 VERIFICATION_BODY = "Please verify your email address with PittGrub:"
 VERIFICATION_CODE = "Your PittGrub verification code is:"
 
 
 def send_verification_email(to: str, activation: str):
+    sender = 'PittGrub Support'
     # get email configuration
     config = configparser.ConfigParser()
     config.read(options.config)
@@ -64,7 +65,7 @@ def send_verification_email(to: str, activation: str):
     # construct message
     msg = MIMEMultipart()
     msg['Subject'] = VERIFICATION_SUBJECT
-    msg['From'] = address
+    msg['From'] = f'{sender} <{address}>'
     msg['To'] = to
     body = MIMEText(html, 'html')
     msg.attach(body)
