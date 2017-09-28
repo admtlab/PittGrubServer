@@ -1,4 +1,5 @@
 # Server
+*.config.ini
 *_config.ini
 resources/images/
 nohup.out
