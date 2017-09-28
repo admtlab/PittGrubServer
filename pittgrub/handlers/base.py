@@ -87,7 +87,6 @@ class SecureHandler(BaseHandler):
     """
 
     def _check_jwt(self):
-        print('Checking JWT')
         if not self.request.method == 'OPTIONS':   # maybe not?
             try:
                 if not self.verify_jwt():
