@@ -374,10 +374,10 @@ class Event(Base, Entity):
         db.session.refresh(event)
         return event
 
-    @validates('start_date')
-    def validate_start_date(self, key: datetime, start_date: datetime) -> datetime:
-        assert start_date >= datetime.datetime.now(), "Start date must be after current time"
-        return start_date
+    #@validates('start_date')
+    #def validate_start_date(self, key: datetime, start_date: datetime) -> datetime:
+    #    assert start_date >= datetime.datetime.now(), "Start date must be after current time"
+    #    return start_date
 
     @validates('end_date')
     def validate_end_date(self, key: datetime, end_date: datetime) -> datetime:
