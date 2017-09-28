@@ -117,7 +117,7 @@ class ReferralHandler(CORSHandler):
                 user = User.add(data['email'], data['password'])
                 if user is not None:
                     user_referral = UserReferral.add(user.id, reference.id)
-                    activation = UserVerification.add(user=user.id)
+                    activation = UserVerification.add(user_id=user.id)
                     self.success(payload=Payload(user))
                     send_verification_email(to=user.email, activation=activation.code)
                 else:
@@ -136,7 +136,7 @@ class LoginHandler(CORSHandler):
                 if not user.active:
                     activation = UserVerification.get_by_user(user.id)
                     if not activation:
-                        activation = UserVerification.add(user=user.id)
+                        activation = UserVerification.add(user_id=user.id)
                     send_verification_email(to=data['email'], activation=activation.code)
                     self.write_error(403, 'Error: account not verified')
                 else:
