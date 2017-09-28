@@ -51,12 +51,11 @@ def send_verification_email(to: str, activation: str):
     config = configparser.ConfigParser()
     config.read(options.config)
     email_config = config['EMAIL']
+    address = email_config.get('address')
     username = email_config.get('username')
     password = email_config.get('password')
-    host = email_config.get('server')
+    host = email_config.get('host')
     port = email_config.getint('port')
-    url = config['SERVER'].get('url')
-    # html = f"{VERIFICATION_BODY} https://{url}/{VERIFICATION_ENDPOINT}?id={activation}"
     html = f"{VERIFICATION_CODE} {activation}"
 
     # configure server
@@ -65,7 +64,7 @@ def send_verification_email(to: str, activation: str):
     # construct message
     msg = MIMEMultipart()
     msg['Subject'] = VERIFICATION_SUBJECT
-    msg['From'] = username
+    msg['From'] = address
     msg['To'] = to
     body = MIMEText(html, 'html')
     msg.attach(body)
@@ -89,9 +88,9 @@ class SignupHandler(CORSHandler):
             user = User.add(data['email'], data['password'])
             if user:
                 # add activation code
-                activation = UserVerification.add(user=user.id)
+                activation = UserVerification.add(user_id=user.id)
                 self.success(payload=Payload(user))
-                send_verification_email(to=user.email, activation=activation.id)
+                send_verification_email(to=user.email, activation=activation.code)
             else:
                 self.write_error(400, f'User already exists with email: {data["email"]}')
         else:
@@ -120,7 +119,7 @@ class ReferralHandler(CORSHandler):
                     user_referral = UserReferral.add(user.id, reference.id)
                     activation = UserVerification.add(user=user.id)
                     self.success(payload=Payload(user))
-                    send_verification_email(to=user.email, activation=activation.id)
+                    send_verification_email(to=user.email, activation=activation.code)
         else:
             fields = ", ".join(set(required)-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')
@@ -136,7 +135,7 @@ class LoginHandler(CORSHandler):
                     activation = UserVerification.get_by_user(user.id)
                     if not activation:
                         activation = UserVerification.add(user=user.id)
-                    send_verification_email(to=data['email'], activation=activation.id)
+                    send_verification_email(to=data['email'], activation=activation.code)
                     self.write_error(403, 'Error: account not verified')
                 else:
                     jwt_token = create_jwt(owner=user.id)
