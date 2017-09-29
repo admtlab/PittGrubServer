@@ -86,13 +86,12 @@ def send_verification_email(to: str, activation: str):
     Your PittGrub verification code is: <b>{activation}</b>.
     
     <h4>Next steps</h4>
-    
     You're close to receiving free food! Just enter your activation code in the app to verify your account.
     
     If you haven't yet downloaded the PittGrub mobile app, you must first download the Expo Client app. It is available on both <a href='{APPSTORE_LINK}'>iOS</a> and <a href='{PLAYSTORE_LINK}'>Android</a>. \
     After installing the Expo Client app, you can install PittGrub with the following project link: <a href='{EXPO_LINK}'>exp://exp.host/@admtlab/PittGrub</a>.
     
-    <p style="color:#cccccc;font-size:10px">If you've received this email in error, please reply with the details of the issue experienced.</p>
+    <p style="color:#bbbbbb;font-size:10px">If you've received this email in error, please reply with the details of the issue experienced.</p>
     """
 
     # attach message body
