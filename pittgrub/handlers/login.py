@@ -76,21 +76,39 @@ def send_verification_email(to: str, activation: str):
     text = f"""\
     Welcome to PittGrub!
     
-    Your PittGrub verification code is: {activation}
+    Your PittGrub verification code is: {activation}.
+    
+    Next steps:
+    You're close to receiving free food! Just enter your activation code in the PittGrub app to verify your account.
+    
+    If you don't have the PittGrub mobile app, follow these steps to install it:
+    1) Download the Expo Client app. It is available for iOS at {APPSTORE_LINK} and Android at {PLAYSTORE_LINK}.
+    2) Install the PittGrub app in Expo with the following project link: {EXPO_LINK}.
+    
+    PittGrub is growing quickly, and we approve users daily. We will notify you when you're account has been accepted. Thanks for signing up for the PittGrub beta!
+
+
+    If you've received this email in error, please reply with the details of the issue experienced.
     """
 
     # html
     html = f"""\
-    <h3 align="center">Welcome to PittGrub!</h3>
+    <h2 align="center">Welcome to PittGrub!</h2>
     
     Your PittGrub verification code is: <b>{activation}</b>.
     
-    <h4>Next steps</h4>
-    You're close to receiving free food! Just enter your activation code in the app to verify your account.
+    <h3>Next steps</h3>
+    You're close to receiving free food! Just log in to the PittGrub app with your credentials and enter your verification code when prompted.
     
-    If you haven't yet downloaded the PittGrub mobile app, you must first download the Expo Client app. It is available on both <a href='{APPSTORE_LINK}'>iOS</a> and <a href='{PLAYSTORE_LINK}'>Android</a>. \
-    After installing the Expo Client app, you can install PittGrub with the following project link: <a href='{EXPO_LINK}'>exp://exp.host/@admtlab/PittGrub</a>.
+    If you don't have the PittGrub mobile app, follow these steps to install it:
+    <ol>
+        <li>Download the Expo Client app. It is available on both <a href='{APPSTORE_LINK}'>iOS</a> and <a href='{PLAYSTORE_LINK}'>Android</a>. </li>
+        <li>Install the PittGrub app in Expo with the following project link: <a href='{EXPO_LINK}'>{EXPO_LINK}</a>. </li>
+    </ol>
+
+    PittGrub is growing quickly, and we approve users daily. We will notify you when you're account has been accepted. Thanks for signing up for the PittGrub beta!
     
+
     <p style="color:#bbbbbb;font-size:10px">If you've received this email in error, please reply with the details of the issue experienced.</p>
     """
 
