@@ -44,6 +44,9 @@ VERIFICATION_ENDPOINT = "users/activate"
 VERIFICATION_SUBJECT = "PittGrub Account Verification"
 VERIFICATION_BODY = "Please verify your email address with PittGrub:"
 VERIFICATION_CODE = "Your PittGrub verification code is:"
+APPSTORE_LINK = 'https://appsto.re/us/dACI6.i'
+PLAYSTORE_LINK = 'https://play.google.com/store/apps/details?id=host.exp.exponent'
+EXPO_LINK = 'exp://exp.host/@admtlab/PittGrub'
 
 
 def send_verification_email(to: str, activation: str):
@@ -62,13 +65,39 @@ def send_verification_email(to: str, activation: str):
     # configure server
     server = smtplib.SMTP(host, port)
 
-    # construct message
-    msg = MIMEMultipart()
+    # construct message information
+    msg = MIMEMultipart('alternative')
     msg['Subject'] = VERIFICATION_SUBJECT
     msg['From'] = f'{sender} <{address}>'
     msg['To'] = to
-    body = MIMEText(html, 'html')
-    msg.attach(body)
+
+    # construct message body
+    # text
+    text = f"""\
+    Welcome to PittGrub!
+    
+    Your PittGrub verification code is: {activation}
+    """
+
+    # html
+    html = f"""\
+    <h3 align="center">Welcome to PittGrub!</h3>
+    
+    Your PittGrub verification code is: <b>{activation}</b>.
+    
+    <h4>Next steps</h4>
+    
+    You're close to receiving free food! Just enter your activation code in the app to verify your account.
+    
+    If you haven't yet downloaded the PittGrub mobile app, you must first download the Expo Client app. It is available on both <a href='{APPSTORE_LINK}'>iOS</a> and <a href='{PLAYSTORE_LINK}'>Android</a>. \
+    After installing the Expo Client app, you can install PittGrub with the following project link: <a href='{EXPO_LINK}'>exp://exp.host/@admtlab/PittGrub</a>.
+    
+    <p style="color:#cccccc;font-size:10px">If you've received this email in error, please reply with the details of the issue experienced.</p>
+    """
+
+    # attach message body
+    msg.attach(MIMEText(text, 'text'))
+    msg.attach(MIMEText(html, 'html'))
 
     # send message
     server.ehlo()
