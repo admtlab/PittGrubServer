@@ -138,7 +138,8 @@ class User(Base, Entity):
             id=cls.id,
             email=cls.email,
             active=cls.active,
-            admin=cls.admin
+            admin=cls.admin,
+            status=cls.status.name
         )
         if deep:
             json['food_preferences'] = [f.json() for f in cls.food_preferences]
