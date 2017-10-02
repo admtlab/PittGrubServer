@@ -85,11 +85,11 @@ class User(Base, Entity):
 
     @classmethod
     def activate(cls, activation_id: str) -> bool:
-        activation = UserActivation.get_by_id(activation_id)
+        activation = UserVerification.get_by_code(activation_id)
         if activation:
             user = cls.get_by_id(activation.user_id)
             user.active = True
-            UserActivation.delete(activation_id)
+            UserVerification.delete(activation_id)
             db.session.commit()
             return True
         return False
@@ -290,7 +290,7 @@ class UserVerification(Base):
         self.user_id = user_id
 
     @classmethod
-    def add(cls, user_id: int, code: str=None) -> 'UserActivation':
+    def add(cls, user_id: int, code: str=None) -> 'UserVerification':
         assert user_id is not None
         code = code or cls.generate_code()
         verification = UserVerification(code, user_id)
@@ -334,7 +334,7 @@ class Event(Base, Entity):
 
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
     created = Column('created', DateTime, nullable=False, default=datetime.datetime.utcnow)
-    organizer_id = Column("organizer", BIGINT, ForeignKey("User.id"), nullable=False)
+    organizer_id = Column("organizer", BIGINT, ForeignKey("User.id"), nullable=True)
     organization = Column("organization", VARCHAR(255), nullable=True)
     title = Column('title', VARCHAR(255), nullable=False)
     start_date = Column("start_date", DateTime, nullable=False)
