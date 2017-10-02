@@ -60,7 +60,6 @@ def send_verification_email(to: str, activation: str):
     password = email_config.get('password')
     host = email_config.get('host')
     port = email_config.getint('port')
-    html = f"{VERIFICATION_CODE} {activation}"
 
     # configure server
     server = smtplib.SMTP(host, port)
@@ -99,17 +98,23 @@ def send_verification_email(to: str, activation: str):
     
     <h3>Next steps</h3>
     You're close to receiving free food! Just log in to the PittGrub app with your credentials and enter your verification code when prompted.
-    
+   
+    <br><br>
     If you don't have the PittGrub mobile app, follow these steps to install it:
     <ol>
         <li>Download the Expo Client app. It is available on both <a href='{APPSTORE_LINK}'>iOS</a> and <a href='{PLAYSTORE_LINK}'>Android</a>. </li>
         <li>Install the PittGrub app in Expo with the following project link: <a href='{EXPO_LINK}'>{EXPO_LINK}</a>. </li>
     </ol>
 
-    PittGrub is growing quickly, and we approve users daily. We will notify you when you're account has been accepted. Thanks for signing up for the PittGrub beta!
-    
+    PittGrub is growing quickly, and we approve users daily. We will notify you when you're account has been accepted.
+    <br>
+    <br>
+    Thanks for signing up,
+    <br>
+    PittGrub Team
 
-    <p style="color:#bbbbbb;font-size:10px">If you've received this email in error, please reply with the details of the issue experienced.</p>
+    <br><br>
+    <p style="color:#aaaaaa;font-size:10px">If you've received this email in error, please reply with the details of the issue experienced.</p>
     """
 
     # attach message body
