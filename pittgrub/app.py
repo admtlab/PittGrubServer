@@ -14,7 +14,7 @@ from typing import Dict
 
 import db
 from handlers.index import (
-    MainHandler, NotificationTokenHandler,
+    MainHandler, HealthHandler, NotificationTokenHandler,
     PreferenceHandler, EventHandler, RecommendedEventHandler,
     AcceptedEventHandler, AcceptEventHandler
 )
@@ -31,20 +31,11 @@ from handlers.events import EventImageHandler
 from handlers.admin import UserReferralHandler, UserApprovedReferralHandler, UserPendingReferralHandler, AdminHandler
 from storage import ImageStore
 
-try:
-    from tornado import httpserver, log, web
-    from tornado.ioloop import IOLoop
-    from tornado.options import options, define, parse_command_line
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import scoped_session, sessionmaker
-except ModuleNotFoundError:
-    # DB10 fix
-    sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
-    from tornado import httpserver, log, web
-    from tornado.ioloop import IOLoop
-    from tornado.options import options, define, parse_command_line
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import scoped_session, sessionmaker
+from tornado import httpserver, log, web
+from tornado.ioloop import IOLoop
+from tornado.options import options, define, parse_command_line
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 
 # options
@@ -68,6 +59,7 @@ class App(web.Application):
         # tornado web app
         endpoints = [
             (r"/(/*)", MainHandler),            # index
+            (r"/health(/*)", HealthHandler),    # check status
             (r'/users(/*)', UserHandler),        # all users
             (r'/users/(\d+/*)', UserHandler),    # single user
             (r'/users/activate(/*)', UserVerificationHandler),

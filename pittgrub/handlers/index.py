@@ -17,17 +17,11 @@ import json
 import time
 from util import json_esc
 
-try:
-    import tornado
-except ModuleNotFoundError:
-    # DB10 fix
-    sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
-finally:
-    from typing import Any, List, Dict
-    from tornado import web, gen
-    from tornado.escape import json_encode, json_decode
-    from sqlalchemy.orm.exc import NoResultFound
-    from exponent_server_sdk import PushClient, PushMessage, PushServerError, PushResponseError
+from typing import Any, List, Dict
+from tornado import web, gen
+from tornado.escape import json_encode, json_decode
+from sqlalchemy.orm.exc import NoResultFound
+from exponent_server_sdk import PushClient, PushMessage, PushServerError, PushResponseError
 
 
 def should_recommend(user: 'User', event: 'Event') -> bool:
@@ -160,6 +154,14 @@ class MainHandler(BaseHandler):
         self.write(json_encode(message))
         self.finish()
 
+
+class HealthHandler(BaseHandler):
+    """Health status of server"""
+
+    def get(self, path):
+        logging.info("Health status check")
+        self.write(json_encode({'status': 'UP'}))
+        self.finish()
 
 class PreferenceHandler(web.RequestHandler):
     def get(self, path):
