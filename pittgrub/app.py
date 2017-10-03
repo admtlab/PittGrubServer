@@ -12,22 +12,30 @@ import re
 import sys
 from typing import Dict
 
-# modules
 import db
-from handlers.index import *
+from handlers.index import (
+    MainHandler, HealthHandler, NotificationTokenHandler,
+    PreferenceHandler, EventHandler, RecommendedEventHandler,
+    AcceptedEventHandler, AcceptEventHandler
+)
+from handlers.login import (
+    LoginHandler, LogoutHandler, SignupHandler,
+    TokenRefreshHandler, TokenValidationHandler,
+    ReferralHandler
+)
+from handlers.user import (
+    UserHandler, UserVerificationHandler, UserPreferenceHandler,
+    UserPasswordHandler
+)
+from handlers.events import EventImageHandler
+from handlers.admin import UserReferralHandler, UserApprovedReferralHandler, UserPendingReferralHandler, AdminHandler
+from storage import ImageStore
 
-# dependencies
-try:
-    import tornado
-except ModuleNotFoundError:
-    # DB10 fix
-    sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
-finally:
-    from tornado import httpserver, log, web
-    from tornado.ioloop import IOLoop
-    from tornado.options import options, define, parse_command_line
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import scoped_session, sessionmaker
+from tornado import httpserver, log, web
+from tornado.ioloop import IOLoop
+from tornado.options import options, define, parse_command_line
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 
 # options
@@ -40,7 +48,7 @@ log.enable_pretty_logging()
 class App(web.Application):
     """Wrapper around Tornado web application with configuration"""
 
-    def __init__(self, debug: bool, static_path: str=None, **db_config: Dict[str, str]):
+    def __init__(self, debug: bool, image_store: ImageStore, static_path: str=None, **db_config: Dict[str, str]) -> None:
         """Initialize application
 
         debug: debug mode enabled
@@ -49,25 +57,40 @@ class App(web.Application):
         """
 
         # tornado web app
-        handlers = [
+        endpoints = [
             (r"/(/*)", MainHandler),            # index
-            (r'/test(/*)', TestHandler),
-            (r'/test/([0-9]+)', TestHandlerId),
-            (r'/user(/*)', UserHandler),        # all users
-            (r'/user/(\d+/*)', UserHandler),    # single user
+            (r"/health(/*)", HealthHandler),    # check status
+            (r'/users(/*)', UserHandler),        # all users
+            (r'/users/(\d+/*)', UserHandler),    # single user
+            (r'/users/activate(/*)', UserVerificationHandler),
+            (r'/users/preferences(/*)', UserPreferenceHandler),
+            (r'/users/admin(/*)', AdminHandler), # make user admin
+            (r'/token(/*)', NotificationTokenHandler),  # add notification token
+            (r'/signup(/*)', SignupHandler),     # sign-up
+            (r'/signup/referral(/*)', ReferralHandler), # sign-up with reference
+            (r'/login(/*)', LoginHandler),       # log-in with credentials
+            (r'/referrals(/*)', UserReferralHandler),   # get user referrals
+            (r'/referrals/pending(/*)', UserPendingReferralHandler), # get requested user referrals
+            (r'/referrals/approved(/*)', UserApprovedReferralHandler),  # get approved user referrals
+            (r'/password', UserPasswordHandler), # Change user password
+            (r'/login/refresh(/*)', TokenRefreshHandler),
+            (r'/login/validate(/*)', TokenValidationHandler),
+            (r'/logout(/*)', LogoutHandler),
             (r'/p(/*)', PreferenceHandler),
-            (r'/event(/*)', EventHandler),      # all events
-            (r'/event/(\d+/*)', EventHandler),  # single event
+            (r'/events(/*)', EventHandler),      # all events
+            (r'/events/(\d+/*)', EventHandler),  # single event
+            (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(image_store=image_store)), # event images
+            (r'/events/recommended/(\d+/*)', RecommendedEventHandler),  # recommended events for a user
+            (r'/events/accepted/(\d+/*)', AcceptedEventHandler),        # accepted events for a user
+            (r'/events/(\d+)/accept/(\d+/*)', AcceptEventHandler),      # accept an event for a user
             # (r'/userfood(/*)', UserFoodPreferencesHandler)
         ]
 
         # server settings
         settings = dict(
             static_path=static_path,
-            debug=debug,
-            autoreload=debug,
-        )
-        web.Application.__init__(self, handlers, settings)
+            debug=debug,)
+        web.Application.__init__(self, endpoints, settings)
 
         # initialize database
         db.init(username=db_config['username'], password=db_config['password'],
@@ -102,6 +125,10 @@ def main():
     else:
         params = ''
 
+    # storage configuration
+    store_config = config['STORE']
+    image_store = ImageStore(store_config.get('images'))
+
     # logging configuration
     log_config = config['LOG']
     filename = log_config.get('file')
@@ -109,9 +136,11 @@ def main():
     fmt = log_config.get('format')
     logging.basicConfig(filename=filename, level=level, format=fmt)
 
-    # start server
-    app = App(debug, username=username, password=password,
+    # create app
+    app = App(debug, image_store=image_store, username=username, password=password,
               url=url, database=database, params=params)
+
+    # start server
     server = httpserver.HTTPServer(app)
     if (procs == 1):
         # single process

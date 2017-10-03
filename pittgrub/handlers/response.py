@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Union
 from util import json_dict, json_esc
 from db import Entity
 from http import HTTPStatus
+from sqlalchemy.ext.associationproxy import _AssociationList
 import datetime
 import inflect
 p = inflect.engine()
@@ -58,13 +59,13 @@ class Payload():
    #     for rel, link in links.items():
    #         self.add(rel, link)
 
-    def json(self) -> str:
+    def json(self, deep: bool=False) -> str:
         """Returns escaped JSON encoding of payload"""
-        if isinstance(self._response, list):
+        if isinstance(self._response, (list, _AssociationList)):
             if len(self._response):
                 typ = type(self._response[0]).__name__
                 name = p.plural(typ[0].lower()+typ[1:])
-                embedded = dict({name: [res.json() for res in self._response]})
+                embedded = dict({name: [res.json(deep) for res in self._response]})
             else:
                 embedded = dict()
             return json_esc(dict({
@@ -72,7 +73,7 @@ class Payload():
                     '_links': self._links
                 }))
         else:
-            res = self._response.json()
+            res = self._response.json(deep)
             res['_links'] = self._links
             return json_esc(res)
 
@@ -90,7 +91,7 @@ class ErrorResponse():
         self.status = status
         self.error = HTTPStatus(status).phrase
         self.message = message
-    
+
     def json(self) -> str:
         err = dict({
             'timestamp': '{0:%Y-%m-%d %H:%M:%S}'.format(self.timestamp),
