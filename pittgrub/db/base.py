@@ -3,22 +3,21 @@ from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 
 import db
 
-try:
-    from passlib.hash import bcrypt_sha256
-    from sqlalchemy import String, TypeDecorator
-    from sqlalchemy.types import CHAR
-except ModuleNotFoundError:
-    # DB 10 fix
-    import sys
-    sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
-
-    from passlib.hash import bcrypt_sha256
-    from sqlalchemy import String, TypeDecorator
-    from sqlalchemy.types import CHAR
-
+from passlib.hash import bcrypt_sha256
+from sqlalchemy import String, TypeDecorator
+from sqlalchemy.types import CHAR
 
 # typing
 E = TypeVar('Entity', bound='Entity')
+
+
+def health_check() -> bool:
+    try:
+        db.session.execute('SELECT 1')
+    except Exception as e:
+        log.error(f'Database connection lost\n{e}')
+        return False
+    return True
 
 
 class Entity:
