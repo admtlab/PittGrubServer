@@ -15,7 +15,7 @@ setup(
     install_requires=[
         'tornado>=4.5.1',
         'pymysql>=0.7.11',
-        'sqlalchemy>=1.1.10',
+        'sqlalchemy==1.2.0b2',
         'passlib>=1.7.1',
         'bcrypt>=3.1.3',
         'pyjwt>=1.5.2',
