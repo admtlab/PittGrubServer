@@ -96,7 +96,8 @@ def init(username: str, password: str, url: str, database: str,
     global session
     engine = create_engine(f"mysql+pymysql://{username}:{password}"
                            f"@{url}/{database}{params}",
-                           convert_unicode=True, echo=echo)
+                           convert_unicode=True, echo=echo,
+                           pool_pre_ping=True)
     session = scoped_session(sessionmaker(bind=engine))
     if generate:
         schema.Base.metadata.create_all(bind=engine)
