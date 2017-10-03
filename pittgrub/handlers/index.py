@@ -8,7 +8,8 @@ import logging
 from datetime import datetime
 import dateutil.parser
 from copy import deepcopy
-from db import User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent, UserRecommendedEvent
+from pittgrub import __version__
+from db import User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent, UserRecommendedEvent, health_check
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, SecureHandler
 from requests.exceptions import ConnectionError, HTTPError
@@ -160,7 +161,8 @@ class HealthHandler(BaseHandler):
 
     def get(self, path):
         logging.info("Health status check")
-        self.write(json_encode({'status': 'UP'}))
+        db_status = 'OK' if health_check() else 'WARN'
+        self.write(json_encode({'version': __version__, 'status': 'up', 'database': db_status}))
         self.finish()
 
 class PreferenceHandler(web.RequestHandler):
