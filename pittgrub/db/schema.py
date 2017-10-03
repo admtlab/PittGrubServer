@@ -517,7 +517,7 @@ class UserRecommendedEvent(Base):
     def __init__(self, event_id: int, user_id: int, time: datetime=None):
         self.event_id = event_id
         self.user_id = user_id
-        self.time = time
+        self.time = time or datetime.datetime.utcnow()
 
     @classmethod
     def get_by_id(cls, event_id: int, user_id: int) -> Optional['UserRecommendedEvent']:
