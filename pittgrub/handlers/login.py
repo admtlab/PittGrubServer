@@ -189,7 +189,7 @@ class LoginHandler(CORSHandler):
                     activation = UserVerification.get_by_user(user.id)
                     if not activation:
                         activation = UserVerification.add(user_id=user.id)
-                    send_verification_email(to=data['email'], activation=activation.code)
+                        send_verification_email(to=data['email'], activation=activation.code)
                     self.write_error(403, 'Error: account not verified')
                 else:
                     jwt_token = create_jwt(owner=user.id)
