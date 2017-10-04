@@ -1,3 +1,4 @@
+import logging
 import sys
 from datetime import datetime, timedelta
 
@@ -101,6 +102,7 @@ def init(username: str, password: str, url: str, database: str,
                            pool_pre_ping=True)
     session = scoped_session(sessionmaker(bind=engine))
     if generate:
+        logging.info("Generating database")
         schema.Base.metadata.create_all(bind=engine)
         # add default rows
         for entity, values in DEFAULTS.items():
