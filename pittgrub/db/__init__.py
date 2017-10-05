@@ -33,8 +33,8 @@ DEFAULTS = dict({
             "), and honey."),
     ],
     'User': [
-        (1, 'xyz@pitt.edu', '12345', UserStatus.VERIFIED, True, False, True, 0),
-        (2, 'abc@pitt.edu', '12345', UserStatus.VERIFIED, True, False, False, 0)
+        (1, 'xyz@pitt.edu', '12345', UserStatus.ACCEPTED, True, False, True, 0),
+        (2, 'abc@pitt.edu', '12345', UserStatus.ACCEPTED, True, False, False, 0)
     ],
     'AccessToken': [
         # ('4ec1f791944d4c319822bd27f151f38d', 1, datetime.now()+timedelta(days=7)),
