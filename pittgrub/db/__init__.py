@@ -98,7 +98,7 @@ def init(username: str, password: str, url: str, database: str,
     engine = create_engine(f"mysql+pymysql://{username}:{password}"
                            f"@{url}/{database}{params}",
                            convert_unicode=True, echo=echo,
-                           pool_recycle=3600,
+                           pool_recycle=1800,
                            pool_pre_ping=True)
     session = scoped_session(sessionmaker(bind=engine))
     if generate:
