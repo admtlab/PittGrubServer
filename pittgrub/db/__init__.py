@@ -1,11 +1,13 @@
 import logging
 import sys
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Tuple
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 from .base import Entity, ReferralStatus, UserStatus, health_check
+from .default import DEFAULTS
 from .schema import (
     AccessToken, Event, EventFoodPreference, EventImage, EventType,
     EventTypeRel, FoodPreference, User, UserAcceptedEvent, UserVerification,
@@ -16,29 +18,12 @@ from .schema import (
 # initialized by init()
 session = None
 
-# database default values
-# for testing purposes
-DEFAULTS = dict({
-    'FoodPreference': [
-        (1, 'Gluten Free',
-            "No gluten, which is found in wheat, barley, rye, and oat."),
-        (2, 'Dairy Free',
-            "No dairy, which includes any items made with cow's milk. This "
-            "includes milk, butter, cheese, and cream."),
-        (3, 'Vegetarian',
-            "No meat, which includes red meat, poultry, and seafood."),
-        (4, 'Vegan',
-            "No animal products, including, but not limited to, dairy "
-            "(milk products), eggs, meat (red meat, poultry, and seafood"
-            "), and honey."),
-    ],
+# database testing values
+# insert when 'generate' flag is True
+TEST_DATA = dict({
     'User': [
         (1, 'xyz@pitt.edu', '12345', UserStatus.ACCEPTED, True, False, True, 0),
         (2, 'abc@pitt.edu', '12345', UserStatus.ACCEPTED, True, False, False, 0)
-    ],
-    'AccessToken': [
-        # ('4ec1f791944d4c319822bd27f151f38d', 1, datetime.now()+timedelta(days=7)),
-        # ('d33318c4a9f1459cb4f5789c208e0e78', 2, datetime.now()+timedelta(days=7)),
     ],
     'UserFoodPreference': [
         (1, 1),
@@ -81,6 +66,16 @@ DEFAULTS = dict({
     ],
 })
 
+def __bulk_insert(engine, data: Dict[str, List[Tuple[Any]]]):
+    schema.Base.metadata.create_all(bind=engine) 
+    for entity, values in data.items():
+        # get class of entity
+        cls = getattr(sys.modules[__name__], entity)
+        # merge values
+        # this avoids duplicate errors
+        for i in values:
+            session.merge(cls(*i))
+        session.commit()
 
 def init(username: str, password: str, url: str, database: str,
          params: str, echo: bool=False, generate: bool=False):
@@ -101,15 +96,9 @@ def init(username: str, password: str, url: str, database: str,
                            pool_recycle=1800,
                            pool_pre_ping=True)
     session = scoped_session(sessionmaker(bind=engine))
-    if generate:
-        logging.info("Generating database")
-        schema.Base.metadata.create_all(bind=engine)
-        # add default rows
-        for entity, values in DEFAULTS.items():
-            # get class of entity
-            cls = getattr(sys.modules[__name__], entity)
-            # merge values
-            # this avoids duplicate errors
-            for i in values:
-                session.merge(cls(*i))
-            session.commit()
+    print('Inserting default data')
+    __bulk_insert(engine, DEFAULTS) # add default data
+    if generate: 
+        print('Generating test data')
+        __bulk_insert(engine, TEST_DATA)    # add test data if generate flag is set to true
+
