@@ -1,4 +1,5 @@
 #!/bin/bash
 
-killall python3.6
+lsof -ti :21008 | xargs --no-run-if-empty kill -9
+echo "PittGrub server is down"
 
