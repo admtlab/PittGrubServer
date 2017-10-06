@@ -74,25 +74,19 @@ class UserPreferenceHandler(SecureHandler):
             self.write_error(403, 'Authentication is required')
 
     def post(self, path):
-        # check token
-        authorization = self.request.headers.get('Authorization')[7:]
-        if authorization:
-            token = decode_jwt(authorization)
-            user_id = token['own']
+        user_id = self.get_jwt()['own']
+        user = User.get_by_id(user_id)
+        if user is not None:
             # decode json
             data = json_decode(self.request.body)
-            preferences = data['preferences']
             # check that preferences exist
             preference_ids = [pref.id for pref in FoodPreference.get_all()]
             if all(pref in preference_ids for pref in preference_ids):
-                UserFoodPreference.update(user_id, preferences)
+                UserFoodPreference.update(user_id, data)
                 self.success(status=204)
             else:
                 fields = ", ".join(set(preferences)-preference_ids)
                 self.write_error(401, f'Food preferences not found: {fields}')
-        else:
-            self.write_error(403, 'Authentication is required')
-
 
 class UserVerificationHandler(BaseHandler):
     def get(self, path):

@@ -16,7 +16,6 @@ def health_check() -> bool:
     try:
         db.session.execute('SELECT 1')
     except Exception as e:
-        logging.error(f'Database connection lost\n{e}')
         return False
     return True
 
