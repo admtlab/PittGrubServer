@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 import dateutil.parser
 from copy import deepcopy
-from pittgrub import __version__
+from __init__ import __version__
 from db import User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent, UserRecommendedEvent, health_check
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, SecureHandler

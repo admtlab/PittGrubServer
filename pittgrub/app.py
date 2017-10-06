@@ -95,7 +95,7 @@ class App(web.Application):
         # initialize database
         db.init(username=db_config['username'], password=db_config['password'],
                 url=db_config['url'], database=db_config['database'],
-                params=db_config['params'], echo=debug, generate=debug)
+                params=db_config['params'], echo=debug, generate=db_config['generate'])
 
 
 def main():
@@ -119,6 +119,7 @@ def main():
     password = db_config.get('password')
     url = db_config.get('url')
     database = db_config.get('database')
+    generate = db_config.getboolean('generate')
     if config.has_option('DB', 'options'):
         # convert options to url parameters
         params = '?' + re.sub(',\s*', '&', db_config.get('options'))
@@ -138,7 +139,7 @@ def main():
 
     # create app
     app = App(debug, image_store=image_store, username=username, password=password,
-              url=url, database=database, params=params)
+              url=url, database=database, params=params, generate=generate)
 
     # start server
     server = httpserver.HTTPServer(app)

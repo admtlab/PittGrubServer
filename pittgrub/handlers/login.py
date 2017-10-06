@@ -22,22 +22,11 @@ from auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, CORSHandler, SecureHandler
 
-try:
-    import jwt
-    from jwt import DecodeError, ExpiredSignatureError
-    from tornado import gen, web
-    from tornado.escape import json_decode, json_encode
-    from tornado.options import options
-except ModuleNotFoundError:
-    # DB10 fix
-    import sys
-    sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
-
-    import jwt
-    from jwt import DecodeError, ExpiredSignatureError
-    from tornado import gen, web
-    from tornado.escape import json_decode, json_encode
-    from tornado.options import options
+import jwt
+from jwt import DecodeError, ExpiredSignatureError
+from tornado import gen, web
+from tornado.escape import json_decode, json_encode
+from tornado.options import options
 
 
 VERIFICATION_ENDPOINT = "users/activate"
@@ -147,7 +136,7 @@ class SignupHandler(CORSHandler):
                 self.write_error(400, 'Error: user already exists with that email address')
         else:
             # missing required field
-            fields = ", ".join(set(['email', 'password'])-data.keys())
+            fields = ", ".join({'email', 'password'}-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')
 
 class ReferralHandler(CORSHandler):
@@ -203,7 +192,7 @@ class LoginHandler(CORSHandler):
             else:
                 self.write_error(400, 'Incorrect username or password')
         else:
-            fields = ", ".join(set(['email', 'password'])-data.keys())
+            fields = ", ".join({'email', 'password'}-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')
 
 
@@ -234,22 +223,22 @@ class LogoutHandler(BaseHandler):
 
 
 class TokenRefreshHandler(BaseHandler):
-    def get(self, path: str) -> bool:
+    def get(self, path: str):
         # verify token
         auth = self.request.headers.get('Authorization')
         if auth:
             if not auth.startswith('Bearer '):
                 self.write_error(400, f'Malformed authorization header')
-                return
-            # remove 'Bearer'
-            auth = auth[7:]
-            decoded = decode_jwt(auth)
-            jwt_token = create_jwt(owner=decoded['own'])
-            decoded = decode_jwt(jwt_token)
-            self.success(payload=dict(token=jwt_token.decode(),
-                                      expires=decoded['exp'],
-                                      issued=decoded['iat'],
-                                      type=decoded['tok']))
+            else:
+                # remove 'Bearer'
+                auth = auth[7:]
+                decoded = decode_jwt(auth)
+                jwt_token = create_jwt(owner=decoded['own'])
+                decoded = decode_jwt(jwt_token)
+                self.success(payload=dict(token=jwt_token.decode(),
+                                          expires=decoded['exp'],
+                                          issued=decoded['iat'],
+                                          type=decoded['tok']))
         else:
             self.write_error(403)
 
