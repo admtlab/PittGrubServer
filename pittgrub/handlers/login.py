@@ -71,7 +71,7 @@ def send_verification_email(to: str, activation: str):
     
     If you don't have the PittGrub mobile app, follow these steps to install it:
     1) Download the Expo Client app. It is available for iOS at {APPSTORE_LINK} and Android at {PLAYSTORE_LINK}.
-    2) Install the PittGrub app in Expo with the following project link: {EXPO_LINK}.
+    2) Install the PittGrub app in Expo with the following project link: {EXPO_LINK}. We currently support iOS, and Android support is coming soon.
     
     PittGrub is growing quickly, and we approve users daily. We will notify you when you're account has been accepted. Thanks for signing up for the PittGrub beta!
 
@@ -92,7 +92,7 @@ def send_verification_email(to: str, activation: str):
     If you don't have the PittGrub mobile app, follow these steps to install it:
     <ol>
         <li>Download the Expo Client app. It is available on both <a href='{APPSTORE_LINK}'>iOS</a> and <a href='{PLAYSTORE_LINK}'>Android</a>. </li>
-        <li>Install the PittGrub app in Expo with the following project link: <a href='{EXPO_LINK}'>{EXPO_LINK}</a>. </li>
+        <li>Install the PittGrub app in Expo with the following project link: <a href='{EXPO_LINK}'>{EXPO_LINK}</a>. We currently support iOS, and Android support is coming soon. </li>
     </ol>
 
     PittGrub is growing quickly, and we approve users daily. We will notify you when you're account has been accepted.
