@@ -15,7 +15,7 @@ E = TypeVar('Entity', bound='Entity')
 def health_check() -> bool:
     try:
         db.session.execute('SELECT 1')
-    except Exception as e:
+    except:
         return False
     return True
 

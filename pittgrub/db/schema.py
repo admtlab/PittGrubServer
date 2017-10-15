@@ -328,7 +328,9 @@ class UserVerification(Base):
     @classmethod
     def generate_code(cls) -> str:
         """Generate a new verification code"""
-        return ''.join(random.choices(string.ascii_uppercase+string.digits, k=6))
+        chars = string.ascii_uppercase + string.digits
+        code = random.choices(chars, k=6)
+        return ''.join(code)
 
 
 class Event(Base, Entity):
