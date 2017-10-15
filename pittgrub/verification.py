@@ -1,0 +1,129 @@
+import configparser
+import random
+import smtplib
+import string
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from tornado.options import options
+
+EMAIL_SERVER = None
+EMAIL_ADDRESS = None
+EMAIL_USER = None
+EMAIL_PASS = None
+EMAIL_SENDER = "PittGrub Support"
+EMAIL_SUBJECT = "PittGrub Account Verification"
+VERIFICATION_ENDPOINT = "users/activate"
+APPSTORE_LINK = 'https://appsto.re/us/dACI6.i'
+PLAYSTORE_LINK = 'https://play.google.com/store/apps/details?id=host.exp.exponent'
+EXPO_LINK = 'exp://exp.host/@admtlab/PittGrub'
+TEXT = """\
+Welcome to PittGrub!
+
+Your PittGrub verification code is: {code}
+
+Next steps:
+You're close to receiving free food! Just enter your activation code in the PittGrub app to verify your account.
+
+If you don't have the PittGrub mobile app, follow these steps to install it:
+1) Download the Expo Client app. It is available for iOS at {ios} and Android at {android}.
+2) Install the PittGrub app in Expo with the following project link: {expo}. We currently support iOS, and Android support is coming soon.
+    
+PittGrub is growing quickly, and we approve users daily. We will notify you when you're account has been accepted.
+
+Thanks for signing up,
+PittGrub Team
+
+
+If you've received this email in error, please reply with the details of the issue experienced.
+"""
+HTML = """\
+<h2 align="center">Welcome to PittGrub!</h2>
+    
+Your PittGrub verification code is: <b>{code}</b>.
+
+<h3>Next steps</h3>
+You're close to receiving free food! Just log in to the PittGrub app with your credentials and enter your verification code when prompted.
+
+<br><br>
+If you don't have the PittGrub mobile app, follow these steps to install it:
+<ol>
+    <li>Download the Expo Client app. It is available on both <a href='{ios}'>iOS</a> and <a href='{android}'>Android</a>. </li>
+    <li>Install the PittGrub app in Expo with the following project link: <a href='{expo}'>{expo}</a>. We currently support iOS, and Android support is coming soon. </li>
+</ol>
+
+PittGrub is growing quickly, and we approve users daily. We will notify you when you're account has been accepted.
+<br>
+<br>
+Thanks for signing up,
+<br>
+PittGrub Team
+
+<br><br>
+<p style="color:#aaaaaa;font-size:10px">If you've received this email in error, please reply with the details of the issue experienced.</p>
+"""
+
+
+def create_verification_code(length: int = 6) -> str:
+    """
+    Creates a verification code comprising upper case characters and digits
+    :param length: length of code (default: 6)
+    :return: code
+    """
+    chars = string.ascii_uppercase + string.digits
+    code = random.choices(chars, k=length)
+    return ''.join(code)
+
+
+def __setup_server() -> None:
+    """
+    Configure email server
+    """
+    global EMAIL_SERVER
+    global EMAIL_ADDRESS
+    global EMAIL_USER
+    global EMAIL_PASS
+    config = configparser.ConfigParser()
+    config.read(options.config)
+    email_config = config['EMAIL']
+    address = email_config.get('address')
+    username = email_config.get('username')
+    password = email_config.get('password')
+    host = email_config.get('host')
+    port = email_config.get('port')
+    EMAIL_SERVER = smtplib.SMTP(host, port)
+    EMAIL_ADDRESS = address
+    EMAIL_USER = username
+    EMAIL_PASS = password
+
+
+def send_verification_email(to: str, code: str) -> bool:
+    global EMAIL_SERVER
+    # verified server was created
+    if EMAIL_SERVER is None:
+        __setup_server()
+
+    # construct message
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = EMAIL_SUBJECT
+    msg['From'] = f'{EMAIL_SENDER} <{EMAIL_ADDRESS}>'
+    msg['To'] = to
+
+    # body
+    text_body = TEXT.format(code=code,
+                            ios=APPSTORE_LINK,
+                            android=PLAYSTORE_LINK,
+                            expo=EXPO_LINK)
+    html_body = HTML.format(code=code,
+                            ios=APPSTORE_LINK,
+                            android=PLAYSTORE_LINK,
+                            expo=EXPO_LINK)
+    msg.attach(MIMEText(text_body, 'text'))
+    msg.attach(MIMEText(html_body, 'html'))
+
+    # send message
+    EMAIL_SERVER.ehlo()
+    EMAIL_SERVER.starttls()
+    EMAIL_SERVER.login(EMAIL_USER, EMAIL_PASS)
+    EMAIL_SERVER.sendmail(msg['From'], msg['To'], msg.as_string())
+    EMAIL_SERVER.quit()

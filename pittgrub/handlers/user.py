@@ -1,27 +1,13 @@
-import random
-import string
+import logging
 
 from .base import BaseHandler, CORSHandler, SecureHandler
-from handlers.response import Payload
 from auth import decode_jwt
 from db import FoodPreference, User, UserVerification, UserFoodPreference
+from handlers.response import Payload
+from verification import send_verification_email
 
-try:
-    from tornado.escape import json_decode, json_encode
-    from tornado.web import MissingArgumentError
-except ModuleNotFoundError:
-    # DB10 fix
-    import sys
-    sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
-
-    from tornado.escape import json_decode, json_encode
-    from tornado.web import MissingArgumentError
-
-
-def create_activation_code(length: int=6) -> str:
-    chars = string.ascii_uppercase + string.digits
-    code = random.choices(chars, k=length)
-    return ''.join(code)
+from tornado.escape import json_decode, json_encode
+from tornado.web import MissingArgumentError
 
 
 class UserHandler(SecureHandler):
@@ -44,6 +30,7 @@ class UserHandler(SecureHandler):
             payload = Payload(value)
             self.finish(payload)
 
+
 class UserPasswordHandler(CORSHandler, SecureHandler):
     def post(self):
         user_id = self.get_jwt()['own']
@@ -60,9 +47,10 @@ class UserPasswordHandler(CORSHandler, SecureHandler):
             fields = ", ".join(set('old_password', 'new_password') - data.keys())
             self.write_error(400, f'Missing field(s): {fields}')
 
+
 class UserPreferenceHandler(SecureHandler):
     def get(self, path):
-         # check token
+        # check token
         authorization = self.request.headers.get('Authorization')[7:]
         if authorization:
             token = decode_jwt(authorization)
@@ -79,25 +67,41 @@ class UserPreferenceHandler(SecureHandler):
         if user is not None:
             # decode json
             data = json_decode(self.request.body)
+            logging.info(f'Updated preferences: {data}')
             # check that preferences exist
             preference_ids = [pref.id for pref in FoodPreference.get_all()]
-            if all(pref in preference_ids for pref in preference_ids):
+            if all(pref in preference_ids for pref in data):
                 UserFoodPreference.update(user_id, data)
                 self.success(status=204)
             else:
-                fields = ", ".join(set(preferences)-preference_ids)
+                fields = ", ".join(set(data) - preference_ids)
                 self.write_error(401, f'Food preferences not found: {fields}')
 
-class UserVerificationHandler(BaseHandler):
+
+class UserVerificationHandler(SecureHandler):
     def get(self, path):
+        # GET request support verification code as url param
+        # switching to make GET request resend verification
+        # try:
+        #     id = self.get_query_argument('id')
+        #     if User.activate(id):
+        #         self.success(payload='Successfully verified account')
+        #     else:
+        #         self.write_error(404)
+        # except MissingArgumentError:
+        #     self.write_error(404)
+        user_id = self.get_user_id()
+        user = User.get_by_id(user_id)
+        verification = UserVerification.get_by_user(user_id)
+        if verification is None:
+            verification = UserVerification.add(user_id=user_id)
         try:
-            id = self.get_query_argument('id')
-            if User.activate(id):
-                self.success(payload='Successfully verified account')
-            else:
-                self.write_error(404)
-        except MissingArgumentError:
-            self.write_error(404)
+            send_verification_email(to=user.email, code=verification.code)
+            self.success(status=204)
+        except Exception as e:
+            logging.error("Failed to send verification email")
+            logging.error(e)
+            self.write_error(500, "Error: failed to send verification email")
 
     def post(self, path):
         # decode json
