@@ -21,7 +21,7 @@ EXPO_LINK = 'exp://exp.host/@admtlab/PittGrub'
 TEXT = """\
 Welcome to PittGrub!
 
-Your PittGrub verification code is: {code}
+Your verification code is: {code}
 
 Next steps:
 You're close to receiving free food! Just enter your activation code in the PittGrub app to verify your account.
@@ -41,7 +41,7 @@ If you've received this email in error, please reply with the details of the iss
 HTML = """\
 <h2 align="center">Welcome to PittGrub!</h2>
     
-Your PittGrub verification code is: <b>{code}</b>.
+Your verification code is: <b>{code}</b>.
 
 <h3>Next steps</h3>
 You're close to receiving free food! Just log in to the PittGrub app with your credentials and enter your verification code when prompted.
