@@ -7,10 +7,11 @@ from email.mime.text import MIMEText
 
 from tornado.options import options
 
-EMAIL_SERVER = None
 EMAIL_ADDRESS = None
 EMAIL_USER = None
 EMAIL_PASS = None
+EMAIL_HOST = None
+EMAIL_PORT = None
 EMAIL_SENDER = "PittGrub Support"
 EMAIL_SUBJECT = "PittGrub Account Verification"
 VERIFICATION_ENDPOINT = "users/activate"
@@ -75,33 +76,28 @@ def create_verification_code(length: int = 6) -> str:
     return ''.join(code)
 
 
-def __setup_server() -> None:
+def __get_credentials() -> None:
     """
-    Configure email server
+    Get email server credentials
     """
-    global EMAIL_SERVER
-    global EMAIL_ADDRESS
-    global EMAIL_USER
-    global EMAIL_PASS
+    global EMAIL_HOST, EMAIL_PORT, EMAIL_ADDRESS, EMAIL_USER, EMAIL_PASS
     config = configparser.ConfigParser()
     config.read(options.config)
     email_config = config['EMAIL']
-    address = email_config.get('address')
-    username = email_config.get('username')
-    password = email_config.get('password')
-    host = email_config.get('host')
-    port = email_config.get('port')
-    EMAIL_SERVER = smtplib.SMTP(host, port)
-    EMAIL_ADDRESS = address
-    EMAIL_USER = username
-    EMAIL_PASS = password
+    EMAIL_ADDRESS = email_config.get('address')
+    EMAIL_USER = email_config.get('username')
+    EMAIL_PASS = email_config.get('password')
+    EMAIL_HOST = email_config.get('host')
+    EMAIL_PORT = email_config.get('port')
 
 
 def send_verification_email(to: str, code: str) -> bool:
-    global EMAIL_SERVER
     # verified server was created
-    if EMAIL_SERVER is None:
-        __setup_server()
+    if not (EMAIL_ADDRESS or EMAIL_USER or EMAIL_PASS or EMAIL_HOST or EMAIL_PORT):
+        __get_credentials()
+
+    # setup server
+    email_server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
 
     # construct message
     msg = MIMEMultipart('alternative')
@@ -122,8 +118,8 @@ def send_verification_email(to: str, code: str) -> bool:
     msg.attach(MIMEText(html_body, 'html'))
 
     # send message
-    EMAIL_SERVER.ehlo()
-    EMAIL_SERVER.starttls()
-    EMAIL_SERVER.login(EMAIL_USER, EMAIL_PASS)
-    EMAIL_SERVER.sendmail(msg['From'], msg['To'], msg.as_string())
-    EMAIL_SERVER.quit()
+    email_server.ehlo()
+    email_server.starttls()
+    email_server.login(EMAIL_USER, EMAIL_PASS)
+    email_server.sendmail(msg['From'], msg['To'], msg.as_string())
+    email_server.quit()
