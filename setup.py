@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='PittGrub-Server',
-    version='0.1.0',
+    version='0.2.0',
     description='Server for PittGrub app',
     url='https://github.com/admtlab/pittgrubserver',
     author='Mark Silvis',
