@@ -26,11 +26,15 @@ class Entity:
 
     @classmethod
     def get_all(cls) -> List[E]:
-        return db.session.query(cls).all()
+        entities = db.session.query(cls).all()
+        db.session.commit()
+        return entities
 
     @classmethod
     def get_by_id(cls, id: Union[int, str]) -> Optional[E]:
-        return db.session.query(cls).get(id)
+        entity = db.session.query(cls).get(id)
+        db.session.commit()
+        return entity
 
     @classmethod
     def delete(cls, id: Union[int, str]) -> bool:

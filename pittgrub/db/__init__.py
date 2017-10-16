@@ -101,4 +101,3 @@ def init(username: str, password: str, url: str, database: str,
     if generate: 
         print('Generating test data')
         __bulk_insert(engine, TEST_DATA)    # add test data if generate flag is set to true
-
