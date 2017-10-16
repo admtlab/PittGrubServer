@@ -110,7 +110,7 @@ class LoginHandler(CORSHandler):
             self.write_error(400, f'Error: missing field(s) {fields}')
 
 
-class LogoutHandler(BaseHandler):
+class LogoutHandler(SecureHandler):
     def get(self, path):
         auth = self.request.headers.get('Authorization')
         if auth:
