@@ -89,7 +89,8 @@ class User(Base, Entity):
         if activation:
             user = cls.get_by_id(activation.user_id)
             user.active = True
-            user.status = UserStatus.VERIFIED
+            # user.status = UserStatus.VERIFIED
+            user.status = UserStatus.ACCEPTED
             UserVerification.delete(activation_id)
             db.session.commit()
             return True
