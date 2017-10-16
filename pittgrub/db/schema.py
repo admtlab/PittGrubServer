@@ -89,7 +89,8 @@ class User(Base, Entity):
         if activation:
             user = cls.get_by_id(activation.user_id)
             user.active = True
-            user.status = UserStatus.VERIFIED
+            # user.status = UserStatus.VERIFIED
+            user.status = UserStatus.ACCEPTED
             UserVerification.delete(activation_id)
             db.session.commit()
             return True
@@ -328,7 +329,9 @@ class UserVerification(Base):
     @classmethod
     def generate_code(cls) -> str:
         """Generate a new verification code"""
-        return ''.join(random.choices(string.ascii_uppercase+string.digits, k=6))
+        chars = string.ascii_uppercase + string.digits
+        code = random.choices(chars, k=6)
+        return ''.join(code)
 
 
 class Event(Base, Entity):

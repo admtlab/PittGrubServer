@@ -3,17 +3,13 @@ Login and token handler
 Author: Mark Silvis
 """
 
-import configparser
 import dateutil.parser
 import json
 import logging
-import smtplib
 import time
 from base64 import b64encode, b64decode
 from copy import deepcopy
 from datetime import datetime, timedelta
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from typing import Any, Dict, List, Union
 from uuid import uuid4
 
@@ -21,101 +17,15 @@ from db import AccessToken, User, UserVerification, UserReferral
 from auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, CORSHandler, SecureHandler
+from verification import send_verification_email
 
 import jwt
 from jwt import DecodeError, ExpiredSignatureError
 from tornado import gen, web
 from tornado.escape import json_decode, json_encode
-from tornado.options import options
+from tornado.web import Finish
+from validate_email import validate_email
 
-
-VERIFICATION_ENDPOINT = "users/activate"
-VERIFICATION_SUBJECT = "PittGrub Account Verification"
-VERIFICATION_BODY = "Please verify your email address with PittGrub:"
-VERIFICATION_CODE = "Your PittGrub verification code is:"
-APPSTORE_LINK = 'https://appsto.re/us/dACI6.i'
-PLAYSTORE_LINK = 'https://play.google.com/store/apps/details?id=host.exp.exponent'
-EXPO_LINK = 'exp://exp.host/@admtlab/PittGrub'
-
-
-def send_verification_email(to: str, activation: str):
-    sender = 'PittGrub Support'
-    # get email configuration
-    config = configparser.ConfigParser()
-    config.read(options.config)
-    email_config = config['EMAIL']
-    address = email_config.get('address')
-    username = email_config.get('username')
-    password = email_config.get('password')
-    host = email_config.get('host')
-    port = email_config.getint('port')
-
-    # configure server
-    server = smtplib.SMTP(host, port)
-
-    # construct message information
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = VERIFICATION_SUBJECT
-    msg['From'] = f'{sender} <{address}>'
-    msg['To'] = to
-
-    # construct message body
-    # text
-    text = f"""\
-    Welcome to PittGrub!
-    
-    Your PittGrub verification code is: {activation}.
-    
-    Next steps:
-    You're close to receiving free food! Just enter your activation code in the PittGrub app to verify your account.
-    
-    If you don't have the PittGrub mobile app, follow these steps to install it:
-    1) Download the Expo Client app. It is available for iOS at {APPSTORE_LINK} and Android at {PLAYSTORE_LINK}.
-    2) Install the PittGrub app in Expo with the following project link: {EXPO_LINK}. We currently support iOS, and Android support is coming soon.
-    
-    PittGrub is growing quickly, and we approve users daily. We will notify you when you're account has been accepted. Thanks for signing up for the PittGrub beta!
-
-
-    If you've received this email in error, please reply with the details of the issue experienced.
-    """
-
-    # html
-    html = f"""\
-    <h2 align="center">Welcome to PittGrub!</h2>
-    
-    Your PittGrub verification code is: <b>{activation}</b>.
-    
-    <h3>Next steps</h3>
-    You're close to receiving free food! Just log in to the PittGrub app with your credentials and enter your verification code when prompted.
-   
-    <br><br>
-    If you don't have the PittGrub mobile app, follow these steps to install it:
-    <ol>
-        <li>Download the Expo Client app. It is available on both <a href='{APPSTORE_LINK}'>iOS</a> and <a href='{PLAYSTORE_LINK}'>Android</a>. </li>
-        <li>Install the PittGrub app in Expo with the following project link: <a href='{EXPO_LINK}'>{EXPO_LINK}</a>. We currently support iOS, and Android support is coming soon. </li>
-    </ol>
-
-    PittGrub is growing quickly, and we approve users daily. We will notify you when you're account has been accepted.
-    <br>
-    <br>
-    Thanks for signing up,
-    <br>
-    PittGrub Team
-
-    <br><br>
-    <p style="color:#aaaaaa;font-size:10px">If you've received this email in error, please reply with the details of the issue experienced.</p>
-    """
-
-    # attach message body
-    msg.attach(MIMEText(text, 'text'))
-    msg.attach(MIMEText(html, 'html'))
-
-    # send message
-    server.ehlo()
-    server.starttls()
-    server.login(username, password)
-    server.sendmail(msg['From'], msg['To'], msg.as_string())
-    server.quit()
 
 class SignupHandler(CORSHandler):
 
@@ -125,15 +35,25 @@ class SignupHandler(CORSHandler):
         data = json_decode(self.request.body)
         # validate data
         if all(key in data for key in ('email', 'password')):
-            # add user
-            user = User.add(data['email'], data['password'])
-            if user is not None:
-                # add activation code
-                activation = UserVerification.add(user_id=user.id)
-                self.success(payload=Payload(user))
-                send_verification_email(to=user.email, activation=activation.code)
+            # check email is valide
+            if not validate_email(data['email']):
+                self.write_error(400, 'Invalid email address')
             else:
-                self.write_error(400, 'Error: user already exists with that email address')
+                # add user
+                user = User.add(data['email'], data['password'])
+                if user is not None:
+                    # add activation code
+                    activation = UserVerification.add(user_id=user.id)
+                    send_verification_email(to=user.email, code=activation.code)
+                    jwt_token = create_jwt(owner=user.id)
+                    decoded = decode_jwt(jwt_token)
+                    self.success(payload=dict(user=user.json(deep=False),
+                                              token=jwt_token.decode(),
+                                              expires=decoded['exp'],
+                                              issued=decoded['iat'],
+                                              type=decoded['tok']))
+                else:
+                    self.write_error(400, 'Error: user already exists with that email address')
         else:
             # missing required field
             fields = ", ".join({'email', 'password'}-data.keys())
@@ -160,7 +80,7 @@ class ReferralHandler(CORSHandler):
                     user_referral = UserReferral.add(user.id, reference.id)
                     activation = UserVerification.add(user_id=user.id)
                     self.success(payload=Payload(user))
-                    send_verification_email(to=user.email, activation=activation.code)
+                    send_verification_email(to=user.email, code=activation.code)
                 else:
                     self.write_error(400, 'Error: user already exists with that email address')
         else:
@@ -179,11 +99,11 @@ class LoginHandler(CORSHandler):
                     if not activation:
                         activation = UserVerification.add(user_id=user.id)
                         send_verification_email(to=data['email'], activation=activation.code)
-                    self.write_error(403, 'Error: account not verified')
-                else:
-                    jwt_token = create_jwt(owner=user.id)
-                    decoded = decode_jwt(jwt_token)
-                    self.success(payload=dict(user=user.json(deep=False),
+                    # don't want to error, just include activation status in response
+                    # self.write_error(403, 'Error: account not verified')
+                jwt_token = create_jwt(owner=user.id)
+                decoded = decode_jwt(jwt_token)
+                self.success(payload=dict(user=user.json(deep=False),
                                           token=jwt_token.decode(),
                                           expires=decoded['exp'],
                                           issued=decoded['iat'],
@@ -196,7 +116,7 @@ class LoginHandler(CORSHandler):
             self.write_error(400, f'Error: missing field(s) {fields}')
 
 
-class LogoutHandler(BaseHandler):
+class LogoutHandler(SecureHandler):
     def get(self, path):
         auth = self.request.headers.get('Authorization')
         if auth:
