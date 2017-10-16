@@ -38,8 +38,14 @@ class SignupHandler(CORSHandler):
             if user is not None:
                 # add activation code
                 activation = UserVerification.add(user_id=user.id)
-                self.success(payload=Payload(user))
                 send_verification_email(to=user.email, code=activation.code)
+                jwt_token = create_jwt(owner=user.id)
+                decoded = decode_jwt(jwt_token)
+                self.success(payload=dict(user=user.json(deep=False),
+                                          token=jwt_token.decode(),
+                                          expires=decoded['exp'],
+                                          issued=decoded['iat'],
+                                          type=decoded['tok']))
             else:
                 self.write_error(400, 'Error: user already exists with that email address')
         else:
