@@ -23,6 +23,8 @@ import jwt
 from jwt import DecodeError, ExpiredSignatureError
 from tornado import gen, web
 from tornado.escape import json_decode, json_encode
+from tornado.web import Finish
+from validate_email import validate_email
 
 
 class SignupHandler(CORSHandler):
@@ -33,21 +35,25 @@ class SignupHandler(CORSHandler):
         data = json_decode(self.request.body)
         # validate data
         if all(key in data for key in ('email', 'password')):
-            # add user
-            user = User.add(data['email'], data['password'])
-            if user is not None:
-                # add activation code
-                activation = UserVerification.add(user_id=user.id)
-                send_verification_email(to=user.email, code=activation.code)
-                jwt_token = create_jwt(owner=user.id)
-                decoded = decode_jwt(jwt_token)
-                self.success(payload=dict(user=user.json(deep=False),
-                                          token=jwt_token.decode(),
-                                          expires=decoded['exp'],
-                                          issued=decoded['iat'],
-                                          type=decoded['tok']))
+            # check email is valide
+            if not validate_email(data['email']):
+                self.write_error(400, 'Invalid email address')
             else:
-                self.write_error(400, 'Error: user already exists with that email address')
+                # add user
+                user = User.add(data['email'], data['password'])
+                if user is not None:
+                    # add activation code
+                    activation = UserVerification.add(user_id=user.id)
+                    send_verification_email(to=user.email, code=activation.code)
+                    jwt_token = create_jwt(owner=user.id)
+                    decoded = decode_jwt(jwt_token)
+                    self.success(payload=dict(user=user.json(deep=False),
+                                              token=jwt_token.decode(),
+                                              expires=decoded['exp'],
+                                              issued=decoded['iat'],
+                                              type=decoded['tok']))
+                else:
+                    self.write_error(400, 'Error: user already exists with that email address')
         else:
             # missing required field
             fields = ", ".join({'email', 'password'}-data.keys())

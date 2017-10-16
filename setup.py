@@ -22,6 +22,7 @@ setup(
         'pillow>=4.2.1',
         'python-dateutil>=2.6.1',
         'exponent-server-sdk>=0.1.1',
+        'validate_email>=1.3',
         'sockjs>=0.6.0',
         'inflect>=0.2.5',
         #'flake8>=3.3.0'

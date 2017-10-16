@@ -102,6 +102,7 @@ class UserVerificationHandler(SecureHandler):
             logging.error("Failed to send verification email")
             logging.error(e)
             self.write_error(500, "Error: failed to send verification email")
+            raise(e)
 
     def post(self, path):
         # decode json
