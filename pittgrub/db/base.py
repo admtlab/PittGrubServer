@@ -14,7 +14,8 @@ E = TypeVar('Entity', bound='Entity')
 
 def health_check() -> bool:
     try:
-        db.session.execute('SELECT 1')
+        #db.session.execute('SELECT 1')
+        db.session.execute('SELECT count(*) from FoodPreference')
     except:
         return False
     return True
