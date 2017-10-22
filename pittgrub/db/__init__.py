@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Tuple
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.pool import NullPool
 
 from .base import Entity, ReferralStatus, UserStatus, health_check
 from .default import DEFAULTS
@@ -93,8 +94,7 @@ def init(username: str, password: str, url: str, database: str,
     engine = create_engine(f"mysql+pymysql://{username}:{password}"
                            f"@{url}/{database}{params}",
                            convert_unicode=True, echo=echo,
-                           pool_recycle=1800,
-                           pool_pre_ping=True)
+                           poolclass=NullPool)
     session = scoped_session(sessionmaker(bind=engine))
     print('Inserting default data')
     __bulk_insert(engine, DEFAULTS) # add default data
