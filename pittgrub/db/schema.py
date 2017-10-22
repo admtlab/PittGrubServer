@@ -1,6 +1,7 @@
 import datetime
 import random
 import string
+from decimal import Decimal
 from typing import Any, Dict, List, Optional, Union
 
 from passlib.hash import bcrypt_sha256
@@ -9,7 +10,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, validates
 from sqlalchemy.types import (
-    BIGINT, BOOLEAN, CHAR, DateTime, Enum, INT, VARCHAR
+    BIGINT, BOOLEAN, CHAR, DECIMAL, DateTime, Enum, INT, VARCHAR
 )
 
 import db
@@ -724,3 +725,30 @@ class EventImage(Base, Entity):
     @classmethod
     def get_by_event(cls, event_id: int) -> Optional['EventImage']:
         return db.session.query(cls).filter_by(event_id=event_id).one_or_none()
+
+
+class Building(Base, Entity):
+    __tablename__ = "Building"
+
+    id = Column('id', BIGINT, primary_key=True, autoincrement=True)
+    name = Column('name', VARCHAR(255), unique=True, nullable=False)
+    latitude = Column('latitude', DECIMAL(10, 8), nullable=False)
+    longitude = Column('longitude', DECIMAL(11, 8), nullable=False)
+
+    def __init__(self, id: int=None, name: str=None, latitude: Decimal=None, longitude: Decimal=None):
+        self.id = id
+        self.name = name
+        self.latitude = latitude
+        self.longitude = longitude
+
+    @classmethod
+    def add(cls, name: str, latitude: Decimal, longitude: Decimal) -> 'Building':
+        building = Building(name=name, latitude=latitude, longitude=longitude)
+        db.session.add(building)
+        db.session.commit()
+        db.session.refresh(building)
+        return building
+
+    @classmethod
+    def get_by_name(cls, name: str) -> Optional['Building']:
+        return db.session.query(cls).filter_by(name=name).one_or_none()
