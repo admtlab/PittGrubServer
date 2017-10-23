@@ -27,7 +27,7 @@ from handlers.user import (
     UserHandler, UserVerificationHandler, UserPreferenceHandler,
     UserPasswordHandler
 )
-from handlers.events import EventImageHandler
+from handlers.events import EventImageHandler, EventTestHandler
 from handlers.admin import UserReferralHandler, UserApprovedReferralHandler, UserPendingReferralHandler, AdminHandler
 from storage import ImageStore
 
@@ -80,6 +80,7 @@ class App(web.Application):
             (r'/events(/*)', EventHandler),      # all events
             (r'/events/(\d+/*)', EventHandler),  # single event
             (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(image_store=image_store)), # event images
+            # (r'/events/new(/*)', EventTestHandler), # newest events
             (r'/events/recommended/(\d+/*)', RecommendedEventHandler),  # recommended events for a user
             (r'/events/accepted/(\d+/*)', AcceptedEventHandler),        # accepted events for a user
             (r'/events/(\d+)/accept/(\d+/*)', AcceptEventHandler),      # accept an event for a user

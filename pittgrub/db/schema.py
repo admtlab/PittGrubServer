@@ -375,6 +375,11 @@ class Event(Base, Entity):
         self.location = location
 
     @classmethod
+    def get_all_newest(cls) -> List['Event']:
+        entities = db.session.query(cls).filter(cls.end_date > datetime.datetime.now()).order_by(cls.start_date).all();
+        return entities
+
+    @classmethod
     def add(cls, title: str, start_date: datetime, end_date: datetime,
             details: str, servings: int, address: str, location: str) -> 'Event':
         event = Event(title=title, start_date=start_date, end_date=end_date,

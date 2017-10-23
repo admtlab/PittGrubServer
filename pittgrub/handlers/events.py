@@ -8,8 +8,16 @@ from io import BytesIO
 from PIL import Image
 
 from db import Event, EventImage
+from handlers.response import Payload
 from handlers import BaseHandler, SecureHandler
 from storage import ImageStore
+
+
+class EventTestHandler(BaseHandler):
+    def get(self, path):
+        events = Event.get_all_newest()
+        self.success(status=200, payload=Payload(events))
+
 
 class EventImageHandler(BaseHandler):
 
