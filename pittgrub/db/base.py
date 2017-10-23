@@ -1,6 +1,6 @@
 import enum
 import logging
-from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, List, Optional, TypeVar, Union
 
 import db
 
@@ -69,6 +69,12 @@ class UserStatus(enum.Enum):
     REQUESTED = 1   # waiting for verification
     VERIFIED = 2    # verified email account, waiting for activation
     ACCEPTED = 3    # user accepted; active account
+
+
+class UserRole(enum.Enum):
+    USER = 0    # normal user
+    ADMIN = 1   # creates events and accepts non-pitt email addresses
+    SUPER = 2   # makes admins and groups, approves users when limiting is on
 
 
 class ReferralStatus(enum.Enum):
