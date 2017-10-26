@@ -25,7 +25,7 @@ from handlers.login import (
 )
 from handlers.user import (
     UserHandler, UserVerificationHandler, UserPreferenceHandler,
-    UserPasswordHandler
+    UserPasswordHandler, UserPasswordResetHandler
 )
 from handlers.events import EventImageHandler
 from handlers.admin import UserReferralHandler, UserApprovedReferralHandler, UserPendingReferralHandler, AdminHandler
@@ -73,6 +73,7 @@ class App(web.Application):
             (r'/referrals/pending(/*)', UserPendingReferralHandler), # get requested user referrals
             (r'/referrals/approved(/*)', UserApprovedReferralHandler),  # get approved user referrals
             (r'/password', UserPasswordHandler), # Change user password
+            (r'/password/reset(/*)', UserPasswordResetHandler), # Reset user's password
             (r'/login/refresh(/*)', TokenRefreshHandler),
             (r'/login/validate(/*)', TokenValidationHandler),
             (r'/logout(/*)', LogoutHandler),

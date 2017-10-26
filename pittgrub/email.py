@@ -38,9 +38,10 @@ PittGrub Team
 
 If you've received this email in error, please reply with the details of the issue experienced.
 """
+
 HTML = """\
 <h2 align="center">Welcome to PittGrub!</h2>
-    
+ 
 Your verification code is: <b>{code}</b>.
 
 <h3>Next steps</h3>
@@ -64,16 +65,38 @@ PittGrub Team
 <p style="color:#aaaaaa;font-size:10px">If you've received this email in error, please reply with the details of the issue experienced.</p>
 """
 
+RESET_TEXT = f"""\
+PittGrub
 
-def create_verification_code(length: int = 6) -> str:
-    """
-    Creates a verification code comprising upper case characters and digits
-    :param length: length of code (default: 6)
-    :return: code
-    """
-    chars = string.ascii_uppercase + string.digits
-    code = random.choices(chars, k=length)
-    return ''.join(code)
+If you requested a password reset, click the link below to change your password. If you didn't make this request, you can ignore this email. The link will expire in 24 hours.
+
+https://pittgrub.com/password_reset?token={token}
+
+"""
+
+#
+
+RESET_HTML = f"""\
+<h2 align="center" style="font-family:Futura,sans-serif;color:#F7E53B;text-shadow:#444 0 1px 1px;font-size:36px">PittGrub</h2>
+
+<h3 style="font-family:sans-serif">Reset your password?</h3>
+
+<p style="font-family:sans-serif">If you requested a password reset, click the button below to change your password. If you didn't make this request, you can ignore this email. The request will expire in 24 hours.</p>
+
+<br>
+<a style="background-color:#336699;border:1px solid #336699;border-radius:3px;color:#ffffff;display:inline-block;font-family:sans-serif;font-size:16px;line-height:40px;text-align:center;text-decoration:none;width:150px;-webkit-text-size-adjust:none;mso-hide:all;" class="button" target="_blank" href="https://pittgrub.com/password_reset?token={token}">Reset password</a>
+"""
+
+
+# def create_verification_code(length: int = 6) -> str:
+#     """
+#     Creates a verification code comprising upper case characters and digits
+#     :param length: length of code (default: 6)
+#     :return: code
+#     """
+#     chars = string.ascii_uppercase + string.digits
+#     code = random.choices(chars, k=length)
+#     return ''.join(code)
 
 
 def __get_credentials() -> None:
@@ -92,7 +115,7 @@ def __get_credentials() -> None:
 
 
 def send_verification_email(to: str, code: str) -> bool:
-    # verified server was created
+    # verify server was created
     if not (EMAIL_ADDRESS or EMAIL_USER or EMAIL_PASS or EMAIL_HOST or EMAIL_PORT):
         __get_credentials()
 
@@ -116,6 +139,32 @@ def send_verification_email(to: str, code: str) -> bool:
                             expo=EXPO_LINK)
     msg.attach(MIMEText(text_body, 'text'))
     msg.attach(MIMEText(html_body, 'html'))
+
+    # send message
+    email_server.ehlo()
+    email_server.starttls()
+    email_server.login(EMAIL_USER, EMAIL_PASS)
+    email_server.sendmail(msg['From'], msg['To'], msg.as_string())
+    email_server.quit()
+
+
+def send_password_reset_email(to: str, token: str) -> bool:
+    # verify server was created
+    if not (EMAIL_ADDRESS or EMAIL_USER or EMAIL_PASS or EMAIL_HOST or EMAIL_PORT):
+        __get_credentials()
+
+    # setup server
+    email_server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
+
+    # construct message
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = 'PittGrub password reset request'
+    msg['From'] = f'{EMAIL_SENDER} <{EMAIL_ADDRESS}>'
+    msg['To'] = to
+
+    # body
+    text_body = RESET_TEXT.format(token=token)
+    html_body = RESET_HTML.format(token=token)
 
     # send message
     email_server.ehlo()

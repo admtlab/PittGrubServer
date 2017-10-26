@@ -1,10 +1,12 @@
+import base64
 import logging
+from datetime import datetime, timedelta
 
 from .base import BaseHandler, CORSHandler, SecureHandler
-from auth import decode_jwt
+from auth import create_jwt, decode_jwt
 from db import FoodPreference, User, UserVerification, UserFoodPreference
+from email import send_verification_email, send_password_reset_email
 from handlers.response import Payload
-from verification import send_verification_email
 
 from tornado.escape import json_decode, json_encode
 from tornado.web import MissingArgumentError
@@ -46,6 +48,31 @@ class UserPasswordHandler(CORSHandler, SecureHandler):
         else:
             fields = ", ".join(set('old_password', 'new_password') - data.keys())
             self.write_error(400, f'Missing field(s): {fields}')
+
+
+class UserPasswordResetHandler(CORSHandler):
+    def post(self, path):
+        # user forgot password
+        # we need to generate a one-time use reset token
+        # and email them a password reset link
+        data = json_decode(self.request.body)
+        if 'email' in data:
+            # they are requesting the reset link
+            user = User.get_by_email(data['email'])
+            if user:
+                jwt_token = create_jwt(
+                    owner=user.id, secret=user.password, expires=datetime.utcnow() + timedelta(hours=24))
+                encoded = base64.b64encode(jwt_token)
+                send_password_reset_email(to: user.email, token=encoded)
+                self.success(status=204)
+            else:
+                self.write_error(400, 'No user exists with that email address')
+        elif 'token' in data and 'password' in data:
+            # they are sending their token and new password
+            # set them up with the change
+            pass
+        else:
+            self.write_error(400, 'Missing fields')
 
 
 class UserPreferenceHandler(SecureHandler):
