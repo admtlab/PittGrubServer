@@ -52,7 +52,7 @@ class UserPasswordHandler(CORSHandler, SecureHandler):
 
 class UserPasswordResetHandler(CORSHandler):
 
-    def initialize(self, executor: ThreadPoolExecutor):
+    def initialize(self, executor: 'ThreadPoolExecutor'):
         self.executor = executor
 
     def post(self, path):
@@ -69,7 +69,7 @@ class UserPasswordResetHandler(CORSHandler):
                 encoded = base64.b64encode(jwt_token).decode()
                 logging.info(f'token: {jwt_token}')
                 logging.info(f'encoded: {encoded}')
-                executor.submit(send_password_reset_email, user.email, encoded)
+                self.executor.submit(send_password_reset_email, user.email, encoded)
                 self.success(status=204)
             else:
                 self.write_error(400, 'No user exists with that email address')
