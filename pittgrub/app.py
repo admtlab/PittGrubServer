@@ -31,7 +31,7 @@ from handlers.events import EventImageHandler
 from handlers.admin import UserReferralHandler, UserApprovedReferralHandler, UserPendingReferralHandler, AdminHandler
 from storage import ImageStore
 
-from tornado import httpserver, log, web
+from tornado import concurrent, httpserver, log, web
 from tornado.ioloop import IOLoop
 from tornado.options import options, define, parse_command_line
 from sqlalchemy import create_engine
@@ -43,6 +43,9 @@ define("config", default="./config.ini", type=str,
        help="Config file (default: ./config.ini)")
 parse_command_line()
 log.enable_pretty_logging()
+
+# async task executors
+THREAD_POOL = concurrent.futures.ThreadPoolExecutor(4)
 
 
 class App(web.Application):
@@ -73,7 +76,7 @@ class App(web.Application):
             (r'/referrals/pending(/*)', UserPendingReferralHandler), # get requested user referrals
             (r'/referrals/approved(/*)', UserApprovedReferralHandler),  # get approved user referrals
             (r'/password', UserPasswordHandler), # Change user password
-            (r'/password/reset(/*)', UserPasswordResetHandler), # Reset user's password
+            (r'/password/reset(/*)', UserPasswordResetHandler, dict(executor=THREAD_POOL)), # Reset user's password
             (r'/login/refresh(/*)', TokenRefreshHandler),
             (r'/login/validate(/*)', TokenValidationHandler),
             (r'/logout(/*)', LogoutHandler),
