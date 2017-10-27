@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from .base import BaseHandler, CORSHandler, SecureHandler
 from auth import create_jwt, decode_jwt
 from db import FoodPreference, User, UserVerification, UserFoodPreference
-from email import send_verification_email, send_password_reset_email
+from emailer import send_verification_email, send_password_reset_email
 from handlers.response import Payload
 
 from tornado.escape import json_decode, json_encode
@@ -62,8 +62,10 @@ class UserPasswordResetHandler(CORSHandler):
             if user:
                 jwt_token = create_jwt(
                     owner=user.id, secret=user.password, expires=datetime.utcnow() + timedelta(hours=24))
-                encoded = base64.b64encode(jwt_token)
-                send_password_reset_email(to: user.email, token=encoded)
+                encoded = base64.b64encode(jwt_token).decode()
+                logging.info(f'token: {jwt_token}')
+                logging.info(f'encoded: {encoded}')
+                send_password_reset_email(to=user.email, token=encoded)
                 self.success(status=204)
             else:
                 self.write_error(400, 'No user exists with that email address')

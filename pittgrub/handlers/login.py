@@ -17,7 +17,7 @@ from db import AccessToken, User, UserVerification, UserReferral
 from auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, CORSHandler, SecureHandler
-from verification import send_verification_email
+from emailer import send_verification_email
 
 import jwt
 from jwt import DecodeError, ExpiredSignatureError
