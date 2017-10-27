@@ -70,7 +70,7 @@ PittGrub
 
 If you requested a password reset, click the link below to change your password. If you didn't make this request, you can ignore this email. The link will expire in 24 hours.
 
-https://pittgrub.com/password_reset?token={token}
+https://pittgrub.com/passwordReset?token={token}
 
 """
 
@@ -84,7 +84,7 @@ RESET_HTML = """\
 <p style="font-family:sans-serif;font-size:16px">If you requested a password reset, click the button below to change your password. If you didn't make this request, you can ignore this email. The request will expire in 24 hours.</p>
 
 <br>
-<a style="background-color:#336699;border:1px solid #336699;border-radius:3px;color:#ffffff;display:inline-block;font-family:sans-serif;font-size:16px;line-height:40px;text-align:center;text-decoration:none;width:150px;-webkit-text-size-adjust:none;mso-hide:all;" class="button" target="_blank" href='https://pittgrub.com/password_reset?token={token}'>Reset password</a>
+<a style="background-color:#336699;border:1px solid #336699;border-radius:3px;color:#ffffff;display:inline-block;font-family:sans-serif;font-size:16px;line-height:40px;text-align:center;text-decoration:none;width:150px;-webkit-text-size-adjust:none;mso-hide:all;" class="button" target="_blank" href='https://pittgrub.com/passwordReset?token={token}'>Reset password</a>
 """
 
 
