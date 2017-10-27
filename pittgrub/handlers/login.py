@@ -176,13 +176,13 @@ class TokenValidationHandler(BaseHandler):
             # remove 'Bearer'
             auth = auth[7:]
             try:
-                decoded = decode_jwt(auth, True)
+                decoded = decode_jwt(token=auth, verify_exp=True)
                 if AccessToken.get_by_id(decoded['id']):
                     self.success(payload=dict(valid=True, expires=decoded['exp']))
                 else:
                     self.success(payload=dict(valid=False))
             except ExpiredSignatureError:
-                decoded = decode_jwt(auth, False)
+                decoded = decode_jwt(token=auth, verify_exp=False)
                 self.write_error(401, dict(valid=False))
             except DecodeError as e:
                 print(f'error: {e}')
