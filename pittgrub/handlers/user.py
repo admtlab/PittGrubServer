@@ -3,11 +3,12 @@ import logging
 from datetime import datetime, timedelta
 
 from .base import BaseHandler, CORSHandler, SecureHandler
-from auth import create_jwt, decode_jwt
-from db import FoodPreference, User, UserVerification, UserFoodPreference
+from auth import create_jwt, decode_jwt, verify_jwt
+from db import FoodPreference, User, UserFoodPreference, UserVerification
 from emailer import send_verification_email, send_password_reset_email
 from handlers.response import Payload
 
+import jwt
 from tornado.escape import json_decode, json_encode
 from tornado.web import MissingArgumentError
 
@@ -75,8 +76,21 @@ class UserPasswordResetHandler(CORSHandler):
                 self.write_error(400, 'No user exists with that email address')
         elif 'token' in data and 'password' in data:
             # they are sending their token and new password
-            # set them up with the change
-            pass
+            # check that the token is correct, then
+            # set them up with their new password
+            token = base64.b64decode(data['token']).decode()
+            owner = jwt.decode(token, verify=False)['own']
+            user = User.get_by_id(owner)
+            if user is not None:
+                if verify_jwt(token, user.password):
+                    password = data['password']
+                    User.change_password(owner, password)
+                    self.success(status=204)
+                else:
+                    self.write_error(400, 'Password reset failed, invalid token')
+            else:
+                logging.warn(f"User with id {owner} tried to reset password, but they don't exist")
+                self.write_error(400, 'No user exists with that id')
         else:
             self.write_error(400, 'Missing fields')
 
