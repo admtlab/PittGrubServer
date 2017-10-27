@@ -77,7 +77,7 @@ def decode_jwt(token: str, secret: str=None, verify_exp: bool=False) -> Dict[str
     return decoded
 
 
-def verify_jwt(token: str) -> bool:
+def verify_jwt(token: str, secret: str=None) -> bool:
     """Verify token is not expired
     :token: stringified jwt
     :returns: True if not expired
@@ -85,7 +85,7 @@ def verify_jwt(token: str) -> bool:
     :raises DecodeError: if token fails to be decoded
     """
     try:
-        if decode_jwt(token, True) is not None:
+        if decode_jwt(token=token, secret=secret, verify_exp=True) is not None:
             return True
     except ExpiredSignatureError:
         return False
