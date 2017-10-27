@@ -57,7 +57,7 @@ def create_jwt(owner: int,
     # AccessToken.add(id, owner, expires)
     return encoded
 
-def decode_jwt(token: str, secret: str=None verify_exp: bool=False) -> Dict[str, Union[int, str, datetime]]:
+def decode_jwt(token: str, secret: str=None, verify_exp: bool=False) -> Dict[str, Union[int, str, datetime]]:
     """Decode jwt
     :token: stringified jwt
     :secret: the token secret
