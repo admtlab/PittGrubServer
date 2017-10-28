@@ -112,7 +112,7 @@ class SecureHandler(BaseHandler):
         auth = self.request.headers.get('Authorization')
         if auth is not None and auth.startswith('Bearer '):
             jwt = auth[7:]  # remove 'Bearer '
-            return decode_jwt(jwt, verify)
+            return decode_jwt(token=jwt, verify_exp=verify)
         return None
 
     def verify_jwt(self) -> Optional[bool]:

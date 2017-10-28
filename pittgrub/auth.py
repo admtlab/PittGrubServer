@@ -21,6 +21,7 @@ except ModuleNotFoundError:
 def create_jwt(owner: int,
                id: str=None,
                issuer: str='ADMT Lab',
+               secret: str=None,
                issued: datetime=None,
                expires: datetime=None) -> bytes:
     """Creates new JWT for user
@@ -39,7 +40,7 @@ def create_jwt(owner: int,
     # get app secret
     config = configparser.ConfigParser()
     config.read(options.config)
-    secret = config['SERVER'].get('secret')
+    secret = secret or config['SERVER'].get('secret')
 
     # delete old token
     # token = AccessToken.get_by_user(owner)
@@ -56,9 +57,10 @@ def create_jwt(owner: int,
     # AccessToken.add(id, owner, expires)
     return encoded
 
-def decode_jwt(token: str, verify_exp: bool=False) -> Dict[str, Union[int, str, datetime]]:
+def decode_jwt(token: str, secret: str=None, verify_exp: bool=False) -> Dict[str, Union[int, str, datetime]]:
     """Decode jwt
     :token: stringified jwt
+    :secret: the token secret
     :verify_exp: whether to verify jwt expiration
     :returns: decoded token
     :raises DecodeError: if token fails to be decoded
@@ -68,14 +70,14 @@ def decode_jwt(token: str, verify_exp: bool=False) -> Dict[str, Union[int, str, 
     # get app secret
     config = configparser.ConfigParser()
     config.read(options.config)
-    secret = config['SERVER'].get('secret')
+    secret = secret or config['SERVER'].get('secret')
 
     # verify jwt
     decoded = jwt.decode(token, secret, algorithms=['HS256'], options={'verify_exp': verify_exp})
     return decoded
 
 
-def verify_jwt(token: str) -> bool:
+def verify_jwt(token: str, secret: str=None) -> bool:
     """Verify token is not expired
     :token: stringified jwt
     :returns: True if not expired
@@ -83,7 +85,7 @@ def verify_jwt(token: str) -> bool:
     :raises DecodeError: if token fails to be decoded
     """
     try:
-        if decode_jwt(token, True) is not None:
+        if decode_jwt(token=token, secret=secret, verify_exp=True) is not None:
             return True
     except ExpiredSignatureError:
         return False

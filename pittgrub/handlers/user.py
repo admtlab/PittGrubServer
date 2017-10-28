@@ -1,13 +1,16 @@
+import base64
 import logging
+from datetime import datetime, timedelta
 
 from .base import BaseHandler, CORSHandler, SecureHandler
-from auth import decode_jwt
-from db import FoodPreference, User, UserVerification, UserFoodPreference
+from auth import create_jwt, decode_jwt, verify_jwt
+from db import FoodPreference, User, UserFoodPreference, UserVerification
+from emailer import send_verification_email, send_password_reset_email
 from handlers.response import Payload
-from verification import send_verification_email
 
+import jwt
 from tornado.escape import json_decode, json_encode
-from tornado.web import MissingArgumentError
+from tornado.web import Finish, MissingArgumentError
 
 
 class UserHandler(SecureHandler):
@@ -46,6 +49,58 @@ class UserPasswordHandler(CORSHandler, SecureHandler):
         else:
             fields = ", ".join(set('old_password', 'new_password') - data.keys())
             self.write_error(400, f'Missing field(s): {fields}')
+
+
+class UserPasswordResetHandler(CORSHandler):
+
+    def initialize(self, executor: 'ThreadPoolExecutor'):
+        self.executor = executor
+
+    def post(self, path):
+        # user forgot password
+        # we need to generate a one-time use reset token
+        # and email them a password reset link
+        data = json_decode(self.request.body)
+        if 'email' in data:
+            # they are requesting the reset link
+            user = User.get_by_email(data['email'])
+            if user:
+                jwt_token = create_jwt(
+                    owner=user.id, secret=user.password, expires=datetime.utcnow() + timedelta(hours=24))
+                encoded = base64.b64encode(jwt_token).decode()
+                logging.info(f'token: {jwt_token}')
+                logging.info(f'encoded: {encoded}')
+                self.executor.submit(send_password_reset_email, user.email, encoded)
+                self.success(status=204)
+            else:
+                self.write_error(400, 'No user exists with that email address')
+        elif 'token' in data and 'password' in data:
+            # they are sending their token and new password
+            # check that the token is correct, then
+            # set them up with their new password
+            token = None
+            try:
+                token = base64.b64decode(data['token']).decode()
+            except:
+                self.write_error(400, 'Password reset failed, invalid token')
+                raise Finish()
+            owner = jwt.decode(token, verify=False)['own']
+            user = User.get_by_id(owner)
+            if user is not None:
+                try:
+                    if verify_jwt(token, user.password):
+                        password = data['password']
+                        User.change_password(owner, password)
+                        self.success(status=204)
+                    else:
+                        self.write_error(400, 'Password reset failed, token is expired')
+                except:
+                    self.write_error(400, 'Password reset failed, invalid token')
+            else:
+                logging.warn(f"User with id {owner} tried to reset password, but they don't exist")
+                self.write_error(400, 'No user exists with that id')
+        else:
+            self.write_error(400, 'Missing fields')
 
 
 class UserPreferenceHandler(SecureHandler):

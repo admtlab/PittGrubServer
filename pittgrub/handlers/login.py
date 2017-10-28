@@ -17,7 +17,7 @@ from db import AccessToken, User, UserVerification, UserReferral
 from auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, CORSHandler, SecureHandler
-from verification import send_verification_email
+from emailer import send_verification_email
 
 import jwt
 from jwt import DecodeError, ExpiredSignatureError
@@ -176,13 +176,13 @@ class TokenValidationHandler(BaseHandler):
             # remove 'Bearer'
             auth = auth[7:]
             try:
-                decoded = decode_jwt(auth, True)
+                decoded = decode_jwt(token=auth, verify_exp=True)
                 if AccessToken.get_by_id(decoded['id']):
                     self.success(payload=dict(valid=True, expires=decoded['exp']))
                 else:
                     self.success(payload=dict(valid=False))
             except ExpiredSignatureError:
-                decoded = decode_jwt(auth, False)
+                decoded = decode_jwt(token=auth, verify_exp=False)
                 self.write_error(401, dict(valid=False))
             except DecodeError as e:
                 print(f'error: {e}')
