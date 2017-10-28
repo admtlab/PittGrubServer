@@ -10,7 +10,7 @@ from handlers.response import Payload
 
 import jwt
 from tornado.escape import json_decode, json_encode
-from tornado.web import MissingArgumentError
+from tornado.web import Finish, MissingArgumentError
 
 
 class UserHandler(SecureHandler):
@@ -78,7 +78,12 @@ class UserPasswordResetHandler(CORSHandler):
             # they are sending their token and new password
             # check that the token is correct, then
             # set them up with their new password
-            token = base64.b64decode(data['token']).decode()
+            token = None
+            try:
+                token = base64.b64decode(data['token']).decode()
+            except:
+                self.write_error(400, 'Password reset failed, invalid token')
+                raise Finish()
             owner = jwt.decode(token, verify=False)['own']
             user = User.get_by_id(owner)
             if user is not None:
