@@ -1,6 +1,6 @@
 import enum
 import logging
-from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, List, Optional, TypeVar, Union
 
 import db
 
@@ -14,7 +14,8 @@ E = TypeVar('Entity', bound='Entity')
 
 def health_check() -> bool:
     try:
-        db.session.execute('SELECT 1')
+        #db.session.execute('SELECT 1')
+        db.session.execute('SELECT count(*) from FoodPreference')
     except:
         return False
     return True
@@ -25,11 +26,15 @@ class Entity:
 
     @classmethod
     def get_all(cls) -> List[E]:
-        return db.session.query(cls).all()
+        entities = db.session.query(cls).all()
+        db.session.commit()
+        return entities
 
     @classmethod
     def get_by_id(cls, id: Union[int, str]) -> Optional[E]:
-        return db.session.query(cls).get(id)
+        entity = db.session.query(cls).get(id)
+        db.session.commit()
+        return entity
 
     @classmethod
     def delete(cls, id: Union[int, str]) -> bool:
@@ -64,6 +69,12 @@ class UserStatus(enum.Enum):
     REQUESTED = 1   # waiting for verification
     VERIFIED = 2    # verified email account, waiting for activation
     ACCEPTED = 3    # user accepted; active account
+
+
+class UserRole(enum.Enum):
+    USER = 0    # normal user
+    ADMIN = 1   # creates events and accepts non-pitt email addresses
+    SUPER = 2   # makes admins and groups, approves users when limiting is on
 
 
 class ReferralStatus(enum.Enum):

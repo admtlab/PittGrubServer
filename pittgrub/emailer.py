@@ -21,15 +21,14 @@ EXPO_LINK = 'exp://exp.host/@admtlab/PittGrub'
 TEXT = """\
 Welcome to PittGrub!
 
-Your verification code is: {code}
+Your verification code is: {code}.
 
-Next steps:
-You're close to receiving free food! Just enter your activation code in the PittGrub app to verify your account.
+To enter your verification code, please open the PittGrub app and log in with your username and password. You will then be prompted to enter your verification code. This step is required before you can fully access the app.
 
 If you don't have the PittGrub mobile app, follow these steps to install it:
 1) Download the Expo Client app. It is available for iOS at {ios} and Android at {android}.
 2) Install the PittGrub app in Expo with the following project link: {expo}. We currently support iOS, and Android support is coming soon.
-    
+
 PittGrub is growing quickly, and we approve users daily. We will notify you when you're account has been accepted.
 
 Thanks for signing up,
@@ -41,13 +40,10 @@ If you've received this email in error, please reply with the details of the iss
 
 HTML = """\
 <h2 align="center">Welcome to PittGrub!</h2>
- 
 Your verification code is: <b>{code}</b>.
 
-<h3>Next steps</h3>
-You're close to receiving free food! Just log in to the PittGrub app with your credentials and enter your verification code when prompted.
+<p>To enter your verification code, please open the PittGrub app and log in with your username and password. You will then be prompted to enter your verification code. This step is required before you can fully access the app.</p>
 
-<br><br>
 If you don't have the PittGrub mobile app, follow these steps to install it:
 <ol>
     <li>Download the Expo Client app. It is available on both <a href='{ios}'>iOS</a> and <a href='{android}'>Android</a>. </li>

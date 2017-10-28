@@ -10,7 +10,7 @@ from sqlalchemy.pool import NullPool
 from .base import Entity, ReferralStatus, UserStatus, health_check
 from .default import DEFAULTS
 from .schema import (
-    AccessToken, Event, EventFoodPreference, EventImage, EventType,
+    AccessToken, Building, Event, EventFoodPreference, EventImage, EventType,
     EventTypeRel, FoodPreference, User, UserAcceptedEvent, UserVerification,
     UserCheckedInEvent, UserFoodPreference, UserRecommendedEvent, UserReferral
 )
@@ -101,4 +101,3 @@ def init(username: str, password: str, url: str, database: str,
     if generate: 
         print('Generating test data')
         __bulk_insert(engine, TEST_DATA)    # add test data if generate flag is set to true
-
