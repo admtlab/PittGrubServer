@@ -226,7 +226,7 @@ class EventHandler(BaseHandler):
         if path:
             value = Event.get_by_id(path)
         else:
-            value = Event.get_all()
+            value = Event.get_all_newest()
 
         # response
         if value is None:
@@ -280,6 +280,11 @@ class RecommendedEventHandler(BaseHandler):
         # get data
         user = User.get_by_id(path)
         events = user.recommended_events
+        # get accepted events
+        accepted = {e.id: e for e in user.accepted_events}
+        # remove events that are inactive or
+        # that the user has already accepted
+        events = [e for e in events if e.end_date > datetime.now() and e.id not in accepted]
         self.set_status(200)
         payload = Payload(events)
         self.finish(payload)
