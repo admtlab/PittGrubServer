@@ -377,7 +377,10 @@ class Event(Base, Entity):
 
     @classmethod
     def get_all_newest(cls) -> List['Event']:
-        entities = db.session.query(cls).filter(cls.end_date > datetime.datetime.now()).order_by(cls.start_date).all();
+        entities = db.session.query(cls)
+                     .filter(cls.end_date > datetime.datetime.now())
+                     .order_by(cls.start_date)
+                     .all()
         return entities
 
     @classmethod
