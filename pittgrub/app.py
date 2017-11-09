@@ -62,19 +62,19 @@ class App(web.Application):
         endpoints = [
             (r"/(/*)", MainHandler),            # index
             (r"/health(/*)", HealthHandler),    # check status
-            (r'/users(/*)', UserHandler),        # all users
-            (r'/users/(\d+/*)', UserHandler),    # single user
-            (r'/users/activate(/*)', UserVerificationHandler),
-            (r'/users/preferences(/*)', UserPreferenceHandler),
-            (r'/users/admin(/*)', AdminHandler), # make user admin
-            (r'/token(/*)', NotificationTokenHandler),  # add notification token
-            (r'/signup(/*)', SignupHandler),     # sign-up
-            (r'/signup/referral(/*)', ReferralHandler), # sign-up with reference
-            (r'/login(/*)', LoginHandler),       # log-in with credentials
+            (r'/users(/*)', UserHandler),       # all users
+            (r'/users/(\d+/*)', UserHandler),   # single user
+            (r'/users/activate(/*)', UserVerificationHandler),      # user activation
+            (r'/users/preferences(/*)', UserPreferenceHandler),     # user preferences (food, etc)
+            (r'/users/admin(/*)', AdminHandler),            # make user admin
+            (r'/token(/*)', NotificationTokenHandler),      # add notification token
+            (r'/signup(/*)', SignupHandler),                # sign-up
+            (r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
+            (r'/login(/*)', LoginHandler),              # log-in with credentials
             (r'/referrals(/*)', UserReferralHandler),   # get user referrals
-            (r'/referrals/pending(/*)', UserPendingReferralHandler), # get requested user referrals
+            (r'/referrals/pending(/*)', UserPendingReferralHandler),    # get requested user referrals
             (r'/referrals/approved(/*)', UserApprovedReferralHandler),  # get approved user referrals
-            (r'/password', UserPasswordHandler), # Change user password
+            (r'/password', UserPasswordHandler),    # Change user password
             (r'/password/reset(/*)', UserPasswordResetHandler, dict(executor=THREAD_POOL)), # Reset user's password
             (r'/login/refresh(/*)', TokenRefreshHandler),
             (r'/login/validate(/*)', TokenValidationHandler),
@@ -82,7 +82,7 @@ class App(web.Application):
             (r'/p(/*)', PreferenceHandler),
             (r'/events(/*)', EventHandler),      # all events
             (r'/events/(\d+/*)', EventHandler),  # single event
-            (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(image_store=image_store)), # event images
+            (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(image_store=image_store)),  # event images
             # (r'/events/new(/*)', EventTestHandler), # newest events
             (r'/events/recommended/(\d+/*)', RecommendedEventHandler),  # recommended events for a user
             (r'/events/accepted/(\d+/*)', AcceptedEventHandler),        # accepted events for a user
