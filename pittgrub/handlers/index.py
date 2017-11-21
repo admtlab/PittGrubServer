@@ -44,7 +44,10 @@ def send_push_notification(user: 'User', event: 'Event'):
     if expo_token:
         if PushClient().is_exponent_push_token(expo_token):
             try:
-                message = PushMessage(to=expo_token, body='PittGrub: New event added', data={'data': 'A new event was added to PittGrub!'})
+                message = PushMessage(to=expo_token,
+                                      title=f'PittGrub: New event!',
+                                      body=f'{event.title}',
+                                      data={'type': 'event', 'event': json_encode(event)})
                 response = PushClient().publish(message)
                 response.validate_response()
             except PushServerError as e:
