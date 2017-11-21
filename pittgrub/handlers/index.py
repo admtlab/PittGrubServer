@@ -26,7 +26,7 @@ from exponent_server_sdk import PushClient, PushMessage, PushServerError, PushRe
 
 
 def should_recommend(user: 'User', event: 'Event') -> bool:
-    event_food_preferences = [fp.id for fp in event.food_preferences]    
+    event_food_preferences = [fp.id for fp in event.food_preferences]
     user_food_preferences = [fp.id for fp in user.food_preferences]
     return all(fp in event_food_preferences for fp in user_food_preferences)
 
@@ -105,7 +105,7 @@ def send_notification(event: 'Event'):
         "Content-Type": "application/json"
     }
     payload = [{
-        "badge": 1,        
+        "badge": 1,
         "sound": "default",
         "title": "New event",
         "body": f'{event.title} starts at {event.start_date}'
@@ -226,7 +226,7 @@ class EventHandler(BaseHandler):
         if path:
             value = Event.get_by_id(path)
         else:
-            value = Event.get_all()
+            value = Event.get_all_newest()
 
         # response
         if value is None:
@@ -248,7 +248,7 @@ class EventHandler(BaseHandler):
             data['start_date'] = dateutil.parser.parse(data['start_date'])
             data['start_date'] = data['start_date'].replace(tzinfo=None)
             data['end_date'] = dateutil.parser.parse(data['end_date'])
-            data['end_date'] = data['end_date'].replace(tzinfo=None)                
+            data['end_date'] = data['end_date'].replace(tzinfo=None)
             foodprefs = data.pop('food_preferences')
             # add event
             event = Event.add(**data)
@@ -273,13 +273,18 @@ class EventHandler(BaseHandler):
 
 
 class RecommendedEventHandler(BaseHandler):
-    
+
     def get(self, path):
         path = path.replace('/', '')
 
         # get data
         user = User.get_by_id(path)
         events = user.recommended_events
+        # get accepted events
+        accepted = {e.id: e for e in user.accepted_events}
+        # remove events that are inactive or
+        # that the user has already accepted
+        events = [e for e in events if e.end_date > datetime.now() and e.id not in accepted]
         self.set_status(200)
         payload = Payload(events)
         self.finish(payload)
@@ -293,6 +298,7 @@ class AcceptedEventHandler(BaseHandler):
         # get data
         user = User.get_by_id(path)
         events = user.accepted_events
+        events = [e for e in events if e.end_date > datetime.now()]
         self.set_status(200)
         payload = Payload(events)
         self.finish(payload)

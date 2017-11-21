@@ -125,6 +125,7 @@ class User(Base, Entity):
         if verification and verification.code is verification_code:
             self.active = True
             UserVerification.delete(verification_code)
+            db.session.commit()
 
     def add_expo_token(self, expo_token: str):
         self.expo_token = expo_token
@@ -376,7 +377,7 @@ class Event(Base, Entity):
 
     @classmethod
     def get_all_newest(cls) -> List['Event']:
-        entities = db.session.query(cls).filter(cls.end_date > datetime.datetime.now()).order_by(cls.start_date).all();
+        entities = db.session.query(cls).filter(cls.end_date > datetime.datetime.now()).order_by(cls.start_date).all()
         return entities
 
     @classmethod
@@ -541,6 +542,10 @@ class UserRecommendedEvent(Base):
         db.session.refresh(user_recommended_event)
         return user_recommended_event
 
+    @classmethod
+    def user_active_recommendations(cls, user_id: int) -> List['UserRecommendedEvent']:
+        entities = db.session.query(cls).filter(cls.event.end_date > datetime.datetime.utcnow())
+        return entities
 
     def json(cls, deep: bool=False) -> Dict[str, Any]:
         if deep:
