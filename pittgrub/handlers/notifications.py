@@ -31,6 +31,10 @@ class NotificationHandler(SecureHandler):
                     if user.expo_token:
                         print(f"sending notification to user: {user.id}")
                         print(f"notification values\ntitle:{data['title']}\nbody:{data['body']}\ndata:{data.get('data')}")
+                        notification_data = data.get('data') or dict()
+                        notification_data['title'] = data['title']
+                        notification_data['body'] = data['body']
+                        notification_data['type'] = 'message'
                         send_push_notification(user.expo_token,
                                                data['title'], data['body'],
-                                               data.get('data') or dict())
+                                               notification_data)
