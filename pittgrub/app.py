@@ -26,6 +26,7 @@ from handlers.user import (
     UserHandler, UserVerificationHandler, UserPreferenceHandler,
     UserPasswordHandler, UserPasswordResetHandler
 )
+from handlers.notifications import NotificationHandler
 from handlers.events import EventImageHandler, EventTestHandler
 from handlers.admin import UserReferralHandler, UserApprovedReferralHandler, UserPendingReferralHandler, AdminHandler
 from storage import ImageStore
@@ -67,6 +68,7 @@ class App(web.Application):
             (r'/users/activate(/*)', UserVerificationHandler),      # user activation
             (r'/users/preferences(/*)', UserPreferenceHandler),     # user preferences (food, etc)
             (r'/users/admin(/*)', AdminHandler),            # make user admin
+            (r'/notifications(/*))', NotificationHandler),   # handle notifications
             (r'/token(/*)', NotificationTokenHandler),      # add notification token
             (r'/signup(/*)', SignupHandler),                # sign-up
             (r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
