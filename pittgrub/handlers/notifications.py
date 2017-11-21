@@ -2,10 +2,10 @@
 Handle user notifications
 Author: Mark Silvis
 """
-
 from exponent_server_sdk import (
     PushClient, PushMessage, PushServerError, PushResponseError
 )
+from tornado.escape import json_decode
 
 from db import User
 from handlers.base import BaseHandler, CORSHandler, SecureHandler
@@ -29,6 +29,8 @@ class NotificationHandler(SecureHandler):
                 users = User.get_all()
                 for user in users:
                     if user.expo_token:
+                        print(f"sending notification to user: {user.id}")
+                        print(f"notification values\ntitle:{data['title']}\nbody:{data['body']}\ndata:{data.get('data')}")
                         send_push_notification(user.expo_token,
-                                               title, body,
-                                               data['data'] or dict())
+                                               data['title'], data['body'],
+                                               data.get('data') or dict())
