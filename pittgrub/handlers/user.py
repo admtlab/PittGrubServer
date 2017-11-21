@@ -88,13 +88,15 @@ class UserPasswordResetHandler(CORSHandler):
             user = User.get_by_id(owner)
             if user is not None:
                 try:
+                    logging.info('verifying token')
                     if verify_jwt(token, user.password):
                         password = data['password']
                         User.change_password(owner, password)
                         self.success(status=204)
                     else:
                         self.write_error(400, 'Password reset failed, token is expired')
-                except:
+                except Exception as e:
+                    logging.warn(e)
                     self.write_error(400, 'Password reset failed, invalid token')
             else:
                 logging.warn(f"User with id {owner} tried to reset password, but they don't exist")
