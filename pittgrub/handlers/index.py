@@ -46,7 +46,7 @@ def send_push_notification(user: 'User', event: 'Event'):
             try:
                 message = PushMessage(to=expo_token,
                                       title='PittGrub: New event!',
-                                      body=event.title',
+                                      body=event.title,
                                       data={'type': 'event', 'event': event.title, 'title':'PittGrub: New event!', 'body': event.title})
                 response = PushClient().publish(message)
                 response.validate_response()
