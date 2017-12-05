@@ -63,8 +63,8 @@ class App(web.Application):
         endpoints = [
             (r"/(/*)", MainHandler),            # index
             (r"/health(/*)", HealthHandler),    # check status
-            (r'/users(/*)', UserHandler),       # all users
-            (r'/users/(\d+/*)', UserHandler),   # single user
+            # (r'/users(/*)', UserHandler),       # all users
+            # (r'/users/(\d+/*)', UserHandler),   # single user
             (r'/users/activate(/*)', UserVerificationHandler),      # user activation
             (r'/users/preferences(/*)', UserPreferenceHandler),     # user preferences (food, etc)
             (r'/users/admin(/*)', AdminHandler),            # make user admin
