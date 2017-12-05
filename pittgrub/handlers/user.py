@@ -133,7 +133,7 @@ class UserSettingsHandler(SecureHandler):
                     self.write_error(401, f'Food preferences not foudn: {fields}')
             if 'pantry' in data:
                 user.set_pitt_pantry(data['pantry'])
-            if 'eagernes' in data:
+            if 'eagerness' in data:
                 user.update_eagerness(data['eagerness'])
             self.success(status=204)
 
