@@ -105,6 +105,39 @@ class UserPasswordResetHandler(CORSHandler):
             self.write_error(400, 'Missing fields')
 
 
+class UserSettingsHandler(SecureHandler):
+    def get(self, path):
+        # check token
+        user_id = self.get_user_id()
+        if user_id:
+            user = User.get_by_id(user_id)
+            settings = user.json_settings()
+            self.success(payload=Payload(settings))
+        else:
+            self.write_error(403, 'Authentication is required')
+
+    def post(self, path):
+        user_id = self.get_user_id()
+        user = User.get_by_id(user_id)
+        if user is not None:
+            # decode json
+            data = json_decode(self.request.body)
+            logging.info(f'Updating settings for user {user_id}, settings {data}')
+            if 'food_preferences' in data:
+                # ensure preference ids are legit
+                preference_ids = [pref.id for pref in FoodPreference.get_all()]
+                if all(pref in preference_ids for pref in data['food_preferences']):
+                    UserFoodPreference.update(user_id, preference_ids)
+                else:
+                    fields = ", ".join(set(data['food_preferences'])-preference_ids)
+                    self.write_error(401, f'Food preferences not foudn: {fields}')
+            if 'pantry' in data:
+                user.set_pitt_pantry(data['pantry'])
+            if 'eagerness' in data:
+                user.update_eagerness(data['eagerness'])
+            self.success(status=204)
+
+
 class UserPreferenceHandler(SecureHandler):
     def get(self, path):
         # check token

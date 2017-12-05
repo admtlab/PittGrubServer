@@ -33,6 +33,8 @@ class User(Base, Entity):
     admin = Column('admin', BOOLEAN, nullable=False, default=False)
     expo_token = Column('expo_token', VARCHAR(255), nullable=True)
     login_count = Column('login_count', INT, nullable=False)
+    pitt_pantry = Column('pitt_pantry', BOOLEAN, nullable=False, default=False)
+    eagerness = Column('eagerness', INT, nullable=False, default=3)
 
     # mappings
     food_preferences = association_proxy('_user_foodpreferences', 'food_preference')
@@ -42,7 +44,8 @@ class User(Base, Entity):
 
     def __init__(self, id: int=None, email: str=None, password: str=None,
                  status: UserStatus=None, active: bool=False, disabled: bool=False,
-                 admin: bool=False, login_count: int=0, expo_token: str=None):
+                 admin: bool=False, login_count: int=0, expo_token: str=None,
+                 pitt_pantry: bool=False, eagerness: int=3):
         self.id = id
         self.created = datetime.datetime.utcnow()
         self.email = email
@@ -53,6 +56,8 @@ class User(Base, Entity):
         self.admin = admin
         self.login_count = login_count
         self.expo_token = expo_token
+        self.pitt_pantry = pitt_pantry
+        self.eagerness = eagerness
 
     @property
     def valid(self):
@@ -137,13 +142,42 @@ class User(Base, Entity):
         db.session.commit()
         db.session.refresh(self)
 
+    def update_eagerness(self, value: int):
+        assert 0 < value
+        self.eagerness = value
+        db.session.commit()
+        db.session.refresh(self)
+
+    def set_pitt_pantry(self, status: bool):
+        assert status is not None
+        self.pitt_pantry = status
+        db.session.commit()
+        db.session.refresh(self)
+
+    def json_info(cls) -> Dict[str, Union[bool, int, str]]:
+        """Get json serializable representation of account related info"""
+        return dict(
+            id=cls.id,
+            active=cls.active,
+            admin=cls.admin,
+            status=cls.status.name)
+
+    def json_settings(cls) -> Dict[str, Any]:
+        """Get json serializable representation of user settings"""
+        return dict(
+            eagerness=cls.eagerness,
+            pantry=cls.pitt_pantry,
+            food_preferences=[f.json() for f in cls.food_preferences])
+
     def json(cls, deep: bool=True) -> Dict[str, Any]:
         json = dict(
             id=cls.id,
             email=cls.email,
             active=cls.active,
             admin=cls.admin,
-            status=cls.status.name
+            status=cls.status.name,
+            eagerness=cls.eagerness,
+            pantry=cls.pitt_pantry
         )
         if deep:
             json['food_preferences'] = [f.json() for f in cls.food_preferences]
