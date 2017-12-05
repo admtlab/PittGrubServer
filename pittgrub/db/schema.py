@@ -154,6 +154,21 @@ class User(Base, Entity):
         db.session.commit()
         db.session.refresh(self)
 
+    def json_info(cls) -> Dict[str, Union[bool, int, str]]:
+        """Get json serializable representation of account related info"""
+        return dict(
+            id=cls.id,
+            active=cls.active,
+            admin=cls.admin,
+            status=cls.status.name)
+
+    def json_settings(cls) -> Dict[str, Any]:
+        """Get json serializable representation of user settings"""
+        return dict(
+            eagerness=cls.eagerness,
+            pantry=cls.pitt_pantry,
+            food_preferences=[f.json() for f in cls.food_preferences])
+
     def json(cls, deep: bool=True) -> Dict[str, Any]:
         json = dict(
             id=cls.id,
