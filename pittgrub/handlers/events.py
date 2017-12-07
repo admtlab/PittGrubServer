@@ -31,7 +31,7 @@ class EventImageHandler(BaseHandler):
         else:
             event_image = EventImage.get_by_event(event_id)
             if event_image is None:
-                self.success(status=200)
+                self.write_error(404, 'Event does not have an image')
             else:
                 image = self.image_store.fetch_image(event_image.id)
                 if image is None:
