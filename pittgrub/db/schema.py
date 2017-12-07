@@ -451,12 +451,6 @@ class Event(Base, Entity):
             ]
         }
 
-        event_image = EventImage.get_by_id(self.id)
-        if event_image is not None:
-            data['image'] = True
-        else:
-            data['image'] = False
-
         if self.organizer is not None:
             if deep:
                 data['organizer'] = self.organizer.json(False)
