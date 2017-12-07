@@ -9,7 +9,7 @@ from datetime import datetime
 import dateutil.parser
 from copy import deepcopy
 from __init__ import __version__
-from db import User, FoodPreference, Event, EventFoodPreference, UserAcceptedEvent, UserRecommendedEvent, health_check
+from db import User, FoodPreference, Event, EventFoodPreference, EventImage, UserAcceptedEvent, UserRecommendedEvent, health_check
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, SecureHandler
 from requests.exceptions import ConnectionError, HTTPError
@@ -225,16 +225,25 @@ class EventHandler(BaseHandler):
     def get(self, path):
         path = path.replace('/', '')
 
-        # get data
         if path:
+            # get single event
             value = Event.get_by_id(path)
+            if value is None:
+                # event not found
+                self.write_error(404, f'Event not found with id: {path}')
+            else:
+                # event found
+                self.set_status(200)
+                payload = Payload(value)
+                event_image = EventImage.get_by_event(value.id)
+                # attach image link if available
+                if event_image is not None:
+                    payload.add("image", f"/events/{path}/images")
+                # send response
+                self.finish(payload)
         else:
+            # get event list
             value = Event.get_all_newest()
-
-        # response
-        if value is None:
-            self.write_error(404, f'Event not found with id: {id}')
-        else:
             self.set_status(200)
             payload = Payload(value)
             self.finish(payload)

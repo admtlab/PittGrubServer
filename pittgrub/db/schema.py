@@ -446,6 +446,7 @@ class Event(Base, Entity):
             'servings': self.servings,
             'address': self.address,
             'location': self.location,
+            'image': True if EventImage.get_by_id(self.id) is not None else False,
             'food_preferences': [
                 f.json() for f in self.food_preferences
             ]
