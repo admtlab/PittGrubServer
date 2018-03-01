@@ -20,7 +20,7 @@ from handlers.index import (
 from handlers.login import (
     LoginHandler, LogoutHandler, SignupHandler,
     TokenRefreshHandler, TokenValidationHandler,
-    ReferralHandler
+    ReferralHandler, HostSignupHandler
 )
 from handlers.user import (
     UserHandler, UserVerificationHandler, UserPreferenceHandler,
@@ -73,6 +73,7 @@ class App(web.Application):
             (r'/notifications(/*)', NotificationHandler),   # handle notifications
             (r'/token(/*)', NotificationTokenHandler),      # add notification token
             (r'/signup(/*)', SignupHandler),                # sign-up
+            (r'/signup/host(/*)', HostSignupHandler),       # signup as host
             (r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
             (r'/login(/*)', LoginHandler),              # log-in with credentials
             (r'/referrals(/*)', UserReferralHandler),   # get user referrals

@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Union
 from uuid import uuid4
 
-from db import AccessToken, User, UserVerification, UserReferral
+from db import AccessToken, User, UserHostRequest, UserReferral, UserVerification
 from auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, CORSHandler, SecureHandler
@@ -35,7 +35,7 @@ class SignupHandler(CORSHandler):
         data = json_decode(self.request.body)
         # validate data
         if all(key in data for key in ('email', 'password')):
-            # check email is valide
+            # check email is valid
             if not validate_email(data['email']):
                 self.write_error(400, 'Invalid email address')
             else:
@@ -58,6 +58,41 @@ class SignupHandler(CORSHandler):
             # missing required field
             fields = ", ".join({'email', 'password'}-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')
+
+
+class HostSignupHandler(CORSHandler):
+    required = ('email', 'password', 'name', 'organization', 'directory')
+
+    def post(self, path: str):
+        # new user signup requesting host status
+        data = json_decode(self.request.body)
+        # validate data
+        if all(key in data for key in required):
+            # check email is valid
+            if not validate_email(data['email']):
+                self.write_error(400, 'Invalid email address')
+            else:
+                # add user
+                user = User.add(data['email'], data['password'], data['name'])
+                if user is not None:
+                    host_request = UserHostRequest.add(user.id, data['organization'], data['directory'], data['reason'])
+                    # add activation code
+                    activation = UserVerification.add(user_id=user)
+                    send_verification_email(to=user.email, code=activation.code)
+                    jwt_token = create_jwt(owner=user.id)
+                    decoded = decode_jwt(jwt_token)
+                    self.success(payload=dict(user=user.json(deep=False),
+                                              token=jwt_token.decode(),
+                                              expires=decoded['exp'],
+                                              issued=decoded['iat'],
+                                              type=decoded['tok']))
+                else:
+                    self.write_error(400, 'Error: user already exists with that email address')
+        else:
+            # missing required field
+            fields = ", ".join({*required}-data.keys())
+            self.write_error(400, f'Error: missing field(s) {fields}')
+
 
 class ReferralHandler(CORSHandler):
 
