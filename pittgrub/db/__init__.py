@@ -11,7 +11,8 @@ from .default import DEFAULTS
 from .schema import (
     AccessToken, Building, Event, EventFoodPreference, EventImage, EventType,
     EventTypeRel, FoodPreference, User, UserAcceptedEvent, UserVerification,
-    UserCheckedInEvent, UserFoodPreference, UserRecommendedEvent, UserReferral
+    UserCheckedInEvent, UserFoodPreference, UserHostRequest,
+    UserRecommendedEvent, UserReferral
 )
 
 # database session
@@ -22,8 +23,8 @@ session = None
 # insert when 'generate' flag is True
 TEST_DATA = dict({
     'User': [
-        (1, 'xyz@pitt.edu', '12345', UserStatus.ACCEPTED, True, False, True, 0),
-        (2, 'abc@pitt.edu', '12345', UserStatus.ACCEPTED, True, False, False, 0)
+        (1, 'xyz@pitt.edu', '12345', UserStatus.ACCEPTED, "XYZ Tester", True, False, True, 0),
+        (2, 'abc@pitt.edu', '12345', UserStatus.ACCEPTED, "ABC Tester", True, False, False, 0)
     ],
     'UserFoodPreference': [
         (1, 1),

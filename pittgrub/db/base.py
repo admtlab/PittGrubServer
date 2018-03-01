@@ -77,6 +77,20 @@ class UserRole(enum.Enum):
     SUPER = 2   # makes admins and groups, approves users when limiting is on
 
 
+class UserRoleNew(enum.Enum):
+    USER = 0    # Normal user
+    HOST = 1    # Host (create events)
+    ADMIN = 2   # Make hosts and groups
+
+
+class OrganizationRole(enum.Enum):
+    """
+    The role of the user belonging to an organization
+    """
+    MEMBER = 0  # Normal member
+    HOST = 1    # Host (creates events on behalf of organization)
+
+
 class ReferralStatus(enum.Enum):
     PENDING = 'pending'     # waiting for approval
     APPROVED = 'approved'   # referral request approved

@@ -14,7 +14,7 @@ from sqlalchemy.types import (
 )
 
 import db
-from db.base import Entity, Password, ReferralStatus, UserStatus
+from db.base import Entity, Password, OrganizationRole, ReferralStatus, UserStatus
 
 # database db.session variables
 Base = declarative_base()
@@ -28,6 +28,7 @@ class User(Base, Entity):
     email = Column('email', VARCHAR(255), unique=True, nullable=False)
     password = Column('password', Password, nullable=False)
     status = Column('status', Enum(UserStatus), nullable=False, default=UserStatus.REQUESTED)
+    name = Column('name', VARCHAR(255), unique=False, nullable=True)
     active = Column('active', BOOLEAN, nullable=False, default=False)
     disabled = Column('disabled', BOOLEAN, nullable=False, default=False)
     admin = Column('admin', BOOLEAN, nullable=False, default=False)
@@ -43,7 +44,8 @@ class User(Base, Entity):
     checkedin_events = association_proxy('_user_checkedin_events', 'event')
 
     def __init__(self, id: int=None, email: str=None, password: str=None,
-                 status: UserStatus=None, active: bool=False, disabled: bool=False,
+                 status: UserStatus=None, name: str=None,
+                 active: bool=False, disabled: bool=False,
                  admin: bool=False, login_count: int=0, expo_token: str=None,
                  pitt_pantry: bool=False, eagerness: int=3):
         self.id = id
@@ -51,6 +53,7 @@ class User(Base, Entity):
         self.email = email
         self.password = password
         self.status = status
+        self.name = name
         self.active = active
         self.disabled = disabled
         self.admin = admin
@@ -64,7 +67,7 @@ class User(Base, Entity):
         return self.active and self.status is UserStatus.ACCEPTED and not self.disabled
 
     @classmethod
-    def add(cls, email: str, password: str) -> Optional['User']:
+    def add(cls, email: str, password: str, name: str=None) -> Optional['User']:
         """Create new user and add to database
         :email: user email address
         :password: user password (will be hashed)
@@ -72,7 +75,7 @@ class User(Base, Entity):
         """
         if User.get_by_email(email) is not None:
             return None
-        user = User(email=email, password=password)
+        user = User(email=email, password=password, name=name)
         db.session.add(user)
         db.session.commit()
         db.session.refresh(user)
@@ -185,6 +188,80 @@ class User(Base, Entity):
             json['food_preferences'] = [f.id for f in cls.food_preferences]
         return json
 
+
+class Organization(Base, Entity):
+    """
+    NOT CURRENTLY USED
+    """
+    __tablename__ = 'Organization'
+
+    id = Column('id', BIGINT, primary_key=True, autoincrement=True)
+    name = Column('name', VARCHAR(255), unique=True, nullable=False)
+    description = Column('description', VARCHAR(255), nullable=False)
+    url = Column('url', VARCHAR(512), unique=False, nullable=True)
+    created = Column('created', Datetime, nullable=False, default=datetime.datetime.utcnow)
+
+    def __init__(self, id: int=None, name: str=None, description: str=None, url: str=None):
+        self.id = id
+        self.name = name
+        self.description = description
+        self.url = url
+        self.created = datetime.datetime.utcnow()
+
+
+class UserOrganization(Base):
+    """
+    NOT CURRENLTY USED
+    """
+    __tablename__ = 'UserOrganization'
+
+    user_id = Column('user_id', BIGINT, ForeignKey('User.id'), primary_key=True)
+    organization_id = Column('organization_id', BIGINT, ForeignKey('Organization.id'), primary_key=True)
+    role = Column('role', Enum(OrganizationRole), nullable=False, default=OrganizationRole.MEMBER)
+
+    user = relationship(User, backref=backref('_user_organizations'))
+    organization = relationship(Organization)
+
+    def __init__(self, user: int=None, organization: int=None, role: OrganizationRole=None):
+        self.user_id = user
+        self.organization_id = organization
+        self.role = role
+
+    @classmethod
+    def add(cls, user_id: int, organization_id: int, role: OrganizationRole=OrganizationRole.MEMBER) -> 'UserOragnization':
+        userOrg = UserOrganization(user_id, organization_id, role)
+        db.session.add(userOrg)
+
+
+class UserHostRequest(Base, Entity):
+    __tablename__ = 'UserHostRequest'
+
+    id = Column('id', BIGINT, primary_key=True, autoincrement=True)
+    user_id = Column('user', BIGINT, ForeignKey("User.id"), nullable=False)
+    organization = Column('organization', VARCHAR(255), nullable=False)
+    directory = Column('directory', VARCHAR(512), nullable=False)
+    reason = Column('reason', VARCHAR(500), nullable=True)
+    approved = Column('approved', BOOLEAN, nullable=False, default=False)
+    created = Column('created', DateTime, nullable=False, default=datetime.datetime.utcnow)
+
+    user = relationship(User)
+
+    def __init__(self, id: int=None, user: int=None, organization: str=None, directory: str=None, reason: str=None):
+        self.id = id
+        self.user_id = user
+        self.organization = organization
+        self.directory = directory
+        self.reason = reason
+        self.approved = False
+        self.created = datetime.datetime.utcnow()
+
+    @classmethod
+    def add(cls, user_id, organization, directory, reason):
+        host_request = UserHostRequest(user=user_id, organization=organization, directory=directory, reason=reason)
+        db.session.add(host_request)
+        db.session.commit()
+
+
 class UserReferral(Base):
     __tablename__ = 'UserReferral'
 
@@ -250,6 +327,7 @@ class UserReferral(Base):
             status=cls.status.value,
             timestamp=cls.time.isoformat()
         )
+
 
 class FoodPreference(Base, Entity):
     __tablename__ = 'FoodPreference'
