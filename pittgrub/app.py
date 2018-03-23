@@ -15,7 +15,7 @@ import db
 from handlers.index import (
     MainHandler, HealthHandler, NotificationTokenHandler,
     PreferenceHandler, EventHandler, RecommendedEventHandler,
-    AcceptedEventHandler, AcceptEventHandler
+    AcceptedEventHandler, AcceptEventHandler, TestHandler
 )
 from handlers.login import (
     LoginHandler, LogoutHandler, SignupHandler,
@@ -66,6 +66,7 @@ class App(web.Application):
             (r"/health(/*)", HealthHandler),    # check status
             # (r'/users(/*)', UserHandler),       # all users
             # (r'/users/(\d+/*)', UserHandler),   # single user
+            (r"/test(/*)", TestHandler),                            # tests
             (r'/users/activate(/*)', UserVerificationHandler),      # user activation
             (r'/users/preferences(/*)', UserPreferenceHandler),     # user preferences (food, etc)
             (r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)

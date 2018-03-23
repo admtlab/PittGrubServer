@@ -168,6 +168,17 @@ class HealthHandler(BaseHandler):
         self.write(json_encode({'version': __version__, 'status': 'up', 'database': db_status}))
         self.finish()
 
+
+class TestHandler(BaseHandler):
+    def get(self, path):
+        email = ''.join(random.choice(string.ascii_lowercase) for _ in range(3)) + '@pitt.edu'
+        user = User.create(email, '12345')
+        print('user: ', user)
+        print('id: ', user.id)
+        self.set_status(200)
+        self.finish(Payload(user))
+
+
 class PreferenceHandler(web.RequestHandler):
     def get(self, path):
         value = FoodPreference.get_all()
