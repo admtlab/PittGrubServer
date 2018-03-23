@@ -1,4 +1,5 @@
 import datetime
+import logging
 import random
 import string
 from decimal import Decimal
@@ -14,7 +15,6 @@ from sqlalchemy.types import (
 )
 
 import db
-from db import session_scope
 from db.base import Entity, Password, OrganizationRole, ReferralStatus, UserStatus
 
 # database db.session variables
@@ -70,14 +70,18 @@ class User(Base, Entity):
 
 
     @classmethod
-    def create(cls, email: str, password: str, name: str=None, role: Role=None) -> Optional['User']:
-        with session_scope() as session:
-            if session.query(User).filter_by(email=email) is not None:
-                return None
+    def create(cls, email: str, password: str, name: str=None, role: 'Role'=None) -> Optional['User']:
+        logging.info(f'attempting to create new user with email: {email}')
+        user = None
+        with db.session_scope() as session:
+            #if session.query(User).filter_by(email=email) is not None:
+            #    logging.info('returning none')
+            #    return None
             role = role or session.query(Role).filter_by(name='User').one_or_none()
             user = User(email=email, password=password, name=name)
             session.add(user)
-            return user
+        logging.info(f'created user with id: {user.id}')
+        return user
         
 
     @classmethod
