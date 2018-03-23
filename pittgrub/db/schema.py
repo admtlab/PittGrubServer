@@ -10,7 +10,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, validates
 from sqlalchemy.types import (
-    BIGINT, BOOLEAN, CHAR, DECIMAL, DateTime, Enum, INT, VARCHAR
+    BIGINT, BOOLEAN, CHAR, DECIMAL, DateTime, Enum, INT, VARCHAR, SMALLINT
 )
 
 import db
@@ -31,13 +31,14 @@ class User(Base, Entity):
     name = Column('name', VARCHAR(255), unique=False, nullable=True)
     active = Column('active', BOOLEAN, nullable=False, default=False)
     disabled = Column('disabled', BOOLEAN, nullable=False, default=False)
-    admin = Column('admin', BOOLEAN, nullable=False, default=False)
+    host = Column('host', BOOLEAN, nullable=False, default=False)
     expo_token = Column('expo_token', VARCHAR(255), nullable=True)
     login_count = Column('login_count', INT, nullable=False)
     pitt_pantry = Column('pitt_pantry', BOOLEAN, nullable=False, default=False)
     eagerness = Column('eagerness', INT, nullable=False, default=3)
 
     # mappings
+    roles = association_proxy('_user_roles', 'role')
     food_preferences = association_proxy('_user_foodpreferences', 'food_preference')
     recommended_events = association_proxy('_user_recommended_events', 'event')
     accepted_events = association_proxy('_user_accepted_events', 'event')
@@ -46,7 +47,7 @@ class User(Base, Entity):
     def __init__(self, id: int=None, email: str=None, password: str=None,
                  status: UserStatus=None, name: str=None,
                  active: bool=False, disabled: bool=False,
-                 admin: bool=False, login_count: int=0, expo_token: str=None,
+                 host: bool=False, login_count: int=0, expo_token: str=None,
                  pitt_pantry: bool=False, eagerness: int=3):
         self.id = id
         self.created = datetime.datetime.utcnow()
@@ -56,7 +57,7 @@ class User(Base, Entity):
         self.name = name
         self.active = active
         self.disabled = disabled
-        self.admin = admin
+        self.host = host
         self.login_count = login_count
         self.expo_token = expo_token
         self.pitt_pantry = pitt_pantry
@@ -140,8 +141,8 @@ class User(Base, Entity):
         db.session.commit()
         db.session.refresh(self)
 
-    def make_admin(self):
-        self.admin = True
+    def make_host(self):
+        self.host = True
         db.session.commit()
         db.session.refresh(self)
 
@@ -162,7 +163,7 @@ class User(Base, Entity):
         return dict(
             id=cls.id,
             active=cls.active,
-            admin=cls.admin,
+            host=cls.host,
             status=cls.status.name)
 
     def json_settings(cls) -> Dict[str, Any]:
@@ -177,7 +178,7 @@ class User(Base, Entity):
             id=cls.id,
             email=cls.email,
             active=cls.active,
-            admin=cls.admin,
+            host=cls.host,
             status=cls.status.name,
             eagerness=cls.eagerness,
             pantry=cls.pitt_pantry
@@ -187,6 +188,44 @@ class User(Base, Entity):
         else:
             json['food_preferences'] = [f.id for f in cls.food_preferences]
         return json
+
+
+class Role(Base, Entity):
+    """
+    Roles for users with privileges
+    """
+    __tablename__ = 'Role'
+
+    id = Column('id', SMALLINT, primary_key=True, autoincrement=True)
+    name = Column('name', VARCHAR(10), unique=True, nullable=False)
+    description = Column('description', VARCHAR(500), nullable=False)
+    
+    def __init__(self, id: int=None, name: str=None, description: str=None):
+        self.id = id
+        self.name = name
+        self.description = description
+
+
+class UserRole(Base):
+    """
+    User role relationship
+    """
+    __tablename__ = 'UserRole'
+
+    user_id = Column('user_id', BIGINT, ForeignKey('User.id'), primary_key=True)
+    role_id = Column('role_id', SMALLINT, ForeignKey('Role.id'), primary_key=True)
+
+    user = relationship(User, backref=backref('_user_roles'))
+    role = relationship(Role)
+
+    def __init__(self, user_id: int=None, role_id: int=None):
+        self.user_id = user_id
+        self.role_id = role_id
+
+    @classmethod
+    def add(cls, user_id: int, role_id: int) -> 'UserRole':
+        user_role = UserRole(user_id, role_id)
+        db.session.add(user_role)
 
 
 class Organization(Base, Entity):
