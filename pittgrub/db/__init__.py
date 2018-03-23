@@ -109,11 +109,13 @@ def session_scope():
     http://docs.sqlalchemy.org/en/latest/orm/session_basics.html
     """
     session = get_session()
+    session.expire_on_commit = False
     try:
         yield session
         session.commit()
     except:
         session.rollback()
+        logging.warning('\nA ROLLBACK occurred')
         raise
     finally:
         session.close()
