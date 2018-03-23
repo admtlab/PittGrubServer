@@ -81,6 +81,27 @@ def __bulk_insert(engine, data: Dict[str, List[Tuple[Any]]]):
                 session.merge(cls(*i))
 
 
+# @contextmanager
+# def session_scope(attempts: int=2):
+#     """
+#     Provides a transactional scope around a series of operations
+#     Multiple attempts are made (default: 2), before raising an exception
+#     http://docs.sqlalchemy.org/en/latest/orm/session_basics.html
+#     """
+#     session = get_session()
+#     try:
+#         yield session
+#         session.commit()
+#     except:
+#         session.rollback()
+#         if attempts > 1:
+#             yield session_scope(obj, attempts - 1)
+#         else:
+#             raise
+#     finally:
+#         session.close()
+
+
 @contextmanager
 def session_scope():
     """
