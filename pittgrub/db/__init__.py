@@ -1,5 +1,6 @@
 import logging
 import sys
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Tuple
 
@@ -15,9 +16,9 @@ from .schema import (
     UserRecommendedEvent, UserReferral
 )
 
-# database session
+# database sessionmaker
 # initialized by init()
-session = None
+_Session = None
 
 # database testing values
 # insert when 'generate' flag is True
@@ -67,6 +68,7 @@ TEST_DATA = dict({
     ],
 })
 
+
 def __bulk_insert(engine, data: Dict[str, List[Tuple[Any]]]):
     schema.Base.metadata.create_all(bind=engine)
     for entity, values in data.items():
@@ -74,9 +76,35 @@ def __bulk_insert(engine, data: Dict[str, List[Tuple[Any]]]):
         cls = getattr(sys.modules[__name__], entity)
         # merge values
         # this avoids duplicate errors
-        for i in values:
-            session.merge(cls(*i))
+        with session_scope() as session:
+            for i in values:
+                session.merge(cls(*i))
+
+
+@contextmanager
+def session_scope():
+    """
+    Provides a transactional scope around a series of operations
+    http://docs.sqlalchemy.org/en/latest/orm/session_basics.html
+    """
+    session = get_session()
+    try:
+        yield session
         session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def get_session():
+    """
+    Return new SQLAlchemy session from sessionmaker
+    """
+    global _Session
+    return _Session()
+
 
 def init(username: str, password: str, url: str, database: str,
          params: str, echo: bool=False, generate: bool=False):
@@ -90,12 +118,12 @@ def init(username: str, password: str, url: str, database: str,
     :echo:     log commands
     :generate: generate tables dynamically
     """
-    global session
+    global _Session
     engine = create_engine(f"mysql+pymysql://{username}:{password}"
                            f"@{url}/{database}{params}",
                            convert_unicode=True, echo=echo,
                            pool_recycle=1800)
-    session = scoped_session(sessionmaker(bind=engine))
+    _Session = sessionmaker(bind=engine)
     print('Inserting default data')
     __bulk_insert(engine, DEFAULTS) # add default data
     if generate:
