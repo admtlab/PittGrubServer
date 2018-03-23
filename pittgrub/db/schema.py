@@ -77,7 +77,18 @@ class User(Base, Entity):
             role = role or session.query(Role).filter_by(name='User').one_or_none()
             user = User(email=email, password=password, name=name)
             session.add(user)
+            session.commit()
+            session.refresh(user)
+            session.add(UserRole(user.id, role.id))
         return user
+
+
+    @classmethod
+    def get_roles(cls, user_id) -> List['Role']:
+        with db.session_scope() as session:
+            user = session.query(User).get(user_id)
+            roles = [r.role for r in session.query(UserRole).filter_by(user_id=user_id).all()]
+        return roles
         
 
     @classmethod
@@ -201,6 +212,17 @@ class User(Base, Entity):
         else:
             json['food_preferences'] = [f.id for f in cls.food_preferences]
         return json
+
+
+def create_user(session, user: User, role: 'Role'=None) -> Optional[User]:
+        if session.query(User).filter_by(email=user.email).one_or_none() is not None:
+            return None
+        role = role or session.query(Role).filter_by(name='User').one_or_none()
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        session.add(UserRole(user.id, role.id))
+        return user
 
 
 class Role(Base, Entity):

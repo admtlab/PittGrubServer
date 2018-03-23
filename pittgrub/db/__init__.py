@@ -14,6 +14,7 @@ from .schema import (
     EventTypeRel, FoodPreference, Role, User, UserAcceptedEvent,
     UserCheckedInEvent, UserFoodPreference, UserHostRequest,
     UserRecommendedEvent, UserReferral, UserRole, UserVerification,
+    create_user
 )
 
 # database sessionmaker

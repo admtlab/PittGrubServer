@@ -9,7 +9,7 @@ from datetime import datetime
 import dateutil.parser
 from copy import deepcopy
 from __init__ import __version__
-from db import User, FoodPreference, Event, EventFoodPreference, EventImage, UserAcceptedEvent, UserRecommendedEvent, health_check
+from db import User, FoodPreference, Event, EventFoodPreference, EventImage, UserAcceptedEvent, UserRecommendedEvent, health_check, session_scope, create_user
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, SecureHandler
 from requests.exceptions import ConnectionError, HTTPError
@@ -175,13 +175,20 @@ class TestHandler(web.RequestHandler):
 
     def get(self, path):
         logging.info('\n\nIn Test Handler\n\n')
-        email = ''.join(random.choice(string.ascii_lowercase) for _ in range(3)) + '@pitt.edu'
-        logging.info(f'beginning creation of user with email: {email}')
-        user = User.create(email, '12345')
-        logging.info(f'created user with id: {user.id}')
+        with session_scope() as session:
+            email = ''.join(random.choice(string.ascii_lowercase) for _ in range(3)) + '@pitt.edu'
+            logging.info(f'beginning creation of user with email: {email}')
+            user = User(email=email, password='12345')
+            user = create_user(session, user)
+            logging.info(f'roles be: {[r.name for r in user.roles]}')
         self.set_status(200)
         self.finish()
-        logging.info('\n\nDone\n\n')
+        # user = User.create(email, '12345')
+        # logging.info(f'created user with id: {user.id}')
+        # logging.info(f'user roles: {[r.name for r in User.get_roles(user.id)]}')
+        # self.set_status(200)
+        # self.finish()
+        # logging.info('\n\nDone\n\n')
 
 
 class PreferenceHandler(web.RequestHandler):
