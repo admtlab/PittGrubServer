@@ -11,9 +11,9 @@ from .base import Entity, ReferralStatus, UserStatus, health_check
 from .default import DEFAULTS
 from .schema import (
     AccessToken, Building, Event, EventFoodPreference, EventImage, EventType,
-    EventTypeRel, FoodPreference, User, UserAcceptedEvent, UserVerification,
+    EventTypeRel, FoodPreference, Role, User, UserAcceptedEvent,
     UserCheckedInEvent, UserFoodPreference, UserHostRequest,
-    UserRecommendedEvent, UserReferral
+    UserRecommendedEvent, UserReferral, UserRole, UserVerification,
 )
 
 # database sessionmaker
