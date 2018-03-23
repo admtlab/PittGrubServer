@@ -238,7 +238,7 @@ class Organization(Base, Entity):
     name = Column('name', VARCHAR(255), unique=True, nullable=False)
     description = Column('description', VARCHAR(255), nullable=False)
     url = Column('url', VARCHAR(512), unique=False, nullable=True)
-    created = Column('created', Datetime, nullable=False, default=datetime.datetime.utcnow)
+    created = Column('created', DateTime, nullable=False, default=datetime.datetime.utcnow)
 
     def __init__(self, id: int=None, name: str=None, description: str=None, url: str=None):
         self.id = id
@@ -267,7 +267,7 @@ class UserOrganization(Base):
         self.role = role
 
     @classmethod
-    def add(cls, user_id: int, organization_id: int, role: OrganizationRole=OrganizationRole.MEMBER) -> 'UserOragnization':
+    def add(cls, user_id: int, organization_id: int, role: OrganizationRole=OrganizationRole.MEMBER) -> 'UserOrganization':
         userOrg = UserOrganization(user_id, organization_id, role)
         db.session.add(userOrg)
 
