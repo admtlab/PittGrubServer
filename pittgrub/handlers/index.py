@@ -13,6 +13,8 @@ from db import User, FoodPreference, Event, EventFoodPreference, EventImage, Use
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, SecureHandler
 from requests.exceptions import ConnectionError, HTTPError
+import string
+import random
 import requests
 import json
 import time
@@ -169,14 +171,17 @@ class HealthHandler(BaseHandler):
         self.finish()
 
 
-class TestHandler(BaseHandler):
+class TestHandler(web.RequestHandler):
+
     def get(self, path):
+        logging.info('\n\nIn Test Handler\n\n')
         email = ''.join(random.choice(string.ascii_lowercase) for _ in range(3)) + '@pitt.edu'
+        logging.info(f'beginning creation of user with email: {email}')
         user = User.create(email, '12345')
-        print('user: ', user)
-        print('id: ', user.id)
+        logging.info(f'created user with id: {user.id}')
         self.set_status(200)
-        self.finish(Payload(user))
+        self.finish()
+        logging.info('\n\nDone\n\n')
 
 
 class PreferenceHandler(web.RequestHandler):

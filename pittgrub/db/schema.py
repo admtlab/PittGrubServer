@@ -71,16 +71,12 @@ class User(Base, Entity):
 
     @classmethod
     def create(cls, email: str, password: str, name: str=None, role: 'Role'=None) -> Optional['User']:
-        logging.info(f'attempting to create new user with email: {email}')
-        user = None
         with db.session_scope() as session:
-            #if session.query(User).filter_by(email=email) is not None:
-            #    logging.info('returning none')
-            #    return None
+            if session.query(cls).filter_by(email=email).one_or_none() is not None:
+                return None
             role = role or session.query(Role).filter_by(name='User').one_or_none()
             user = User(email=email, password=password, name=name)
             session.add(user)
-        logging.info(f'created user with id: {user.id}')
         return user
         
 
