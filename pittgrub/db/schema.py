@@ -14,6 +14,7 @@ from sqlalchemy.types import (
 )
 
 import db
+from db import session_scope
 from db.base import Entity, Password, OrganizationRole, ReferralStatus, UserStatus
 
 # database db.session variables
@@ -66,6 +67,18 @@ class User(Base, Entity):
     @property
     def valid(self):
         return self.active and self.status is UserStatus.ACCEPTED and not self.disabled
+
+
+    @classmethod
+    def create(cls, email: str, password: str, name: str=None, role: Role=None) -> Optional['User']:
+        with session_scope() as session:
+            if session.query(User).filter_by(email=email) is not None:
+                return None
+            role = role or session.query(Role).filter_by(name='User').one_or_none()
+            user = User(email=email, password=password, name=name)
+            session.add(user)
+            return user
+        
 
     @classmethod
     def add(cls, email: str, password: str, name: str=None) -> Optional['User']:
@@ -204,6 +217,10 @@ class Role(Base, Entity):
         self.id = id
         self.name = name
         self.description = description
+
+    @classmethod
+    def get_by_name(session, name: str) -> Optional['Role']:
+        return session.query(cls).filter_by(name=name).one_or_none()
 
 
 class UserRole(Base):
