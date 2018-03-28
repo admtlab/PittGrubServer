@@ -161,6 +161,9 @@ class User(Base, Entity):
     def add_expo_token(self, expo_token: str):
         self.expo_token = expo_token
 
+    def inc_login(self):
+        self.login_count += 1
+
     # def make_host(self, session):
     #     self.host = True
     #     db.session.commit()

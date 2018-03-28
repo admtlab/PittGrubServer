@@ -1,22 +1,14 @@
 import configparser
 from datetime import datetime, timedelta
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 from uuid import uuid4
 
-# from db import AccessToken
+from db import User, UserVerification, session_scope
+from emailer import send_verification_email
 
-try:
-    import jwt
-    from jwt import DecodeError, ExpiredSignatureError
-    from tornado.options import options
-except ModuleNotFoundError:
-    # DB10 fix
-    import sys
-    sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
-
-    import jwt
-    from jwt import DecodeError, ExpiredSignatureError
-    from tornado.options import options
+import jwt
+from jwt import DecodeError, ExpiredSignatureError
+from tornado.options import options
 
 def create_jwt(owner: int,
                id: str=None,
@@ -91,3 +83,19 @@ def verify_jwt(token: str, secret: str=None) -> bool:
         return False
     except DecodeError:
         raise
+
+
+def login(email: str, password: str) -> Optional['User']:
+    with session_scope() as session:
+        if User.verify_credentials(session, email, password):
+            user = User.get_by_email(session, email)
+            if not user.active:
+                activation = UserVerification.get_by_user(session, user.id)
+                if not activation:
+                    activation = UserVerification.add(session, user_id=user.id)
+                    send_verification_email(to=email, activation=activation.code)
+            user.inc_login()
+            session.commit()
+            session.expunge(user)
+            return user
+    return None

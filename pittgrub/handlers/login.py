@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Union
 from uuid import uuid4
 
 from db import AccessToken, User, UserHostRequest, UserReferral, UserVerification, session_scope
+from service.auth import login
 from auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, CORSHandler, SecureHandler
@@ -127,29 +128,45 @@ class LoginHandler(CORSHandler):
     def post(self, path):
         data = json_decode(self.request.body)
         if all(key in data for key in ('email', 'password')):
-            with session_scope() as session:
-                if User.verify_credentials(session, data['email'], data['password']):
-                    user = User.get_by_email(session, data['email'])
-                    if not user.active:
-                        activation = UserVerification.get_by_user(session, user.id)
-                        if not activation:
-                            activation = UserVerification.add(session, user_id=user.id)
-                            send_verification_email(to=data['email'], activation=activation.code)
-                        # don't want to error, just include activation status in response
-                        # self.write_error(403, 'Error: account not verified')
-                    jwt_token = create_jwt(owner=user.id)
-                    decoded = decode_jwt(jwt_token)
-                    self.success(payload=dict(user=user.json(deep=False),
-                                              token=jwt_token.decode(),
-                                              expires=decoded['exp'],
-                                              issued=decoded['iat'],
-                                              type=decoded['tok']))
-                    User.increment_login(session, user.id)
-                else:
-                    self.write_error(400, 'Incorrect username or password')
+            user = login(data['email'], data['password'])
+            if user is None:
+                self.write_error(400, 'Incorrect username or password')
+            else:
+                jwt_token = create_jwt(ownder=user.id)
+                decoded = decode_jwt(jwt_token)
+                self.success(payload=dict(
+                    user=user.json(deep=False),
+                    token=jwt_token.decode(),
+                    expires=decoded['exp'],
+                    issued=decoded['iat'],
+                    type=decoded['tok'])
+                )
         else:
-            fields = ", ".join({'email', 'password'}-data.keys())
+            fields = ", ".join({'email', 'password'} - data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')
+        #     with session_scope() as session:
+        #         if User.verify_credentials(session, data['email'], data['password']):
+        #             user = User.get_by_email(session, data['email'])
+        #             if not user.active:
+        #                 activation = UserVerification.get_by_user(session, user.id)
+        #                 if not activation:
+        #                     activation = UserVerification.add(session, user_id=user.id)
+        #                     send_verification_email(to=data['email'], activation=activation.code)
+        #                 # don't want to error, just include activation status in response
+        #                 # self.write_error(403, 'Error: account not verified')
+        #             jwt_token = create_jwt(owner=user.id)
+        #             decoded = decode_jwt(jwt_token)
+        #             self.success(payload=dict(user=user.json(deep=False),
+        #                                       token=jwt_token.decode(),
+        #                                       expires=decoded['exp'],
+        #                                       issued=decoded['iat'],
+        #                                       type=decoded['tok']))
+        #             User.increment_login(session, user.id)
+        #         else:
+        #             self.write_error(400, 'Incorrect username or password')
+        # else:
+        #     fields = ", ".join({'email', 'password'}-data.keys())
+        #     self.write_error(400, f'Error: missing field(s) {fields}')
 
 
 class LogoutHandler(SecureHandler):
