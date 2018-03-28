@@ -67,35 +67,38 @@ class App(web.Application):
             (r"/(/*)", MainHandler),            # index
             (r"/health(/*)", HealthHandler),    # check status
             (r"/test(/*)", TestHandler),                            # tests
-            # (r'/users(/*)', UserHandler),       # all users
-            # (r'/users/(\d+/*)', UserHandler),   # single user
-            (r'/users/activate(/*)', UserVerificationHandler),      # user activation
-            (r'/users/preferences(/*)', UserPreferenceHandler),     # user preferences (food, etc)
-            (r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)
-            (r'/users/admin(/*)', AdminHandler),            # make user admin
-            (r'/notifications(/*)', NotificationHandler),   # handle notifications
-            (r'/token(/*)', NotificationTokenHandler),      # add notification token
-            (r'/signup(/*)', SignupHandler),                # sign-up
-            (r'/signup/host(/*)', HostSignupHandler),       # signup as host
-            (r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
+            # login
             (r'/login(/*)', LoginHandler),              # log-in with credentials
-            (r'/referrals(/*)', UserReferralHandler),   # get user referrals
-            (r'/referrals/pending(/*)', UserPendingReferralHandler),    # get requested user referrals
-            (r'/referrals/approved(/*)', UserApprovedReferralHandler),  # get approved user referrals
-            (r'/password', UserPasswordHandler),    # Change user password
-            (r'/password/reset(/*)', UserPasswordResetHandler, dict(executor=THREAD_POOL)), # Reset user's password
-            (r'/login/refresh(/*)', TokenRefreshHandler),
-            (r'/login/validate(/*)', TokenValidationHandler),
-            (r'/logout(/*)', LogoutHandler),
-            # (r'/p(/*)', PreferenceHandler),
-            (r'/events(/*)', EventHandler),      # all events
-            (r'/events/(\d+/*)', EventHandler),  # single event
-            (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(image_store=image_store)),  # event images
-            # (r'/events/new(/*)', EventTestHandler), # newest events
-            (r'/events/recommended/(\d+/*)', RecommendedEventHandler),  # recommended events for a user
-            (r'/events/accepted/(\d+/*)', AcceptedEventHandler),        # accepted events for a user
-            (r'/events/(\d+)/accept/(\d+/*)', AcceptEventHandler),      # accept an event for a user
+            #(r'/users/activate(/*)', UserVerificationHandler),      # user activation
+            #(r'/users/preferences(/*)', UserPreferenceHandler),     # user preferences (food, etc)
+            #(r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)
+            #(r'/users/admin(/*)', AdminHandler),            # make user admin
+            #(r'/notifications(/*)', NotificationHandler),   # handle notifications
+            #(r'/token(/*)', NotificationTokenHandler),      # add notification token
+            #(r'/signup(/*)', SignupHandler),                # sign-up
+            #(r'/signup/host(/*)', HostSignupHandler),       # signup as host
+            #(r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
+            #(r'/referrals(/*)', UserReferralHandler),   # get user referrals
+            #(r'/referrals/pending(/*)', UserPendingReferralHandler),    # get requested user referrals
+            #(r'/referrals/approved(/*)', UserApprovedReferralHandler),  # get approved user referrals
+            #(r'/password', UserPasswordHandler),    # Change user password
+            #(r'/password/reset(/*)', UserPasswordResetHandler, dict(executor=THREAD_POOL)), # Reset user's password
+            #(r'/login/refresh(/*)', TokenRefreshHandler),
+            #(r'/login/validate(/*)', TokenValidationHandler),
+            #(r'/logout(/*)', LogoutHandler),
+            #(r'/events(/*)', EventHandler),      # all events
+            #(r'/events/(\d+/*)', EventHandler),  # single event
+            #(r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(image_store=image_store)),  # event images
+            #(r'/events/recommended/(\d+/*)', RecommendedEventHandler),  # recommended events for a user
+            #(r'/events/accepted/(\d+/*)', AcceptedEventHandler),        # accepted events for a user
+            #(r'/events/(\d+)/accept/(\d+/*)', AcceptEventHandler),      # accept an event for a user
+            
+            # OLD HANDLERS
             # (r'/userfood(/*)', UserFoodPreferencesHandler)
+            # (r'/events/new(/*)', EventTestHandler), # newest events
+            # (r'/p(/*)', PreferenceHandler),
+            # (r'/users/(\d+/*)', UserHandler),   # single user
+            # (r'/users(/*)', UserHandler),       # all users
         ]
 
         # server settings
