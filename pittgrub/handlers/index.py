@@ -175,20 +175,37 @@ class TestHandler(web.RequestHandler):
 
     def get(self, path):
         logging.info('\n\nIn Test Handler\n\n')
+        email = ''.join(random.choice(string.ascii_lowercase) for _ in range(3)) + '@pitt.edu'
+        # with expire_on_commit=True
         with session_scope() as session:
-            email = ''.join(random.choice(string.ascii_lowercase) for _ in range(3)) + '@pitt.edu'
             logging.info(f'beginning creation of user with email: {email}')
             user = User(email=email, password='12345')
             user = create_user(session, user)
-            logging.info(f'roles be: {[r.name for r in user.roles]}')
+            session.expunge(user)
+        logging.info(f'\ncreated user with id: {user.id}') 
+        #logging.info(f'\nroles: {roles}')
+        logging.info(f'\nroles: {user.get_roles(user.id)}')
         self.set_status(200)
         self.finish()
-        # user = User.create(email, '12345')
-        # logging.info(f'created user with id: {user.id}')
-        # logging.info(f'user roles: {[r.name for r in User.get_roles(user.id)]}')
-        # self.set_status(200)
-        # self.finish()
-        # logging.info('\n\nDone\n\n')
+
+        # with expire_on_commit=True
+        #with session_scope() as session:
+        #    logging.info('beggining creation of user')
+        #    user = User(email=email, password='12345')
+        #    user = create_user(session, user)
+        #    session.refresh(user)
+        #    logging.info(f'roles be: {[r.name for r in user.roles]}')
+        #logging.info(f'\ncreated user iwth id: {user.id}\n')
+        #logging.info(f'\nuser has roles: {user.roles}')
+        #self.set_status(200)
+        #self.finish()
+#user = User.create(email, '12345')
+        #logging.info(f'created user with id: {user.id}')
+        #logging.info(f'roles: {user.roles}')
+        #logging.info(f'user roles: {[r.name for r in User.get_roles(user.id)]}')
+        #self.set_status(200)
+        #self.finish()
+        logging.info('\n\nDone\n\n')
 
 
 class PreferenceHandler(web.RequestHandler):

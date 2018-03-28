@@ -80,6 +80,8 @@ class User(Base, Entity):
             session.commit()
             session.refresh(user)
             session.add(UserRole(user.id, role.id))
+            session.expunge(user)
+            session.expunge(user.roles)
         return user
 
 

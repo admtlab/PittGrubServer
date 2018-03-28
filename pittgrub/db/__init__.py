@@ -19,7 +19,7 @@ from .schema import (
 
 # database sessionmaker
 # initialized by init()
-_Session = None
+Session = None
 
 # database testing values
 # insert when 'generate' flag is True
@@ -109,8 +109,7 @@ def session_scope():
     Provides a transactional scope around a series of operations
     http://docs.sqlalchemy.org/en/latest/orm/session_basics.html
     """
-    session = get_session()
-    session.expire_on_commit = False
+    session = Session()
     try:
         yield session
         session.commit()
@@ -122,12 +121,11 @@ def session_scope():
         session.close()
 
 
-def get_session():
-    """
-    Return new SQLAlchemy session from sessionmaker
-    """
-    global _Session
-    return _Session()
+# def get_session():
+    # """
+    # Return new SQLAlchemy session from sessionmaker
+    # """
+    # return _Session()
 
 
 def init(username: str, password: str, url: str, database: str,
@@ -142,12 +140,12 @@ def init(username: str, password: str, url: str, database: str,
     :echo:     log commands
     :generate: generate tables dynamically
     """
-    global _Session
+    global Session
     engine = create_engine(f"mysql+pymysql://{username}:{password}"
                            f"@{url}/{database}{params}",
                            convert_unicode=True, echo=echo,
                            pool_recycle=1800)
-    _Session = sessionmaker(bind=engine)
+    Session = sessionmaker(bind=engine)
     print('Inserting default data')
     __bulk_insert(engine, DEFAULTS) # add default data
     if generate:
