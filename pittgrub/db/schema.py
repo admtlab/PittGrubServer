@@ -201,12 +201,27 @@ class User(Base, Entity):
             pantry=cls.pitt_pantry,
             food_preferences=[f.json() for f in cls.food_preferences])
 
+    @classmethod
+    def to_json(self, user: 'User') -> Dict[str, Any]:
+        with db.session_scope() as session:
+            session.add(user)
+            json = dict(
+                    id=user.id,
+                    email=user.email,
+                    status=user.status.name,
+                    roles=[role.json() for role in user.roles],
+                    eagerness=user.eagerness,
+                    pantry=user.pitt_pantry,
+                    food_preferences=[f.json() for f in user.food_preferences]
+            )
+        return json
+
     def json(cls, deep: bool=True) -> Dict[str, Any]:
         json = dict(
             id=cls.id,
             email=cls.email,
             active=cls.active,
-            host=cls.host,
+            #host=cls.host,
             status=cls.status.name,
             eagerness=cls.eagerness,
             pantry=cls.pitt_pantry

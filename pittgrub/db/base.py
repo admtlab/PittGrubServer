@@ -2,7 +2,7 @@ import enum
 import logging
 from typing import Any, Dict, List, Optional, TypeVar, Union
 
-from db import session_scope
+import db
 
 from passlib.hash import bcrypt_sha256
 from sqlalchemy import String, TypeDecorator

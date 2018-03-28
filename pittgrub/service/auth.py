@@ -96,6 +96,7 @@ def login(email: str, password: str) -> Optional['User']:
                     send_verification_email(to=email, activation=activation.code)
             user.inc_login()
             session.commit()
+            session.refresh(user)
             session.expunge(user)
             return user
     return None

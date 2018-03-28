@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timedelta
 
 from .base import BaseHandler, CORSHandler, SecureHandler
-from auth import create_jwt, decode_jwt, verify_jwt
+from service.auth import create_jwt, decode_jwt, verify_jwt
 from db import FoodPreference, User, UserFoodPreference, UserVerification
 from emailer import send_verification_email, send_password_reset_email
 from handlers.response import Payload

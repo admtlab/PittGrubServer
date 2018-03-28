@@ -14,8 +14,8 @@ from typing import Any, Dict, List, Union
 from uuid import uuid4
 
 from db import AccessToken, User, UserHostRequest, UserReferral, UserVerification, session_scope
-from service.auth import login
-from auth import create_jwt, decode_jwt, verify_jwt
+from service.auth import login, create_jwt, decode_jwt, verify_jwt
+#from auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, CORSHandler, SecureHandler
 from emailer import send_verification_email
@@ -132,10 +132,10 @@ class LoginHandler(CORSHandler):
             if user is None:
                 self.write_error(400, 'Incorrect username or password')
             else:
-                jwt_token = create_jwt(ownder=user.id)
+                jwt_token = create_jwt(owner=user.id)
                 decoded = decode_jwt(jwt_token)
                 self.success(payload=dict(
-                    user=user.json(deep=False),
+                    user=User.to_json(user),
                     token=jwt_token.decode(),
                     expires=decoded['exp'],
                     issued=decoded['iat'],

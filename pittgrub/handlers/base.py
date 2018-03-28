@@ -1,7 +1,7 @@
 import re
 from typing import Dict, Optional, TypeVar, Union
 
-from auth import decode_jwt, verify_jwt
+from service.auth import decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 
 from jwt import ExpiredSignatureError
