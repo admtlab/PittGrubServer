@@ -12,11 +12,14 @@ import sys
 from typing import Dict
 
 import db
-from handlers.index import (
-    MainHandler, HealthHandler, NotificationTokenHandler,
-    PreferenceHandler, EventHandler, RecommendedEventHandler,
-    AcceptedEventHandler, AcceptEventHandler, TestHandler
-)
+# index: Main, Health, Test
+# login: Login, Logout, Signup, Referrals
+# tokens: token handling
+# users: Users/Verification/Preference/Settings
+# notifiations: all notifications
+# events: all event stuff
+
+from handlers.index import HealthHandler, MainHandler, TestHandler
 from handlers.login import (
     LoginHandler, LogoutHandler, SignupHandler,
     TokenRefreshHandler, TokenValidationHandler,
@@ -27,16 +30,14 @@ from handlers.user import (
     UserPasswordHandler, UserPasswordResetHandler,
     UserSettingsHandler
 )
-from handlers.notifications import NotificationHandler
+from handlers.notifications import NotificationHandler, NotificationTokenHandler
 from handlers.events import EventImageHandler, EventTestHandler
 from handlers.admin import UserReferralHandler, UserApprovedReferralHandler, UserPendingReferralHandler, AdminHandler
 from storage import ImageStore
 
 from tornado import concurrent, httpserver, log, web
 from tornado.ioloop import IOLoop
-from tornado.options import options, define, parse_command_line
-from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
+from tornado.options import define, options, parse_command_line
 
 
 # options
@@ -62,11 +63,12 @@ class App(web.Application):
 
         # tornado web app
         endpoints = [
+            # index
             (r"/(/*)", MainHandler),            # index
             (r"/health(/*)", HealthHandler),    # check status
+            (r"/test(/*)", TestHandler),                            # tests
             # (r'/users(/*)', UserHandler),       # all users
             # (r'/users/(\d+/*)', UserHandler),   # single user
-            (r"/test(/*)", TestHandler),                            # tests
             (r'/users/activate(/*)', UserVerificationHandler),      # user activation
             (r'/users/preferences(/*)', UserPreferenceHandler),     # user preferences (food, etc)
             (r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)
@@ -85,7 +87,7 @@ class App(web.Application):
             (r'/login/refresh(/*)', TokenRefreshHandler),
             (r'/login/validate(/*)', TokenValidationHandler),
             (r'/logout(/*)', LogoutHandler),
-            (r'/p(/*)', PreferenceHandler),
+            # (r'/p(/*)', PreferenceHandler),
             (r'/events(/*)', EventHandler),      # all events
             (r'/events/(\d+/*)', EventHandler),  # single event
             (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(image_store=image_store)),  # event images

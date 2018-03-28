@@ -1,16 +1,17 @@
 """
-JSON reponses
+JSON responses
 Author: Mark Silvis
 """
-
-import time
-from typing import Any, Dict, List, Optional, Union
-from util import json_dict, json_esc
-from db import Entity
-from http import HTTPStatus
-from sqlalchemy.ext.associationproxy import _AssociationList
 import datetime
+from http import HTTPStatus
+from typing import Dict, List, Optional, Union
+from util import json_esc
+
+from db import Entity
+
 import inflect
+from sqlalchemy.ext.associationproxy import _AssociationList
+
 p = inflect.engine()
 
 
@@ -86,7 +87,6 @@ class ErrorResponse():
         status: HTTP status
         message: error message (default: None)
         """
-        # self.timestamp = int(round(time.time()*1000)) # ms
         self.timestamp = datetime.datetime.now()
         self.status = status
         self.error = HTTPStatus(status).phrase

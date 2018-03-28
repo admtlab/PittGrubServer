@@ -1,5 +1,5 @@
 """
-Login and token handler
+Login, signup, and token handler
 Author: Mark Silvis
 """
 
@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Union
 from uuid import uuid4
 
-from db import AccessToken, User, UserHostRequest, UserReferral, UserVerification
+from db import AccessToken, User, UserHostRequest, UserReferral, UserVerification, session_scope
 from auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, CORSHandler, SecureHandler
@@ -127,25 +127,26 @@ class LoginHandler(CORSHandler):
     def post(self, path):
         data = json_decode(self.request.body)
         if all(key in data for key in ('email', 'password')):
-            if User.verify_credentials(data['email'], data['password']):
-                user = User.get_by_email(data['email'])
-                if not user.active:
-                    activation = UserVerification.get_by_user(user.id)
-                    if not activation:
-                        activation = UserVerification.add(user_id=user.id)
-                        send_verification_email(to=data['email'], activation=activation.code)
-                    # don't want to error, just include activation status in response
-                    # self.write_error(403, 'Error: account not verified')
-                jwt_token = create_jwt(owner=user.id)
-                decoded = decode_jwt(jwt_token)
-                self.success(payload=dict(user=user.json(deep=False),
-                                          token=jwt_token.decode(),
-                                          expires=decoded['exp'],
-                                          issued=decoded['iat'],
-                                          type=decoded['tok']))
-                User.increment_login(user.id)
-            else:
-                self.write_error(400, 'Incorrect username or password')
+            with session_scope() as session:
+                if User.verify_credentials(session, data['email'], data['password']):
+                    user = User.get_by_email(session, data['email'])
+                    if not user.active:
+                        activation = UserVerification.get_by_user(session, user.id)
+                        if not activation:
+                            activation = UserVerification.add(session, user_id=user.id)
+                            send_verification_email(to=data['email'], activation=activation.code)
+                        # don't want to error, just include activation status in response
+                        # self.write_error(403, 'Error: account not verified')
+                    jwt_token = create_jwt(owner=user.id)
+                    decoded = decode_jwt(jwt_token)
+                    self.success(payload=dict(user=user.json(deep=False),
+                                              token=jwt_token.decode(),
+                                              expires=decoded['exp'],
+                                              issued=decoded['iat'],
+                                              type=decoded['tok']))
+                    User.increment_login(session, user.id)
+                else:
+                    self.write_error(400, 'Incorrect username or password')
         else:
             fields = ", ".join({'email', 'password'}-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')

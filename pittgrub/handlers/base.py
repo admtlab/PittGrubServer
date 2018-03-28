@@ -1,14 +1,14 @@
 import re
+from typing import Dict, Optional, TypeVar, Union
 
+from auth import decode_jwt, verify_jwt
+from handlers.response import Payload, ErrorResponse
+
+from jwt import ExpiredSignatureError
 from tornado import escape, web
-from tornado.web import Finish
 from tornado.escape import utf8
 from tornado.util import unicode_type
-from typing import Dict, List, Optional, TypeVar, Union
-from handlers.response import Payload, ErrorResponse
-from util import json_dict
-from auth import decode_jwt, verify_jwt
-from jwt import DecodeError, ExpiredSignatureError
+from tornado.web import Finish
 
 # typing
 Writable = TypeVar('Writable', bytes, unicode_type, Dict, Payload, object)
@@ -67,6 +67,7 @@ class BaseHandler(web.RequestHandler):
         error = ErrorResponse(status, message=message)
         self.write(error)
 
+
 class CORSHandler(BaseHandler):
     """Cross-Origin Request Handler
     Enables cross-origin requests for endpoint
@@ -80,6 +81,7 @@ class CORSHandler(BaseHandler):
     def options(self, path: str=None):
         self.set_status(204)
         self.finish()
+
 
 class SecureHandler(BaseHandler):
     """Secure resource handler

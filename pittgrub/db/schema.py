@@ -32,7 +32,7 @@ class User(Base, Entity):
     name = Column('name', VARCHAR(255), unique=False, nullable=True)
     active = Column('active', BOOLEAN, nullable=False, default=False)
     disabled = Column('disabled', BOOLEAN, nullable=False, default=False)
-    host = Column('host', BOOLEAN, nullable=False, default=False)
+    # host = Column('host', BOOLEAN, nullable=False, default=False)
     expo_token = Column('expo_token', VARCHAR(255), nullable=True)
     login_count = Column('login_count', INT, nullable=False)
     pitt_pantry = Column('pitt_pantry', BOOLEAN, nullable=False, default=False)
@@ -40,6 +40,7 @@ class User(Base, Entity):
 
     # mappings
     roles = association_proxy('_user_roles', 'role')
+    expo_tokens = association_proxy('_user_expo_tokens', 'token')
     food_preferences = association_proxy('_user_foodpreferences', 'food_preference')
     recommended_events = association_proxy('_user_recommended_events', 'event')
     accepted_events = association_proxy('_user_accepted_events', 'event')
@@ -66,111 +67,109 @@ class User(Base, Entity):
 
     @property
     def valid(self):
+        """Check if user is valid i.e., active, ACCEPTED, and not disables
+        """
         return self.active and self.status is UserStatus.ACCEPTED and not self.disabled
 
-
     @classmethod
-    def create(cls, email: str, password: str, name: str=None, role: 'Role'=None) -> Optional['User']:
-        with db.session_scope() as session:
-            if session.query(cls).filter_by(email=email).one_or_none() is not None:
-                return None
-            role = role or session.query(Role).filter_by(name='User').one_or_none()
-            user = User(email=email, password=password, name=name)
-            session.add(user)
-            session.commit()
-            session.refresh(user)
-            session.add(UserRole(user.id, role.id))
-            session.expunge(user)
-            session.expunge(user.roles)
-        return user
-
-
-    @classmethod
-    def get_roles(cls, user_id) -> List['Role']:
-        with db.session_scope() as session:
-            user = session.query(User).get(user_id)
-            roles = [r.role for r in session.query(UserRole).filter_by(user_id=user_id).all()]
-        return roles
-        
-
-    @classmethod
-    def add(cls, email: str, password: str, name: str=None) -> Optional['User']:
-        """Create new user and add to database
-        :email: user email address
-        :password: user password (will be hashed)
-        :returns: User, or None duplicate email
+    def get_by_email(cls, session, email: str) -> Optional['User']:
         """
-        if User.get_by_email(email) is not None:
+        Get user by email
+        :param session: database session
+        :param email:   user email
+        :return:        user
+        """
+        return session.query(cls).filter_by(email=email).one_or_none()
+
+    @classmethod
+    def get_roles(cls, session, user_id) -> List['Role']:
+        """
+        Get roles belonging to user
+        :param session: database session
+        :param user_id: id of user
+        :return:        roles
+        """
+        user_roles = session.query(UserRole).filter_by(user_id=user_id).all()
+        return [r.role for r in user_roles]
+
+    @classmethod
+    def create(cls, session, user: 'User', roles: List['Role']=None) -> Optional['User']:
+        """
+        Create new user and add to database
+        Will always be given the role User
+        :param session: database session
+        :param user:    user object
+        :param role:    user role (always adds User by default)
+        :return:        user, or none if error
+        """
+        if User.get_by_email(session, user.email) is not None:
             return None
-        user = User(email=email, password=password, name=name)
-        db.session.add(user)
-        db.session.commit()
-        db.session.refresh(user)
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        session.add(UserRole(user.id, Role.get_by_name(session, 'User').id))
+        if roles is not None:
+            for role in roles:
+                session.add(UserRole(user.id, role.id))
         return user
 
     @classmethod
-    def get_by_email(cls, email: str) -> Optional['User']:
-        return db.session.query(cls).filter_by(email=email).one_or_none()
-
-    @classmethod
-    def verify_credentials(cls, email: str, password: str) -> bool:
-        user = User.get_by_email(email)
+    def verify_credentials(cls, session, email: str, password: str) -> bool:
+        user = User.get_by_email(session, email)
         if user is None:
             return False
         return bcrypt_sha256.verify(password, user.password)
 
     @classmethod
-    def activate(cls, activation_id: str) -> bool:
-        activation = UserVerification.get_by_code(activation_id)
+    def activate(cls, session, activation_id: str) -> bool:
+        activation = UserVerification.get_by_code(session, activation_id)
         if activation:
-            user = cls.get_by_id(activation.user_id)
+            user = cls.get_by_id(session, activation.user_id)
             user.active = True
-            # user.status = UserStatus.VERIFIED
             user.status = UserStatus.ACCEPTED
-            UserVerification.delete(activation_id)
-            db.session.commit()
+            UserVerification.delete(session, activation_id)
             return True
         return False
 
     @classmethod
-    def increment_login(cls, id: int):
+    def increment_login(cls, session, id: int):
         assert int is not None
-        user = User.get_by_id(id)
+        user = User.get_by_id(session, id)
         user.login_count += 1
-        db.session.commit()
 
     @classmethod
-    def update_preferences(cls, id: int, preferences: List):
+    def update_preferences(cls, session, id: int, preferences: List):
         assert id is not None
         assert preferences is not None
-        UserFoodPreference.update(id, preferences)
+        UserFoodPreference.update(session, id, preferences)
 
     @classmethod
-    def change_password(cls, id: int, new_password: str):
+    def change_password(cls, session, id: int, new_password: str):
         assert not not new_password
-        user = User.get_by_id(id)
+        user = User.get_by_id(session, id)
         user.password = new_password
-        db.session.commit()
 
     def verify_password(self, password: str) -> bool:
         return bcrypt_sha256.verify(self.password, password)
 
-    def verification(self, verification_code: str) -> bool:
-        verification = UserVerification.get_by_user(self.id)
+    def verification(self, session, verification_code: str) -> bool:
+        verification = UserVerification.get_by_user(session, self.id)
         if verification and verification.code is verification_code:
             self.active = True
-            UserVerification.delete(verification_code)
-            db.session.commit()
+            UserVerification.delete(session, verification_code)
 
     def add_expo_token(self, expo_token: str):
         self.expo_token = expo_token
-        db.session.commit()
-        db.session.refresh(self)
 
-    def make_host(self):
-        self.host = True
-        db.session.commit()
-        db.session.refresh(self)
+    # def make_host(self, session):
+    #     self.host = True
+    #     db.session.commit()
+    #     db.session.refresh(self)
+
+    def make_host(self, session):
+        host_role = Role.get_by_name(session, 'Host')
+        user_role = UserRole(self.id, host_role.id)
+        session.add(user_role)
 
     def update_eagerness(self, value: int):
         assert 0 < value
@@ -243,7 +242,7 @@ class Role(Base, Entity):
         self.description = description
 
     @classmethod
-    def get_by_name(session, name: str) -> Optional['Role']:
+    def get_by_name(cls, session, name: str) -> Optional['Role']:
         return session.query(cls).filter_by(name=name).one_or_none()
 
 
@@ -264,9 +263,9 @@ class UserRole(Base):
         self.role_id = role_id
 
     @classmethod
-    def add(cls, user_id: int, role_id: int) -> 'UserRole':
-        user_role = UserRole(user_id, role_id)
-        db.session.add(user_role)
+    def add(cls, session, user_id: int, role_name: str) -> 'UserRole':
+        user_role = UserRole(user_id, Role.get_by_name(session, role_name).id)
+        session.add(user_role)
 
 
 class Organization(Base, Entity):
@@ -409,6 +408,38 @@ class UserReferral(Base):
         )
 
 
+class ExpoToken(Base):
+    __tablename__ = 'ExpoToken'
+
+    user_id = Column('user', BIGINT, ForeignKey('User.id'), primary_key=True)
+    token = Column('token', VARCHAR(255), unique=True, nullable=False, primary_key=True)
+
+    user = relationship(User, backref=backref('_user_expo_tokens'))
+
+    def __int__(self, user_id: int, token: str):
+        self.user_id = user_id
+        self.token = token
+
+    @classmethod
+    def get_by_user(cls, session, user_id: int) -> List['ExpoToken']:
+        return session.query(cls).filter_by(user_id=user_id).all()
+
+    @classmethod
+    def create(cls, session, expo_token: 'ExpoToken') -> Optional['ExpoToken']:
+        if session.query(cls).filter_by(token=expo_token.token).one_or_none() is not None:
+            return None
+        session.add(expo_token)
+        session.commit()
+        session.refresh(expo_token)
+        return expo_token
+
+    def json(self, deep: bool=False) -> Dict[str, Any]:
+        return {
+            'user_id': self.user_id,
+            'token': self.token
+        }
+
+
 class FoodPreference(Base, Entity):
     __tablename__ = 'FoodPreference'
 
@@ -443,7 +474,7 @@ class UserFoodPreference(Base):
         self.foodpref_id = foodpreference
 
     @classmethod
-    def add(cls, user_id: int, foodpreference: Union[int, List[int]]) -> Union['UserFoodPreference', List['UserFoodPreference']]:
+    def add(cls, session, user_id: int, foodpreference: Union[int, List[int]]) -> Union['UserFoodPreference', List['UserFoodPreference']]:
         if isinstance(foodpreference, list):
             user_foodpreferences = []
             for fp in foodpreference:
@@ -457,15 +488,14 @@ class UserFoodPreference(Base):
         return user_foodpreferences
 
     @classmethod
-    def update(cls, user_id: int, foodpreferences: Union[int, List[int]]):
-        cls.delete(user_id)
-        cls.add(user_id, foodpreferences)
+    def update(cls, session, user_id: int, foodpreferences: Union[int, List[int]]):
+        cls.delete(session, user_id)
+        cls.add(session, user_id, foodpreferences)
 
     @classmethod
-    def delete(cls, user_id: int):
-        prefs = db.session.query(cls).filter_by(user_id=user_id)
+    def delete(cls, session, user_id: int):
+        prefs = session.query(cls).filter_by(user_id=user_id)
         prefs.delete()
-        db.session.commit()
 
     def json(cls, deep: bool=False) -> Dict[str, Any]:
         if deep:
@@ -497,34 +527,32 @@ class UserVerification(Base):
         return verification
 
     @classmethod
-    def get_by_code(cls, code: str) -> Optional['UserVerification']:
+    def get_by_code(cls, session, code: str) -> Optional['UserVerification']:
         """Get entity by code"""
-        return db.session.query(cls).filter_by(code=code).one_or_none()
+        return session.query(cls).filter_by(code=code).one_or_none()
 
     @classmethod
-    def get_by_user(cls, user_id: int) -> Optional['UserVerification']:
+    def get_by_user(cls, session, user_id: int) -> Optional['UserVerification']:
         """Get entity by user"""
-        return db.session.query(cls).filter_by(user_id=user_id).one_or_none()
+        return session.query(cls).filter_by(user_id=user_id).one_or_none()
 
     @classmethod
-    def delete_by_code(cls, code: str) -> bool:
+    def delete_by_code(cls, session, code: str) -> bool:
         """Delete instance"""
-        success = db.session.query(cls).filter_by(code=code).delete()
-        db.session.flush()
+        success = session.query(cls).filter_by(code=code).delete()
         return success
 
     @classmethod
-    def delete(cls, user_id: int) -> bool:
+    def delete(cls, session, user_id: int) -> bool:
         """Delete instance"""
-        success = db.session.query(cls).filter_by(user_id=user_id).delete()
-        db.session.flush()
+        success = session.query(cls).filter_by(user_id=user_id).delete()
         return success
 
     @classmethod
-    def generate_code(cls) -> str:
+    def generate_code(cls, length: int=6) -> str:
         """Generate a new verification code"""
         chars = string.ascii_uppercase + string.digits
-        code = random.choices(chars, k=6)
+        code = random.choices(chars, k=length)
         return ''.join(code)
 
 

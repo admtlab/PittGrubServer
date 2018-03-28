@@ -38,3 +38,15 @@ class NotificationHandler(SecureHandler):
                         send_push_notification(user.expo_token,
                                                data['title'], data['body'],
                                                notification_data)
+
+
+class NotificationTokenHandler(BaseHandler):
+    def post(self, path):
+        data = json_decode(self.request.body)
+        if all(key in data for key in('user', 'token')):
+            user = User.get_by_id(data['user'])
+            user.add_expo_token(data['token'])
+            if user.expo_token is not None:
+                self.success()
+            else:
+                self.write_error(400, 'Error: failed to add expo token')
