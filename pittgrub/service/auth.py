@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 from typing import Dict, Optional, Union
 from uuid import uuid4
 
-from db import User, UserVerification, session_scope
+from db import (
+    AccessToken, User, UserVerification, session_scope)
 from emailer import send_verification_email
 
 import jwt
@@ -100,3 +101,8 @@ def login(email: str, password: str) -> Optional['User']:
             session.expunge(user)
             return user
     return None
+
+
+def logout(access_token_id: int) -> bool:
+    with session_scope() as session:
+        AccessToken.delete(session, access_token_id)

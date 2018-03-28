@@ -69,6 +69,7 @@ class App(web.Application):
             (r"/test(/*)", TestHandler),                            # tests
             # login
             (r'/login(/*)', LoginHandler),              # log-in with credentials
+            (r'/logout(/*)', LogoutHandler),            # delete access token
             #(r'/users/activate(/*)', UserVerificationHandler),      # user activation
             #(r'/users/preferences(/*)', UserPreferenceHandler),     # user preferences (food, etc)
             #(r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)
@@ -85,7 +86,6 @@ class App(web.Application):
             #(r'/password/reset(/*)', UserPasswordResetHandler, dict(executor=THREAD_POOL)), # Reset user's password
             #(r'/login/refresh(/*)', TokenRefreshHandler),
             #(r'/login/validate(/*)', TokenValidationHandler),
-            #(r'/logout(/*)', LogoutHandler),
             #(r'/events(/*)', EventHandler),      # all events
             #(r'/events/(\d+/*)', EventHandler),  # single event
             #(r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(image_store=image_store)),  # event images

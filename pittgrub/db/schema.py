@@ -936,9 +936,8 @@ class AccessToken(Base, Entity):
     #     return token
 
     @classmethod
-    def delete(cls, id: str) -> bool:
-        success = db.session.query(cls).filter_by(id=id).delete()
-        db.session.commit()
+    def delete(cls, session, id: str) -> bool:
+        success = session.query(cls).filter_by(id=id).delete()
         return success
 
     def expire(self):
