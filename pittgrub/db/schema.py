@@ -49,7 +49,7 @@ class User(Base, Entity):
     def __init__(self, id: int=None, email: str=None, password: str=None,
                  status: UserStatus=None, name: str=None,
                  active: bool=False, disabled: bool=False,
-                 host: bool=False, login_count: int=0, expo_token: str=None,
+                 login_count: int=0, expo_token: str=None,
                  pitt_pantry: bool=False, eagerness: int=3):
         self.id = id
         self.created = datetime.datetime.utcnow()
@@ -59,7 +59,7 @@ class User(Base, Entity):
         self.name = name
         self.active = active
         self.disabled = disabled
-        self.host = host
+        # self.host = host
         self.login_count = login_count
         self.expo_token = expo_token
         self.pitt_pantry = pitt_pantry
@@ -342,8 +342,9 @@ class UserHostRequest(Base, Entity):
     organization = Column('organization', VARCHAR(255), nullable=False)
     directory = Column('directory', VARCHAR(512), nullable=False)
     reason = Column('reason', VARCHAR(500), nullable=True)
-    approved = Column('approved', BOOLEAN, nullable=False, default=False)
     created = Column('created', DateTime, nullable=False, default=datetime.datetime.utcnow)
+    approved = Column('approved', DateTime, nullable=True)
+    approved_by = Column('approved_by', BIGINT, ForeignKey("User.id"), unique=False, nullable=True)
 
     user = relationship(User)
 
@@ -353,12 +354,22 @@ class UserHostRequest(Base, Entity):
         self.organization = organization
         self.directory = directory
         self.reason = reason
-        self.approved = False
         self.created = datetime.datetime.utcnow()
 
     @classmethod
     def get_by_user_id(cls, session, user_id: int) -> Optional['UserHostRequest']:
         return session.query(cls).filter_by(user_id=user_id).one_or_none()
+
+    @classmethod
+    def approve_host(cls, session, user_id: int, admin_id: int):
+        admin = User.get_by_id(session, admin_id)
+        assert admin is not None
+        assert 'Admin' in [r.name for r in admin.roles()]
+        user_host_req = UserHostRequest.get_by_user_id(session, user_id)
+        user_host_req.approved = datetime.datetime.utcnow()
+        user_host_req.approved_by = admin_id
+        session.merge(user_host_req)
+        session.commit()
 
     @classmethod
     def add(cls, user_id, organization, directory, reason):

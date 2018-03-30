@@ -25,13 +25,16 @@ Session = None
 # insert when 'generate' flag is True
 TEST_DATA = dict({
     'User': [
-        (1, 'xyz@pitt.edu', '12345', UserStatus.ACCEPTED, "XYZ Tester", True, False, True, 0),
-        (2, 'abc@pitt.edu', '12345', UserStatus.ACCEPTED, "ABC Tester", True, False, False, 0)
+        (1, 'xyz@pitt.edu', '12345', UserStatus.ACCEPTED, "XYZ Tester", True, False, 0),
+        (2, 'abc@pitt.edu', '12345', UserStatus.ACCEPTED, "ABC Tester", True, False, 0),
+        (3, 'pittgrub@pitt.edu', '12345', UserStatus.ACCEPTED, "PittGrub Admin", True, False, 0),
     ],
     'UserRole': [
         (1, 1),
         (1, 2),
         (2, 1),
+        (3, 1),
+        (3, 3),
     ],
     'UserFoodPreference': [
         (1, 1),

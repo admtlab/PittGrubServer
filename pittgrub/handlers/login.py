@@ -81,7 +81,6 @@ class HostSignupHandler(CORSHandler):
                     self.write_error(400, 'Error: user already exists with that email address')
                 else:
                     send_verification_email(to=user.email, code=activation.code)
-                    user = User.add(data['email'], data['password'], data['name'])
                     jwt_token = create_jwt(owner=user.id)
                     decoded = decode_jwt(jwt_token)
                     self.success(payload=dict(

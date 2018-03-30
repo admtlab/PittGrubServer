@@ -129,6 +129,7 @@ def host_signup(email: str, password: str, name: str, organization: str, directo
             session.add(user_host_req)
             session.refresh(user)
             session.refresh(activation)
+            UserHostRequest.approve_host(session, user.id, 3)
             session.expunge(user)
             session.expunge(activation)
             return user, activation
