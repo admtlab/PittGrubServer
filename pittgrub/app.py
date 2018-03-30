@@ -64,19 +64,19 @@ class App(web.Application):
         # tornado web app
         endpoints = [
             # index
-            (r"/(/*)", MainHandler),            # index
-            (r"/health(/*)", HealthHandler),    # check status
-            (r"/test(/*)", TestHandler),                            # tests
+            (r"/(/*)", MainHandler),            # index/welcome
+            (r"/health(/*)", HealthHandler),    # server status
+            (r"/test(/*)", TestHandler),        # testing
             # login
-            (r'/login(/*)', LoginHandler),              # log-in with credentials
-            (r'/logout(/*)', LogoutHandler),            # delete access token
+            (r'/login(/*)', LoginHandler),      # log-in with credentials
+            (r'/logout(/*)', LogoutHandler),    # delete access token
+            (r'/signup(/*)', SignupHandler),    # sign-up
             #(r'/users/activate(/*)', UserVerificationHandler),      # user activation
             #(r'/users/preferences(/*)', UserPreferenceHandler),     # user preferences (food, etc)
             #(r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)
             #(r'/users/admin(/*)', AdminHandler),            # make user admin
             #(r'/notifications(/*)', NotificationHandler),   # handle notifications
             #(r'/token(/*)', NotificationTokenHandler),      # add notification token
-            #(r'/signup(/*)', SignupHandler),                # sign-up
             #(r'/signup/host(/*)', HostSignupHandler),       # signup as host
             #(r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
             #(r'/referrals(/*)', UserReferralHandler),   # get user referrals

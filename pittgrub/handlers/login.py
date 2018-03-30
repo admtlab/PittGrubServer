@@ -14,7 +14,9 @@ from typing import Any, Dict, List, Union
 from uuid import uuid4
 
 from db import AccessToken, User, UserHostRequest, UserReferral, UserVerification, session_scope
-from service.auth import login, logout, create_jwt, decode_jwt, verify_jwt
+from service.auth import (
+    login, logout, signup, host_signup, create_jwt, decode_jwt, verify_jwt
+)
 #from auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, CORSHandler, SecureHandler
@@ -29,35 +31,35 @@ from validate_email import validate_email
 
 
 class SignupHandler(CORSHandler):
+    required = ('email', 'password')
 
     def post(self, path: str):
         # new user signup
         # decode json
         data = json_decode(self.request.body)
         # validate data
-        if all(key in data for key in ('email', 'password')):
+        if all(key in data for key in self.required):
             # check email is valid
             if not validate_email(data['email']):
                 self.write_error(400, 'Invalid email address')
             else:
-                # add user
-                user = User.add(data['email'], data['password'])
-                if user is not None:
-                    # add activation code
-                    activation = UserVerification.add(user_id=user.id)
+                name = data['name'] if 'name' in data else None
+                user, activation = signup(data['email'], data['password'], name)
+                if user is None or activation is None:
+                    self.write_error(400, 'Error: user already exists with that email address')
+                else:
                     send_verification_email(to=user.email, code=activation.code)
                     jwt_token = create_jwt(owner=user.id)
                     decoded = decode_jwt(jwt_token)
-                    self.success(payload=dict(user=user.json(deep=False),
-                                              token=jwt_token.decode(),
-                                              expires=decoded['exp'],
-                                              issued=decoded['iat'],
-                                              type=decoded['tok']))
-                else:
-                    self.write_error(400, 'Error: user already exists with that email address')
+                    self.success(payload=dict(
+                        user=User.to_json(user),
+                        token=jwt_token.decode(),
+                        expires=decoded['exp'],
+                        issued=decoded['iat'],
+                        type=decoded['tok']))
         else:
             # missing required field
-            fields = ", ".join({'email', 'password'}-data.keys())
+            fields = ", ".join({*self.required}-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')
 
 
@@ -68,30 +70,29 @@ class HostSignupHandler(CORSHandler):
         # new user signup requesting host status
         data = json_decode(self.request.body)
         # validate data
-        if all(key in data for key in required):
+        if all(key in data for key in self.required):
             # check email is valid
             if not validate_email(data['email']):
                 self.write_error(400, 'Invalid email address')
             else:
-                # add user
-                user = User.add(data['email'], data['password'], data['name'])
-                if user is not None:
-                    host_request = UserHostRequest.add(user.id, data['organization'], data['directory'], data['reason'])
-                    # add activation code
-                    activation = UserVerification.add(user_id=user)
+                reason = data['reason'] if 'reason' in data else None
+                user, activation = host_signup(*[data[r] for r in self.required], reason)
+                if user is None or activation is None:
+                    self.write_error(400, 'Error: user already exists with that email address')
+                else:
                     send_verification_email(to=user.email, code=activation.code)
+                    user = User.add(data['email'], data['password'], data['name'])
                     jwt_token = create_jwt(owner=user.id)
                     decoded = decode_jwt(jwt_token)
-                    self.success(payload=dict(user=user.json(deep=False),
-                                              token=jwt_token.decode(),
-                                              expires=decoded['exp'],
-                                              issued=decoded['iat'],
-                                              type=decoded['tok']))
-                else:
-                    self.write_error(400, 'Error: user already exists with that email address')
+                    self.success(payload=dict(
+                        user=User.to_json(user),
+                        token=jwt_token.decode(),
+                        expires=decoded['exp'],
+                        issued=decoded['iat'],
+                        type=decoded['tok']))
         else:
             # missing required field
-            fields = ", ".join({*required}-data.keys())
+            fields = ", ".join({*self.required}-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')
 
 

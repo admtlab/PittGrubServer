@@ -334,7 +334,7 @@ class UserHostRequest(Base, Entity):
     __tablename__ = 'UserHostRequest'
 
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
-    user_id = Column('user', BIGINT, ForeignKey("User.id"), nullable=False)
+    user_id = Column('user', BIGINT, ForeignKey("User.id"), unique=True, nullable=False)
     organization = Column('organization', VARCHAR(255), nullable=False)
     directory = Column('directory', VARCHAR(512), nullable=False)
     reason = Column('reason', VARCHAR(500), nullable=True)
@@ -351,6 +351,10 @@ class UserHostRequest(Base, Entity):
         self.reason = reason
         self.approved = False
         self.created = datetime.datetime.utcnow()
+
+    @classmethod
+    def get_by_user_id(cls, session, user_id: int) -> Optional['UserHostRequest']:
+        return session.query(cls).filter_by(user_id=user_id).one_or_none()
 
     @classmethod
     def add(cls, user_id, organization, directory, reason):
@@ -535,13 +539,13 @@ class UserVerification(Base):
         self.user_id = user_id
 
     @classmethod
-    def add(cls, user_id: int, code: str=None) -> 'UserVerification':
+    def add(cls, session, user_id: int, code: str=None) -> 'UserVerification':
         assert user_id is not None
         code = code or cls.generate_code()
         verification = UserVerification(code, user_id)
-        db.session.add(verification)
-        db.session.commit()
-        db.session.refresh(verification)
+        session.add(verification)
+        session.commit()
+        session.refresh(verification)
         return verification
 
     @classmethod

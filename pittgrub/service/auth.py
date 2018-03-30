@@ -1,15 +1,17 @@
 import configparser
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Tuple, Union
 from uuid import uuid4
 
 from db import (
-    AccessToken, User, UserVerification, session_scope)
+    AccessToken, User, UserHostRequest, UserVerification, session_scope
+)
 from emailer import send_verification_email
 
 import jwt
 from jwt import DecodeError, ExpiredSignatureError
 from tornado.options import options
+
 
 def create_jwt(owner: int,
                id: str=None,
@@ -69,7 +71,6 @@ def decode_jwt(token: str, secret: str=None, verify_exp: bool=False) -> Dict[str
     decoded = jwt.decode(token, secret, algorithms=['HS256'], options={'verify_exp': verify_exp})
     return decoded
 
-
 def verify_jwt(token: str, secret: str=None) -> bool:
     """Verify token is not expired
     :token: stringified jwt
@@ -84,7 +85,6 @@ def verify_jwt(token: str, secret: str=None) -> bool:
         return False
     except DecodeError:
         raise
-
 
 def login(email: str, password: str) -> Optional['User']:
     with session_scope() as session:
@@ -102,7 +102,30 @@ def login(email: str, password: str) -> Optional['User']:
             return user
     return None
 
-
 def logout(access_token_id: int) -> bool:
     with session_scope() as session:
         AccessToken.delete(session, access_token_id)
+
+def signup(email: str, password: str, name: str=None) -> Tuple[Optional['User'], Optional['UserVerification']]:
+    with session_scope() as session:
+        user = User.create(session, User(email=email, password=password))
+        if user is not None:
+            activation = UserVerification.add(session, user.id)
+            session.commit()
+            session.expunge(user)
+            session.expunge(activation)
+            return user, activation
+    return None, None
+
+
+def host_signup(email: str, password: str, name: str, organization: str, directory: str, reason: str=None) -> Optional['User']:
+    with session_scope() as session:
+        user = User.create(session, User(email=email, password=password, name=name))
+        if user is not None:
+            activation = UserVerification.add(session, user.id)
+            session.add(UserHostRequest(user=user.id, organization=organization, directory=directory, reason=reason))
+            session.commit()
+            session.expunge(user)
+            session.expunge(activation)
+            return user, activation
+    return None, None
