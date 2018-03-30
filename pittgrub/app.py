@@ -71,6 +71,7 @@ class App(web.Application):
             (r'/login(/*)', LoginHandler),      # log-in with credentials
             (r'/logout(/*)', LogoutHandler),    # delete access token
             (r'/signup(/*)', SignupHandler),    # sign-up
+            (r'/signup/host(/*)', HostSignupHandler), # sign-up with host access
             #(r'/users/activate(/*)', UserVerificationHandler),      # user activation
             #(r'/users/preferences(/*)', UserPreferenceHandler),     # user preferences (food, etc)
             #(r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)

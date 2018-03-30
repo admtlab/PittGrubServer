@@ -153,7 +153,7 @@ class LogoutHandler(SecureHandler):
             self.write_error(403)
         else:
             logout(jwt['id'])
-            self.success(payload="Successfully logged out")
+            self.success(payload="Successfully logged out\n")
 
 # class TokenHandler(BaseHandler):
 #     def post(self, path: str):

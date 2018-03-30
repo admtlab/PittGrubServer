@@ -263,6 +263,10 @@ class Role(Base, Entity):
     def get_by_name(cls, session, name: str) -> Optional['Role']:
         return session.query(cls).filter_by(name=name).one_or_none()
 
+    def json(self):
+        return dict({'id': self.id, 'name': self.name})
+
+
 
 class UserRole(Base):
     """

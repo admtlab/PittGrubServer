@@ -28,6 +28,11 @@ TEST_DATA = dict({
         (1, 'xyz@pitt.edu', '12345', UserStatus.ACCEPTED, "XYZ Tester", True, False, True, 0),
         (2, 'abc@pitt.edu', '12345', UserStatus.ACCEPTED, "ABC Tester", True, False, False, 0)
     ],
+    'UserRole': [
+        (1, 1),
+        (1, 2),
+        (2, 1),
+    ],
     'UserFoodPreference': [
         (1, 1),
         (1, 3),

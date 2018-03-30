@@ -108,7 +108,8 @@ class EmailServer:
                    subject: str,
                    text,
                    html,
-                   sender: str=f'{EMAIL_SENDER} <{self.address}>'):
+                   sender: str=None):
+        sender = sender or f'{EMAIL_SENDER} <{self.address}>'
         email_server = smtplib.SMTP(self.host, self.port)
         # construct message
         msg = MIMEMultipart('alternative')
