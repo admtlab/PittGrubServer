@@ -4,7 +4,7 @@ from typing import Dict, Optional, Tuple, Union
 from uuid import uuid4
 
 from db import (
-    AccessToken, User, UserHostRequest, UserVerification, session_scope
+    AccessToken, User, UserHostRequest, UserVerification, session_scope, UserRole, Role
 )
 from emailer import send_verification_email
 
@@ -138,6 +138,7 @@ def host_signup(email: str, password: str, name: str, organization: str, directo
 def approve_host(user_id: int, admin_id: int) -> bool:
     with session_scope() as session:
         admin = User.get_by_id(session, admin_id)
+        session.add(UserRole(user_id, Role.get_by_name(session, 'Host').id))
         assert admin is not None
         assert 'Admin' in [r.name for r in admin.roles]
         return UserHostRequest.approve_host(session, user_id, admin_id)
