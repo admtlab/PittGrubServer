@@ -15,7 +15,7 @@ from uuid import uuid4
 
 from db import AccessToken, User, UserHostRequest, UserReferral, UserVerification, session_scope
 from service.auth import (
-    login, logout, signup, host_signup, create_jwt, decode_jwt, verify_jwt
+    login, logout, signup, host_signup, approve_host, create_jwt, decode_jwt, verify_jwt
 )
 #from auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
@@ -93,6 +93,27 @@ class HostSignupHandler(CORSHandler):
             # missing required field
             fields = ", ".join({*self.required}-data.keys())
             self.write_error(400, f'Error: missing field(s) {fields}')
+
+
+class HostApprovalHandler(CORSHandler, SecureHandler):
+
+    def post(self, path: str):
+        data = json_decode(self.request.body)
+        if not 'user_id' in data:
+            self.write_error(400, 'Error: missing field(s) user_id')
+        else:
+            if not data['user_id'].isdecimal():
+                self.write(400, 'Error: invalid user id')
+            else:
+                host_id = self.get_user_id()
+                try:
+                    if not approve_host(data['user_id'], host_id):
+                        self.write_error(400, 'Error: incorrect user id')
+                    else:
+                        self.set_status(204)
+                except AssertionError:
+                    self.write_error(403, 'Error: insufficient permissions')
+        self.finish()
 
 
 class ReferralHandler(CORSHandler):

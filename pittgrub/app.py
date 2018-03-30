@@ -23,7 +23,7 @@ from handlers.index import HealthHandler, MainHandler, TestHandler
 from handlers.login import (
     LoginHandler, LogoutHandler, SignupHandler,
     TokenRefreshHandler, TokenValidationHandler,
-    ReferralHandler, HostSignupHandler
+    ReferralHandler, HostSignupHandler, HostApprovalHandler
 )
 from handlers.user import (
     UserHandler, UserVerificationHandler, UserPreferenceHandler,
@@ -72,6 +72,7 @@ class App(web.Application):
             (r'/logout(/*)', LogoutHandler),    # delete access token
             (r'/signup(/*)', SignupHandler),    # sign-up
             (r'/signup/host(/*)', HostSignupHandler), # sign-up with host access
+            (r'/admin/approveHost(/*)', HostApprovalHandler), # approve request for host access
             #(r'/users/activate(/*)', UserVerificationHandler),      # user activation
             #(r'/users/preferences(/*)', UserPreferenceHandler),     # user preferences (food, etc)
             #(r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)

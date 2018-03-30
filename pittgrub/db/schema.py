@@ -364,15 +364,15 @@ class UserHostRequest(Base, Entity):
         return session.query(cls).filter_by(user_id=user_id).one_or_none()
 
     @classmethod
-    def approve_host(cls, session, user_id: int, admin_id: int):
-        admin = User.get_by_id(session, admin_id)
-        assert admin is not None
-        assert 'Admin' in [r.name for r in admin.roles]
+    def approve_host(cls, session, user_id: int, admin_id: int) -> bool:
         user_host_req = UserHostRequest.get_by_user_id(session, user_id)
+        if user_host_req is None:
+            return False
         user_host_req.approved = datetime.datetime.utcnow()
         user_host_req.approved_by = admin_id
         session.merge(user_host_req)
         session.commit()
+        return True
 
     @classmethod
     def add(cls, user_id, organization, directory, reason):

@@ -134,3 +134,10 @@ def host_signup(email: str, password: str, name: str, organization: str, directo
             session.expunge(activation)
             return user, activation
     return None, None
+
+def approve_host(user_id: int, admin_id: int) -> bool:
+    with session_scope() as session:
+        admin = User.get_by_id(session, admin_id)
+        assert admin is not None
+        assert 'Admin' in [r.name for r in admin.roles]
+        return UserHostRequest.approve_host(session, user_id, admin_id)
