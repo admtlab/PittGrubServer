@@ -365,7 +365,7 @@ class UserHostRequest(Base, Entity):
 
     @classmethod
     def get_all_pending(cls, session):
-        return session.query.filter(cls.approved.is_(None)).all()
+        return session.query(cls).filter(cls.approved.is_(None)).all()
 
     @classmethod
     def approve_host(cls, session, user_id: int, admin_id: int) -> bool:
@@ -391,7 +391,7 @@ class UserHostRequest(Base, Entity):
             'organization': self.organization,
             'directory': self.directory,
             'reason': self.reason,
-            'created': self.created
+            'created': self.created.isoformat()
         })
 
 
