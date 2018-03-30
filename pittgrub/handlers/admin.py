@@ -4,6 +4,7 @@ Author: Mark Silvis
 """
 
 from db import AccessToken, User, UserReferral
+from service.admin import is_admin, get_pending_host_requests
 from service.auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, CORSHandler, SecureHandler
@@ -24,6 +25,35 @@ except ModuleNotFoundError:
     from tornado import gen, web
     from tornado.escape import json_decode, json_encode
     from tornado.options import options
+
+
+class HostApprovalHandler(CORSHandler, SecureHandler):
+
+    def get(self, path: str):
+        user_id = self.get_user_id()
+        if not is_admin(user_id):
+            self.write_error(403, 'Error: insufficient permissions')
+        else:
+            host_requests = get_pending_host_requests()
+            self.success(200, payload=Payload(host_requests))
+
+    def post(self, path: str):
+        data = json_decode(self.request.body)
+        if not 'user_id' in data:
+            self.write_error(400, 'Error: missing field(s) user_id')
+        else:
+            if not data['user_id'].isdecimal():
+                self.write(400, 'Error: invalid user id')
+            else:
+                host_id = self.get_user_id()
+                try:
+                    if not approve_host(data['user_id'], host_id):
+                        self.write_error(400, 'Error: incorrect user id')
+                    else:
+                        self.set_status(204)
+                except AssertionError:
+                    self.write_error(403, 'Error: insufficient permissions')
+        self.finish()
 
 
 class UserReferralHandler(CORSHandler, SecureHandler):

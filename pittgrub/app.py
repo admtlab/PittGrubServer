@@ -20,10 +20,11 @@ import db
 # events: all event stuff
 
 from handlers.index import HealthHandler, MainHandler, TestHandler
+from handlers.admin import HostApprovalHandler
 from handlers.login import (
     LoginHandler, LogoutHandler, SignupHandler,
     TokenRefreshHandler, TokenValidationHandler,
-    ReferralHandler, HostSignupHandler, HostApprovalHandler
+    ReferralHandler, HostSignupHandler
 )
 from handlers.user import (
     UserHandler, UserVerificationHandler, UserPreferenceHandler,

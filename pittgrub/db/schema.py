@@ -364,6 +364,10 @@ class UserHostRequest(Base, Entity):
         return session.query(cls).filter_by(user_id=user_id).one_or_none()
 
     @classmethod
+    def get_all_pending(cls, session):
+        return session.query.filter(cls.approved.is_(None)).all()
+
+    @classmethod
     def approve_host(cls, session, user_id: int, admin_id: int) -> bool:
         user_host_req = UserHostRequest.get_by_user_id(session, user_id)
         if user_host_req is None:
@@ -379,6 +383,16 @@ class UserHostRequest(Base, Entity):
         host_request = UserHostRequest(user=user_id, organization=organization, directory=directory, reason=reason)
         db.session.add(host_request)
         db.session.commit()
+
+    def json(self, deep=False):
+        return dict({
+            'id': self.id,
+            'user_id': self.user_id,
+            'organization': self.organization,
+            'directory': self.directory,
+            'reason': self.reason,
+            'created': self.created
+        })
 
 
 class UserReferral(Base):

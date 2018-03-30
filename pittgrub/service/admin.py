@@ -1,0 +1,14 @@
+from db import User, UserHostRequest, UserRole, session_scope
+
+
+def is_admin(user_id: int) -> bool:
+    with session_scope() as session:
+        user = User.get_by_id(user_id)
+        assert admin is not None
+        return 'Admin' in [r.name for r in user.roles]
+
+def get_pending_host_requests():
+    with session_scope() as session:
+        host_requests = UserHostRequest.get_all_pending(session)
+        session.expunge()
+        return host_requests
