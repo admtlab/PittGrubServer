@@ -346,7 +346,8 @@ class UserHostRequest(Base, Entity):
     approved = Column('approved', DateTime, nullable=True)
     approved_by = Column('approved_by', BIGINT, ForeignKey("User.id"), unique=False, nullable=True)
 
-    user = relationship(User)
+    user = relationship('User', foreign_keys=[user_id], backref='user')
+    admin_approval = relationship('User', foreign_keys=[approved_by])
 
     def __init__(self, id: int=None, user: int=None, organization: str=None, directory: str=None, reason: str=None):
         self.id = id
@@ -355,6 +356,8 @@ class UserHostRequest(Base, Entity):
         self.directory = directory
         self.reason = reason
         self.created = datetime.datetime.utcnow()
+        self.approved = None
+        self.approved_by = None
 
     @classmethod
     def get_by_user_id(cls, session, user_id: int) -> Optional['UserHostRequest']:
@@ -364,7 +367,7 @@ class UserHostRequest(Base, Entity):
     def approve_host(cls, session, user_id: int, admin_id: int):
         admin = User.get_by_id(session, admin_id)
         assert admin is not None
-        assert 'Admin' in [r.name for r in admin.roles()]
+        assert 'Admin' in [r.name for r in admin.roles]
         user_host_req = UserHostRequest.get_by_user_id(session, user_id)
         user_host_req.approved = datetime.datetime.utcnow()
         user_host_req.approved_by = admin_id

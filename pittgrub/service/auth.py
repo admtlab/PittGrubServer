@@ -127,9 +127,9 @@ def host_signup(email: str, password: str, name: str, organization: str, directo
             activation = UserVerification.add(session, user.id)
             user_host_req = UserHostRequest(user=user.id, organization=organization, directory=directory, reason=reason)
             session.add(user_host_req)
+            session.commit()
             session.refresh(user)
             session.refresh(activation)
-            UserHostRequest.approve_host(session, user.id, 3)
             session.expunge(user)
             session.expunge(activation)
             return user, activation
