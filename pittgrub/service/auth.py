@@ -27,30 +27,39 @@ def create_jwt(owner: int,
     assert issued is None or issued <= datetime.utcnow()
     assert expires is None or expires >= datetime.utcnow()
 
-    # set values to defaults
-    id = id or uuid4().hex
-    issued = issued or datetime.utcnow()
-    expires = expires or datetime.utcnow()+timedelta(weeks=2)
+    with session_scope() as session:
+        user = User.get_by_id(session, owner)
+        roles = [role.name for role in user.roles]
+        # set values to defaults
+        id = id or uuid4().hex
+        issued = issued or datetime.utcnow()
+        expires = expires or datetime.utcnow()+timedelta(weeks=2)
 
-    # get app secret
-    config = configparser.ConfigParser()
-    config.read(options.config)
-    secret = secret or config['SERVER'].get('secret')
+        # get app secret
+        config = configparser.ConfigParser()
+        config.read(options.config)
+        secret = secret or config['SERVER'].get('secret')
 
-    # delete old token
-    # token = AccessToken.get_by_user(owner)
-    # if token is not None:
-        # AccessToken.delete(token.id)
+        # delete old token
+        # token = AccessToken.get_by_user(owner)
+        # if token is not None:
+            # AccessToken.delete(token.id)
 
-    # encode jwt
-    encoded = jwt.encode({'id': id, 'own': owner, 'iss': issuer,
-                          'iat': issued, 'exp': expires, 'tok': 'Bearer'},
-                         secret, algorithm='HS256')
-    # encoded = jwt.encode({'own': owner, 'iss': issuer,
-                        #   'iat': issued, 'exp': expires, 'tok': 'Bearer'},
-                        #  secret, algorithm='HS256')
-    # AccessToken.add(id, owner, expires)
-    return encoded
+        # encode jwt
+        encoded = jwt.encode({
+                'id': id,
+                'own': owner,
+                'roles': ','.join(roles),
+                'iss': issuer,
+                'iat': issued,
+                'exp': expires,
+                'tok': 'Bearer'},
+            secret, algorithm='HS256')
+        # encoded = jwt.encode({'own': owner, 'iss': issuer,
+                            #   'iat': issued, 'exp': expires, 'tok': 'Bearer'},
+                            #  secret, algorithm='HS256')
+        # AccessToken.add(id, owner, expires)
+        return encoded
 
 def decode_jwt(token: str, secret: str=None, verify_exp: bool=False) -> Dict[str, Union[int, str, datetime]]:
     """Decode jwt

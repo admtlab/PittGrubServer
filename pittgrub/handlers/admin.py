@@ -3,6 +3,8 @@ Admin tools handler
 Author: Mark Silvis
 """
 
+import logging
+
 from db import AccessToken, User, UserReferral
 from service.admin import is_admin, get_pending_host_requests
 from service.auth import create_jwt, decode_jwt, verify_jwt
@@ -31,6 +33,8 @@ class HostApprovalHandler(CORSHandler, SecureHandler):
 
     def get(self, path: str):
         user_id = self.get_user_id()
+        tok = self.get_jwt()
+        logging.info(f"roles found: {tok['roles']}")
         if not is_admin(user_id):
             self.write_error(403, 'Error: insufficient permissions')
         else:
