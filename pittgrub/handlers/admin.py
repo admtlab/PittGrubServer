@@ -6,7 +6,7 @@ Author: Mark Silvis
 import logging
 
 from db import AccessToken, User, UserReferral
-from service.admin import is_admin, get_pending_host_requests
+from service.admin import is_admin, host_approval, get_pending_host_requests
 from service.auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, CORSHandler, SecureHandler
@@ -46,12 +46,12 @@ class HostApprovalHandler(CORSHandler, SecureHandler):
         if not 'user_id' in data:
             self.write_error(400, 'Error: missing field(s) user_id')
         else:
-            if not data['user_id'].isdecimal():
+            if not (isinstance(data['user_id'], int) or data['user_id'].isdecimal()):
                 self.write(400, 'Error: invalid user id')
             else:
                 host_id = self.get_user_id()
                 try:
-                    if not approve_host(data['user_id'], host_id):
+                    if not host_approval(int(data['user_id']), host_id):
                         self.write_error(400, 'Error: incorrect user id')
                     else:
                         self.set_status(204)

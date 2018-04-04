@@ -220,8 +220,6 @@ class User(Base, Entity):
         json = dict(
             id=cls.id,
             email=cls.email,
-            active=cls.active,
-            #host=cls.host,
             status=cls.status.name,
             eagerness=cls.eagerness,
             pantry=cls.pitt_pantry
@@ -370,7 +368,7 @@ class UserHostRequest(Base, Entity):
     @classmethod
     def approve_host(cls, session, user_id: int, admin_id: int) -> bool:
         user_host_req = UserHostRequest.get_by_user_id(session, user_id)
-        if user_host_req is None:
+        if user_host_req is None or user_host_req.approved is not None:
             return False
         user_host_req.approved = datetime.datetime.utcnow()
         user_host_req.approved_by = admin_id
@@ -385,14 +383,16 @@ class UserHostRequest(Base, Entity):
         db.session.commit()
 
     def json(self, deep=False):
-        return dict({
-            'id': self.id,
-            'user_id': self.user_id,
-            'organization': self.organization,
-            'directory': self.directory,
-            'reason': self.reason,
-            'created': self.created.isoformat()
-        })
+        with db.session_scope() as session:
+            session.add(self)
+            return dict({
+                'id': self.id,
+                'user': dict({ 'id': self.user_id, 'email': self.user.email }),
+                'organization': self.organization,
+                'directory': self.directory,
+                'reason': self.reason,
+                'created': self.created.isoformat()
+            })
 
 
 class UserReferral(Base):
