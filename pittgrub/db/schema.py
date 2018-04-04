@@ -71,6 +71,10 @@ class User(Base, Entity):
         """
         return self.active and self.status is UserStatus.ACCEPTED and not self.disabled
 
+    @property
+    def is_admin(self) -> bool:
+        return 'Admin' in [r.name for r in self.roles]
+
     @classmethod
     def get_by_email(cls, session, email: str) -> Optional['User']:
         """
