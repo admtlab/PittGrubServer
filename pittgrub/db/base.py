@@ -14,12 +14,12 @@ E = TypeVar('Entity', bound='Entity')
 
 def health_check() -> bool:
     try:
-        with session_scope() as session:
+        with db.session_scope() as session:
             session.execute('SELECT 1')
-    except:
+        return True
+    except Exception as e:
+        logging.info(e)
         return False
-    return True
-
 
 class Entity:
     """Base queries for entities"""
