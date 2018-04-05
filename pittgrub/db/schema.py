@@ -387,7 +387,7 @@ class UserHostRequest(Base, Entity):
             session.add(self)
             return dict({
                 'id': self.id,
-                'user': dict({ 'id': self.user_id, 'email': self.user.email }),
+                'user': dict({ 'id': self.user_id, 'email': self.user.email, 'name': self.user.name }),
                 'organization': self.organization,
                 'directory': self.directory,
                 'reason': self.reason,
