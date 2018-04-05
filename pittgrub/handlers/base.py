@@ -18,7 +18,9 @@ class BaseHandler(web.RequestHandler):
     """Common handler"""
 
     def _check_https(self):
-        """Verify HTTPS"""
+        """
+        Verify HTTPS and redirect if not secure
+        """
         if ('X-Forwarded-Proto' in self.request.headers and
                 self.request.headers['X-Forwarded-Proto'] != 'https'):
             self.redirect(re.sub(r'^([^:]+)', 'https', self.request.full_url()))
@@ -27,7 +29,8 @@ class BaseHandler(web.RequestHandler):
         self._check_https()
 
     def success(self, status: int=200, payload: Writable=None):
-        """Successful request
+        """
+        Successful request
         status: HTTP status (default: 200)
         payload: data to send (must be JSON encodable) (default: None)
         """
@@ -37,7 +40,8 @@ class BaseHandler(web.RequestHandler):
         self.finish()
 
     def write(self, chunk: Writable):
-        """Writes chunk to output buffer
+        """
+        Writes chunk to output buffer
         Reference: https://git.io/vHgiA
         chunk: data to write (must be JSON encodable)
         """
@@ -59,7 +63,8 @@ class BaseHandler(web.RequestHandler):
         self._write_buffer.append(chunk)
 
     def write_error(self, status: int, message: str=None):
-        """Prepare error response
+        """
+        Prepare error response
         status: HTTP status
         message: message to send (default: None)
         """
@@ -69,8 +74,10 @@ class BaseHandler(web.RequestHandler):
 
 
 class CORSHandler(BaseHandler):
-    """Cross-Origin Request Handler
+    """
+    Cross-Origin Request Handler
     Enables cross-origin requests for endpoint
+    Provides endpoint for option request
     """
 
     def set_default_headers(self):
@@ -84,7 +91,8 @@ class CORSHandler(BaseHandler):
 
 
 class SecureHandler(BaseHandler):
-    """Secure resource handler
+    """
+    Secure resource handler
     Verifies authentication prior to completing request
     """
 
@@ -108,8 +116,14 @@ class SecureHandler(BaseHandler):
         self._check_jwt()
 
     def get_jwt(self, verify: bool=False) -> Optional[Dict[str, Union[int, str, 'datetime']]]:
-        """Retrieve decoded JSON web token
+        """
+        Retrieve decoded JSON web token
+        Note: verifying JWT will result in exception if expired
         verify: verify JWT expiration (default: False)
+        :return: JWT dictionary if token provided
+            None if token not provided
+        :raises: DecodeError if token fails to be decoded
+        :raises: ExpiredSignatureError: if verifying and token is expired
         """
         auth = self.request.headers.get('Authorization')
         if auth is not None and auth.startswith('Bearer '):
@@ -120,14 +134,15 @@ class SecureHandler(BaseHandler):
     def verify_jwt(self) -> Optional[bool]:
         """Verify JWT is not expired
         :return: True if not expired
-                False if expired
+            False if expired
         :raises ExpiredSignatureError: if token is expired
         :raises DecodeError: if token fails to be decoded
         """
         return self.get_jwt(True) is not None
 
     def get_user_id(self) -> int:
-        """Get user id from JWT
+        """
+        Get user id from JWT
         return: user id
         """
         return self.get_jwt()['own']

@@ -47,10 +47,6 @@ define("config", default="./config.ini", type=str,
 parse_command_line()
 log.enable_pretty_logging()
 
-# async task executors
-THREAD_POOL = concurrent.futures.ThreadPoolExecutor(4)
-
-
 class App(web.Application):
     """Wrapper around Tornado web application with configuration"""
 
@@ -61,6 +57,9 @@ class App(web.Application):
         static_path: path for static files
         db_config: database config
         """
+
+        # async task executors
+        thread_pool = concurrent.futures.ThreadPoolExecutor(4)
 
         # tornado web app
         endpoints = [
@@ -86,7 +85,7 @@ class App(web.Application):
             #(r'/referrals/pending(/*)', UserPendingReferralHandler),    # get requested user referrals
             #(r'/referrals/approved(/*)', UserApprovedReferralHandler),  # get approved user referrals
             #(r'/password', UserPasswordHandler),    # Change user password
-            #(r'/password/reset(/*)', UserPasswordResetHandler, dict(executor=THREAD_POOL)), # Reset user's password
+            #(r'/password/reset(/*)', UserPasswordResetHandler, dict(executor=thread_pool)), # Reset user's password
             #(r'/login/refresh(/*)', TokenRefreshHandler),
             #(r'/login/validate(/*)', TokenValidationHandler),
             #(r'/events(/*)', EventHandler),      # all events

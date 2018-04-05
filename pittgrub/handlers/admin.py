@@ -6,27 +6,18 @@ Author: Mark Silvis
 import logging
 
 from db import AccessToken, User, UserReferral
-from service.admin import is_admin, host_approval, get_pending_host_requests
+from service.admin import (
+    is_admin, host_approval, get_pending_host_requests, AdminPermissionError, MissingUserError
+)
 from service.auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
 from handlers.base import BaseHandler, CORSHandler, SecureHandler
 
-try:
-    import jwt
-    from jwt import DecodeError, ExpiredSignatureError
-    from tornado import gen, web
-    from tornado.escape import json_decode, json_encode
-    from tornado.options import options
-except ModuleNotFoundError:
-    # DB10 fix
-    import sys
-    sys.path.insert(0, '/afs/cs.pitt.edu/projects/admt/web/sites/db10/beacons/python/site-packages/')
-
-    import jwt
-    from jwt import DecodeError, ExpiredSignatureError
-    from tornado import gen, web
-    from tornado.escape import json_decode, json_encode
-    from tornado.options import options
+import jwt
+from jwt import DecodeError, ExpiredSignatureError
+from tornado import gen, web
+from tornado.escape import json_decode, json_encode
+from tornado.options import options
 
 
 class HostApprovalHandler(CORSHandler, SecureHandler):
@@ -49,13 +40,14 @@ class HostApprovalHandler(CORSHandler, SecureHandler):
             if not (isinstance(data['user_id'], int) or data['user_id'].isdecimal()):
                 self.write(400, 'Error: invalid user id')
             else:
-                host_id = self.get_user_id()
+                user_id = int(data['user_id'])
+                admin_id = self.get_user_id()
                 try:
-                    if not host_approval(int(data['user_id']), host_id):
-                        self.write_error(400, 'Error: incorrect user id')
+                    if not host_approval(user_id, admin_id):
+                        self.write_error(400, f'Error: no request found for user with id: {user_id}')
                     else:
                         self.set_status(204)
-                except AssertionError:
+                except (MissingUserError, AdminPermissionError):
                     self.write_error(403, 'Error: insufficient permissions')
         self.finish()
 
