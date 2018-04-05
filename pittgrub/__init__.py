@@ -1,2 +1,5 @@
-__version__ = '0.2.0'
+import os
 
+__version__ = open(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    '../VERSION')).read().strip()
