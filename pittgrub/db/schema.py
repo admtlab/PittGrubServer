@@ -510,12 +510,14 @@ class FoodPreference(Base, Entity):
         self.name = name
         self.description = description
 
-    def json(cls, deep: bool=False) -> Dict[str, Any]:
-        return {
-            'id': cls.id,
-            'name': cls.name,
-            'description': cls.description
-        }
+    def json(self, deep: bool=False) -> Dict[str, Any]:
+        with db.session_scope() as session:
+            session.add(self)
+            return dict({
+                'id': self.id,
+                'name': self.name,
+                'description': self.description
+            })
 
 
 class UserFoodPreference(Base):

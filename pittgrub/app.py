@@ -85,8 +85,7 @@ class App(web.Application):
             # user
             (r'/users/verify(/*)', UserVerificationHandler),    # user activation
             (r'/users/preferences(/*)', UserPreferenceHandler), # user preferences (food, etc)
-            #(r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)
-            #(r'/users/admin(/*)', AdminHandler),            # make user admin
+            (r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)
             #(r'/notifications(/*)', NotificationHandler),   # handle notifications
             #(r'/token(/*)', NotificationTokenHandler),      # add notification token
             #(r'/signup/host(/*)', HostSignupHandler),       # signup as host
@@ -106,6 +105,7 @@ class App(web.Application):
             #(r'/events/(\d+)/accept/(\d+/*)', AcceptEventHandler),      # accept an event for a user
             
             # OLD HANDLERS
+            # (r'/users/admin(/*)', AdminHandler),            # make user admin
             # (r'/userfood(/*)', UserFoodPreferencesHandler)
             # (r'/events/new(/*)', EventTestHandler), # newest events
             # (r'/p(/*)', PreferenceHandler),

@@ -6,7 +6,7 @@ from handlers.response import Payload, ErrorResponse
 
 from jwt import ExpiredSignatureError
 from tornado import escape, web
-from tornado.escape import utf8
+from tornado.escape import json_decode, utf8
 from tornado.util import unicode_type
 from tornado.web import Finish
 
@@ -24,6 +24,9 @@ class BaseHandler(web.RequestHandler):
         if ('X-Forwarded-Proto' in self.request.headers and
                 self.request.headers['X-Forwarded-Proto'] != 'https'):
             self.redirect(re.sub(r'^([^:]+)', 'https', self.request.full_url()))
+
+    def get_data(self):
+        return json_decode(self.request.body)
 
     def prepare(self):
         self._check_https()

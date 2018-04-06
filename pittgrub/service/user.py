@@ -46,6 +46,14 @@ def update_user_food_preferences(id: int, food_preferences: List[int]=None):
     with session_scope() as session:
         UserFoodPreference.update(session, id, food_preferences)
 
+def update_user_settings(id: int, pantry: bool=None, eager: int=None):
+    with session_scope() as session:
+        user = get_user(id)
+        if pantry is not None:
+            user.pantry_status = pantry
+        if eager is not None:
+            user.eagerness = eager
+
 def verify_user(code: str, user_id: int) -> bool:
     assert code is not None
     with session_scope() as session:

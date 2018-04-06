@@ -9,6 +9,7 @@ from service.user import (
     get_user_food_preferences,
     get_user_verification,
     update_user_food_preferences,
+    update_user_settings,
     verify_user
 )
 from db import FoodPreference, User, UserFoodPreference, UserVerification
@@ -117,7 +118,7 @@ class UserSettingsHandler(SecureHandler):
         # check token
         user_id = self.get_user_id()
         if user_id:
-            user = User.get_by_id(user_id)
+            user = get_user(user_id)
             settings = user.json_settings()
             self.success(payload=Payload(settings))
         else:
@@ -125,24 +126,30 @@ class UserSettingsHandler(SecureHandler):
 
     def post(self, path):
         user_id = self.get_user_id()
-        user = User.get_by_id(user_id)
-        if user is not None:
-            # decode json
-            data = json_decode(self.request.body)
-            logging.info(f'Updating settings for user {user_id}, settings {data}')
-            if 'food_preferences' in data:
-                # ensure preference ids are legit
-                preference_ids = [pref.id for pref in FoodPreference.get_all()]
-                if all(pref in preference_ids for pref in data['food_preferences']):
-                    UserFoodPreference.update(user_id, preference_ids)
-                else:
-                    fields = ", ".join(set(data['food_preferences'])-preference_ids)
-                    self.write_error(401, f'Food preferences not foudn: {fields}')
-            if 'pantry' in data:
-                user.set_pitt_pantry(data['pantry'])
-            if 'eagerness' in data:
-                user.update_eagerness(data['eagerness'])
-            self.success(status=204)
+        data = json_decode(self.request.body)
+        logging.info(f'Updating settings for user {user_id}, settings {data}')
+        if 'food_preferences' in data:
+            # ensure preference ids are legit
+            if all([1 <= int(pref) <= 4 for pref in data['food_preferences']]):
+                update_user_food_preferences(user_id, data['food_preferences'])
+            else:
+                fields = ", ".join(set(data['food_preferences']) - set(range(1, 5)))
+                self.write_error(401, f'Food preferences not found: {fields}')
+                raise Finish()
+        pantry = None
+        eager = None
+        if 'pantry' in data:
+            if not isinstance(data['pantry'], bool):
+                self.write_error(401, f'Pantry value must be true or false')
+                raise Finish()
+            pantry = data['pantry']
+        if 'eagerness' in data:
+            if 0 < data['eagerness']:
+                self.write_error(401, f'Eagerness must be greater than 0')
+                raise Finish()
+            eager = data['eagerness']
+        update_user_settings(user_id, pantry, eager)
+        self.success(status=204)
 
 
 class UserPreferenceHandler(SecureHandler):
@@ -161,27 +168,13 @@ class UserPreferenceHandler(SecureHandler):
     def post(self, path):
         user_id = self.get_user_id()
         data = json_decode(self.request.body)
+        # ensure food preference ids are legitimate
         if all([1 <= int(pref) <= 4 for pref in data]):
+            update_user_food_preferences(user_id, data)
             self.success(204)
         else:
             fields = ", ".join(set(data) - set(range(1, 5)))
             self.write_error(401, f'Food prefereneces not found: {fields}')
-
-
-        user_id = self.get_jwt()['own']
-        user = User.get_by_id(user_id)
-        if user is not None:
-            # decode json
-            data = json_decode(self.request.body)
-            logging.info(f'Updated preferences: {data}')
-            # check that preferences exist
-            preference_ids = [pref.id for pref in FoodPreference.get_all()]
-            if all(pref in preference_ids for pref in data):
-                UserFoodPreference.update(user_id, data)
-                self.success(status=204)
-            else:
-                fields = ", ".join(set(data) - preference_ids)
-                self.write_error(401, f'Food preferences not found: {fields}')
 
 
 class UserVerificationHandler(SecureHandler):
