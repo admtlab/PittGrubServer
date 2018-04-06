@@ -151,3 +151,9 @@ def approve_host(user_id: int, admin_id: int) -> bool:
         assert admin is not None
         assert 'Admin' in [r.name for r in admin.roles]
         return UserHostRequest.approve_host(session, user_id, admin_id)
+
+def get_access_token(id: int) -> 'AccessToken':
+    with session_scope() as session:
+        token = AccessToken.get_by_id(session, id)
+        session.expunge(token)
+        return token

@@ -6,9 +6,11 @@ from .base import BaseHandler, CORSHandler, SecureHandler
 from service.auth import create_jwt, decode_jwt, verify_jwt
 from service.user import (
     get_user,
+    get_user_by_email,
     get_user_food_preferences,
     get_user_verification,
     update_user_food_preferences,
+    update_user_password,
     update_user_settings,
     verify_user
 )
@@ -44,16 +46,14 @@ class UserHandler(SecureHandler):
 
 class UserPasswordHandler(CORSHandler, SecureHandler):
     def post(self):
-        user_id = self.get_jwt()['own']
+        user_id = self.get_user_id()
         user = User.get_by_id(user_id)
-        print(user.password)
         data = json_decode(self.request.body)
         if all(key in data for key in ('old_password', 'new_password')):
-            if User.verify_credentials(user.email, data['old_password']):
-                User.change_password(user_id, data['new_password'])
+            if update_user_password(user_id, data['old_password'], data['new_password']):
                 self.success(status=200)
             else:
-                self.write_error(400, 'Incorrect email or password')
+                self.write_error(400, 'Incorrect password')
         else:
             fields = ", ".join(set('old_password', 'new_password') - data.keys())
             self.write_error(400, f'Missing field(s): {fields}')
@@ -71,13 +71,11 @@ class UserPasswordResetHandler(CORSHandler):
         data = json_decode(self.request.body)
         if 'email' in data:
             # they are requesting the reset link
-            user = User.get_by_email(data['email'])
+            user = get_user_by_email(data['email'])
             if user:
                 jwt_token = create_jwt(
                     owner=user.id, secret=user.password, expires=datetime.utcnow() + timedelta(hours=24))
                 encoded = base64.b64encode(jwt_token).decode()
-                logging.info(f'token: {jwt_token}')
-                logging.info(f'encoded: {encoded}')
                 self.executor.submit(send_password_reset_email, user.email, encoded)
                 self.success(status=204)
             else:
@@ -86,31 +84,34 @@ class UserPasswordResetHandler(CORSHandler):
             # they are sending their token and new password
             # check that the token is correct, then
             # set them up with their new password
-            token = None
             try:
                 token = base64.b64decode(data['token']).decode()
             except:
+                logging.warning(f'Encountered invalid token: {data["token"]}')
                 self.write_error(400, 'Password reset failed, invalid token')
                 raise Finish()
             owner = jwt.decode(token, verify=False)['own']
-            user = User.get_by_id(owner)
+            user = get_user(owner)
             if user is not None:
                 try:
-                    logging.info('verifying token')
                     if verify_jwt(token, user.password):
                         password = data['password']
-                        User.change_password(owner, password)
-                        self.success(status=204)
+                        if not update_user_password(owner, password):
+                            logging.error(f'Failed password reset for user {owner.id}')
+                            self.write_error(500, 'Password reset failed')
+                        else:
+                            self.success(status=204)
                     else:
                         self.write_error(400, 'Password reset failed, token is expired')
                 except Exception as e:
-                    logging.warn(e)
-                    self.write_error(400, 'Password reset failed, invalid token')
+                    logging.error(e)
+                    self.write_error(500, 'Password reset failed')
             else:
-                logging.warn(f"User with id {owner} tried to reset password, but they don't exist")
+                logging.warning(f"User with id {owner} tried to reset password, but they don't exist")
                 self.write_error(400, 'No user exists with that id')
         else:
             self.write_error(400, 'Missing fields')
+        self.finish()
 
 
 class UserSettingsHandler(SecureHandler):

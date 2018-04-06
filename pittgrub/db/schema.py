@@ -154,7 +154,7 @@ class User(Base, Entity):
         user.password = new_password
 
     def verify_password(self, password: str) -> bool:
-        return bcrypt_sha256.verify(self.password, password)
+        return bcrypt_sha256.verify(password, self.password)
 
     def verification(self, session, verification_code: str) -> bool:
         verification = UserVerification.get_by_user(session, self.id)

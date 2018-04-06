@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional, Union
 
 from . import MissingUserError
 from db import (
@@ -36,6 +36,14 @@ def get_user(id: int) -> 'User':
         session.expunge(user)
     return user
 
+def get_user_by_email(email: str) -> Optional['User']:
+    with session_scope() as session:
+        user = User.get_by_email(session, email)
+        if user is None:
+            return None
+        session.expunge(user)
+    return user
+
 def get_all_users() -> List['User']:
     with session_scope() as session:
         users = User.get_all(session)
@@ -47,6 +55,35 @@ def get_user_food_preferences(id: int):
         food_preferences = User.get_by_id(session, id).food_preferences
         session.expunge_all()
     return food_preferences
+
+def change_user_password(id: int, old_password: str, new_password: str) -> bool:
+    """
+    Changes user password from old to new
+    :param id:
+    :param old_password:
+    :param new_password:
+    :return: True if succeeded
+        False if not (invalid old_password, etc.)
+    """
+    with session_scope() as session:
+        user = User.get_by_id(session, id)
+        if user is None:
+            raise MissingUserError(f"User not found with id: {id}")
+        else:
+            if not user.verify_password(old_password):
+                return False
+            user.password = new_password
+    return True
+
+def update_user_password(user: Union['User', int], password: str) -> bool:
+    with session_scope() as session:
+        if isinstance(user, int):
+            session.add(user)
+            user.password = password
+        else:
+            user = User.get_by_id(session, user)
+            user.password = password
+    return True
 
 def update_user_food_preferences(id: int, food_preferences: List[int]=None):
     with session_scope() as session:

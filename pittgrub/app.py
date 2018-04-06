@@ -76,6 +76,8 @@ class App(web.Application):
             (r"/test(/*)", TestHandler),        # testing
             # login
             (r'/login(/*)', LoginHandler),      # log-in with credentials
+            (r'/login/refresh(/*)', TokenRefreshHandler),
+            (r'/login/validate(/*)', TokenValidationHandler),
             (r'/logout(/*)', LogoutHandler),    # delete access token
             (r'/signup(/*)', SignupHandler),    # sign-up
             (r'/signup/host(/*)', HostSignupHandler),  # sign-up with host access request
@@ -85,16 +87,15 @@ class App(web.Application):
             (r'/users/verify(/*)', UserVerificationHandler),    # user activation
             (r'/users/preferences(/*)', UserPreferenceHandler), # user preferences (food, etc)
             (r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)
+            (r'/password', UserPasswordHandler),    # Change user password
+            (r'/password/reset(/*)', UserPasswordResetHandler, dict(executor=thread_pool)), # Reset user's password
+            # notifications
             (r'/notifications(/*)', NotificationHandler),   # handle notifications
             (r'/token(/*)', NotificationTokenHandler),      # add notification token
             #(r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
             #(r'/referrals(/*)', UserReferralHandler),   # get user referrals
             #(r'/referrals/pending(/*)', UserPendingReferralHandler),    # get requested user referrals
             #(r'/referrals/approved(/*)', UserApprovedReferralHandler),  # get approved user referrals
-            #(r'/password', UserPasswordHandler),    # Change user password
-            #(r'/password/reset(/*)', UserPasswordResetHandler, dict(executor=thread_pool)), # Reset user's password
-            #(r'/login/refresh(/*)', TokenRefreshHandler),
-            #(r'/login/validate(/*)', TokenValidationHandler),
             #(r'/events(/*)', EventHandler),      # all events
             #(r'/events/(\d+/*)', EventHandler),  # single event
             #(r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(image_store=image_store)),  # event images

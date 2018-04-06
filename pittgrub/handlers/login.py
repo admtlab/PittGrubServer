@@ -14,8 +14,16 @@ from typing import Any, Dict, List, Union
 from uuid import uuid4
 
 from db import AccessToken, User, UserHostRequest, UserReferral, UserVerification, session_scope
+from service.admin import host_approval
 from service.auth import (
-    login, logout, signup, host_signup, approve_host, create_jwt, decode_jwt, verify_jwt
+    get_access_token,
+    login,
+    logout,
+    signup,
+    host_signup,
+    create_jwt,
+    decode_jwt,
+    verify_jwt
 )
 #from auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
@@ -105,9 +113,9 @@ class HostApprovalHandler(CORSHandler, SecureHandler):
             if not data['user_id'].isdecimal():
                 self.write(400, 'Error: invalid user id')
             else:
-                host_id = self.get_user_id()
+                admin_id = self.get_user_id()
                 try:
-                    if not approve_host(data['user_id'], host_id):
+                    if not host_approval(data['user_id'], admin_id):
                         self.write_error(400, 'Error: incorrect user id')
                     else:
                         self.set_status(204)
@@ -221,18 +229,17 @@ class TokenValidationHandler(BaseHandler):
             auth = auth[7:]
             try:
                 decoded = decode_jwt(token=auth, verify_exp=True)
-                if AccessToken.get_by_id(decoded['id']):
+                if get_access_token(decoded['id']) is not None:
                     self.success(payload=dict(valid=True, expires=decoded['exp']))
                 else:
                     self.success(payload=dict(valid=False))
             except ExpiredSignatureError:
                 decoded = decode_jwt(token=auth, verify_exp=False)
-                self.write_error(401, dict(valid=False))
+                self.write_error(401, dict(valid=False, expires=decoded['exp']))
             except DecodeError as e:
-                print(f'error: {e}')
                 self.write_error(401, f'Error reading access token')
             except Exception as e:
-                print(f'error: {e}')
-                self.write_error(400)
+                logging.error(e)
+                self.write_error(500)
         else:
             self.write_error(403)
