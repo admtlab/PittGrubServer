@@ -78,7 +78,7 @@ class App(web.Application):
             (r'/login(/*)', LoginHandler),      # log-in with credentials
             (r'/logout(/*)', LogoutHandler),    # delete access token
             (r'/signup(/*)', SignupHandler),    # sign-up
-            (r'/signup/host(/*)', HostSignupHandler), # sign-up with host access
+            (r'/signup/host(/*)', HostSignupHandler),  # sign-up with host access request
             # admin
             (r'/admin/approveHost(/*)', HostApprovalHandler),   # approve request for host access
             # user
@@ -87,7 +87,6 @@ class App(web.Application):
             (r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)
             (r'/notifications(/*)', NotificationHandler),   # handle notifications
             (r'/token(/*)', NotificationTokenHandler),      # add notification token
-            #(r'/signup/host(/*)', HostSignupHandler),       # signup as host
             #(r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
             #(r'/referrals(/*)', UserReferralHandler),   # get user referrals
             #(r'/referrals/pending(/*)', UserPendingReferralHandler),    # get requested user referrals
