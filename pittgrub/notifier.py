@@ -13,8 +13,10 @@ from exponent_server_sdk import (
 class InvalidExpoToken(Exception):
     def __init__(self):
         self.message = "Invalid expo token"
-        super(ValidationError, self).__init__(self.message)
+        super(self).__init__(self.message)
 
+
+def send_push_to_users()
 
 def send_push_notification(expo_token: str,
                            title: str,

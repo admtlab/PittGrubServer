@@ -29,7 +29,6 @@ from handlers.login import (
     SignupHandler,
     TokenRefreshHandler,
     TokenValidationHandler,
-
 )
 from handlers.user import (
     UserHandler,
@@ -86,8 +85,8 @@ class App(web.Application):
             (r'/users/verify(/*)', UserVerificationHandler),    # user activation
             (r'/users/preferences(/*)', UserPreferenceHandler), # user preferences (food, etc)
             (r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)
-            #(r'/notifications(/*)', NotificationHandler),   # handle notifications
-            #(r'/token(/*)', NotificationTokenHandler),      # add notification token
+            (r'/notifications(/*)', NotificationHandler),   # handle notifications
+            (r'/token(/*)', NotificationTokenHandler),      # add notification token
             #(r'/signup/host(/*)', HostSignupHandler),       # signup as host
             #(r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
             #(r'/referrals(/*)', UserReferralHandler),   # get user referrals

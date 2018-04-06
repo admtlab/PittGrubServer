@@ -36,6 +36,12 @@ def get_user(id: int) -> 'User':
         session.expunge(user)
     return user
 
+def get_all_users() -> List['User']:
+    with session_scope() as session:
+        users = User.get_all(session)
+        session.expunge_all()
+    return users
+
 def get_user_food_preferences(id: int):
     with session_scope() as session:
         food_preferences = User.get_by_id(session, id).food_preferences

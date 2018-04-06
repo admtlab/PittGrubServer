@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Optional, TypeVar, Union
+from typing import Dict, List, Optional, TypeVar, Union
 
 from service.auth import decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
@@ -149,3 +149,5 @@ class SecureHandler(BaseHandler):
         return: user id
         """
         return self.get_jwt(verify)['own']
+
+    def get_roles(self) -> List[str]:
