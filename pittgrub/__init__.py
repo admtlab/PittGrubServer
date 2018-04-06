@@ -1,3 +1,5 @@
-import pkg_resources
+import os
 
-__version__ = pkg_resources.require("pittgrub")[0].version
+__version__ = open(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    '../VERSION')).read().strip()

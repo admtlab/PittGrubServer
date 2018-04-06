@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
+import os
 from setuptools import setup
 
 
 setup(
     name='PittGrub-Server',
-    version='0.2.0',
+    version=open(os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        'VERSION')).read().strip(),
     description='Server for PittGrub app',
     url='https://github.com/admtlab/pittgrubserver',
     author='Mark Silvis',
