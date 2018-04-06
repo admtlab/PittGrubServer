@@ -60,6 +60,12 @@ def update_user_settings(id: int, pantry: bool=None, eager: int=None):
         if eager is not None:
             user.eagerness = eager
 
+def update_expo_token(id: int, token: str) -> bool:
+    with session_scope() as session:
+        user = User.get_by_id(session, id)
+        user.expo_token = token
+    return True
+
 def verify_user(code: str, user_id: int) -> bool:
     assert code is not None
     with session_scope() as session:

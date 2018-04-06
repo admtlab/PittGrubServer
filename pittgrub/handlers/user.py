@@ -134,18 +134,18 @@ class UserSettingsHandler(SecureHandler):
                 update_user_food_preferences(user_id, data['food_preferences'])
             else:
                 fields = ", ".join(set(data['food_preferences']) - set(range(1, 5)))
-                self.write_error(401, f'Food preferences not found: {fields}')
+                self.write_error(400, f'Food preferences not found: {fields}')
                 raise Finish()
         pantry = None
         eager = None
         if 'pantry' in data:
             if not isinstance(data['pantry'], bool):
-                self.write_error(401, f'Pantry value must be true or false')
+                self.write_error(400, f'Pantry value must be true or false')
                 raise Finish()
             pantry = data['pantry']
         if 'eagerness' in data:
             if 0 < data['eagerness']:
-                self.write_error(401, f'Eagerness must be greater than 0')
+                self.write_error(400, f'Eagerness must be greater than 0')
                 raise Finish()
             eager = data['eagerness']
         update_user_settings(user_id, pantry, eager)
@@ -174,7 +174,7 @@ class UserPreferenceHandler(SecureHandler):
             self.success(204)
         else:
             fields = ", ".join(set(data) - set(range(1, 5)))
-            self.write_error(401, f'Food prefereneces not found: {fields}')
+            self.write_error(400, f'Food prefereneces not found: {fields}')
 
 
 class UserVerificationHandler(SecureHandler):

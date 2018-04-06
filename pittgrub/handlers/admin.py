@@ -24,10 +24,10 @@ from tornado.options import options
 class HostApprovalHandler(CORSHandler, SecureHandler):
 
     def get(self, path: str):
-        user_id = self.get_user_id()
         tok = self.get_jwt()
         logging.info(f"roles found: {tok['roles']}")
-        if not is_admin(user_id):
+        if not self.has_admin_role():
+            logging.warning(f'User {self.get_user_id()} attempted to access {cls}')
             self.write_error(403, 'Error: insufficient permissions')
         else:
             host_requests = get_pending_host_requests()
@@ -35,7 +35,10 @@ class HostApprovalHandler(CORSHandler, SecureHandler):
 
     def post(self, path: str):
         data = json_decode(self.request.body)
-        if not 'user_id' in data:
+        if not self.has_admin_role():
+            logging.warning(f'User {self.get_user_id()} attempted to access {cls}')
+            self.write_error(403, 'Error: insufficient permissions')
+        elif not 'user_id' in data:
             self.write_error(400, 'Error: missing field(s) user_id')
         else:
             if not (isinstance(data['user_id'], int) or data['user_id'].isdecimal()):

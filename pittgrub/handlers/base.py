@@ -1,5 +1,11 @@
 import re
-from typing import Dict, List, Optional, TypeVar, Union
+from typing import (
+    Dict,
+    List,
+    Optional,
+    TypeVar,
+    Union
+)
 
 from service.auth import decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse
@@ -151,3 +157,24 @@ class SecureHandler(BaseHandler):
         return self.get_jwt(verify)['own']
 
     def get_roles(self) -> List[str]:
+        """
+        Get user roles from JWT
+        :return: list of roles
+        """
+        return self.get_jwt()['roles'].split(",")
+
+    def has_host_role(self) -> bool:
+        """
+        Check if JWT contains host role
+        :return: True if token contains 'Host' role
+            False if not
+        """
+        return 'Host' in self.get_roles()
+
+    def has_admin_role(self) -> bool:
+        """
+        Check if JWT contains admin role
+        :return: True if token contains 'Admin' role
+            False if not
+        """
+        return 'Admin' in self.get_roles()
