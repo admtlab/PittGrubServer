@@ -22,14 +22,22 @@ import db
 from handlers.index import HealthHandler, MainHandler, TestHandler
 from handlers.admin import HostApprovalHandler
 from handlers.login import (
-    LoginHandler, LogoutHandler, SignupHandler,
-    TokenRefreshHandler, TokenValidationHandler,
-    ReferralHandler, HostSignupHandler
+    LoginHandler,
+    LogoutHandler,
+    HostSignupHandler,
+    ReferralHandler,
+    SignupHandler,
+    TokenRefreshHandler,
+    TokenValidationHandler,
+
 )
 from handlers.user import (
-    UserHandler, UserVerificationHandler, UserPreferenceHandler,
-    UserPasswordHandler, UserPasswordResetHandler,
-    UserSettingsHandler
+    UserHandler,
+    UserPasswordHandler,
+    UserPasswordResetHandler,
+    UserPreferenceHandler,
+    UserSettingsHandler,
+    UserVerificationHandler,
 )
 from handlers.notifications import NotificationHandler, NotificationTokenHandler
 from handlers.events import EventImageHandler, EventTestHandler
@@ -72,9 +80,11 @@ class App(web.Application):
             (r'/logout(/*)', LogoutHandler),    # delete access token
             (r'/signup(/*)', SignupHandler),    # sign-up
             (r'/signup/host(/*)', HostSignupHandler), # sign-up with host access
-            (r'/admin/approveHost(/*)', HostApprovalHandler), # approve request for host access
-            #(r'/users/activate(/*)', UserVerificationHandler),      # user activation
-            #(r'/users/preferences(/*)', UserPreferenceHandler),     # user preferences (food, etc)
+            # admin
+            (r'/admin/approveHost(/*)', HostApprovalHandler),   # approve request for host access
+            # user
+            (r'/users/verify(/*)', UserVerificationHandler),    # user activation
+            (r'/users/preferences(/*)', UserPreferenceHandler), # user preferences (food, etc)
             #(r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)
             #(r'/users/admin(/*)', AdminHandler),            # make user admin
             #(r'/notifications(/*)', NotificationHandler),   # handle notifications

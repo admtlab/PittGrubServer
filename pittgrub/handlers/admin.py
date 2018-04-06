@@ -6,8 +6,9 @@ Author: Mark Silvis
 import logging
 
 from db import AccessToken, User, UserReferral
+from service import MissingUserError
 from service.admin import (
-    is_admin, host_approval, get_pending_host_requests, AdminPermissionError, MissingUserError
+    is_admin, host_approval, get_pending_host_requests, AdminPermissionError
 )
 from service.auth import create_jwt, decode_jwt, verify_jwt
 from handlers.response import Payload, ErrorResponse

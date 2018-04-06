@@ -140,9 +140,9 @@ class SecureHandler(BaseHandler):
         """
         return self.get_jwt(True) is not None
 
-    def get_user_id(self) -> int:
+    def get_user_id(self, verify: bool=False) -> int:
         """
         Get user id from JWT
         return: user id
         """
-        return self.get_jwt()['own']
+        return self.get_jwt(verify)['own']

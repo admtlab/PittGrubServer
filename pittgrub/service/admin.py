@@ -1,15 +1,10 @@
 import datetime
 
+from . import MissingUserError
 from db import User, UserHostRequest, UserRole, session_scope
-
 
 class AdminPermissionError(Exception):
     pass
-
-
-class MissingUserError(Exception):
-    pass
-
 
 def _is_admin(session, id: int) -> bool:
     user = User.get_by_id(session, id)

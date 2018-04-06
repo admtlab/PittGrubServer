@@ -537,12 +537,12 @@ class UserFoodPreference(Base):
             user_foodpreferences = []
             for fp in foodpreference:
                 user_foodpreference = UserFoodPreference(user_id, fp)
-                db.session.add(user_foodpreference)
+                session.add(user_foodpreference)
                 user_foodpreferences.append(user_foodpreference)
         else:
             user_foodpreferences = UserFoodPreference(user_id, foodpreference)
-            db.session.add(user_foodpreference)
-        db.session.commit()
+            session.add(user_foodpreferences)
+        session.commit()
         return user_foodpreferences
 
     @classmethod
@@ -569,6 +569,8 @@ class UserVerification(Base):
 
     code = Column('code', CHAR(6), primary_key=True)
     user_id = Column('user_id', BIGINT, ForeignKey('User.id'), unique=True, nullable=False)
+
+    user = relationship(User)
 
     def __init__(self, code: str, user_id: int):
         self.code = code

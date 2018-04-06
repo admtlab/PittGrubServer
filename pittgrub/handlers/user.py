@@ -4,6 +4,13 @@ from datetime import datetime, timedelta
 
 from .base import BaseHandler, CORSHandler, SecureHandler
 from service.auth import create_jwt, decode_jwt, verify_jwt
+from service.user import (
+    get_user,
+    get_user_food_preferences,
+    get_user_verification,
+    update_user_food_preferences,
+    verify_user
+)
 from db import FoodPreference, User, UserFoodPreference, UserVerification
 from emailer import send_verification_email, send_password_reset_email
 from handlers.response import Payload
@@ -139,19 +146,28 @@ class UserSettingsHandler(SecureHandler):
 
 
 class UserPreferenceHandler(SecureHandler):
+
     def get(self, path):
         # check token
-        authorization = self.request.headers.get('Authorization')[7:]
-        if authorization:
-            token = decode_jwt(authorization)
-            user_id = token['own']
-            user = User.get_by_id(user_id)
-            preferences = user.food_preferences
-            self.success(payload=Payload(preferences))
-        else:
-            self.write_error(403, 'Authentication is required')
+        user_id = self.get_user_id()
+        try:
+            food_preferences = get_user_food_preferences(user_id)
+            self.success(payload=Payload(food_preferences))
+        except Exception as e:
+            logging.error(e)
+            self.write_error(500, "Error getting user food preferences")
+            self.finish()
 
     def post(self, path):
+        user_id = self.get_user_id()
+        data = json_decode(self.request.body)
+        if all([1 <= int(pref) <= 4 for pref in data]):
+            self.success(204)
+        else:
+            fields = ", ".join(set(data) - set(range(1, 5)))
+            self.write_error(401, f'Food prefereneces not found: {fields}')
+
+
         user_id = self.get_jwt()['own']
         user = User.get_by_id(user_id)
         if user is not None:
@@ -181,27 +197,31 @@ class UserVerificationHandler(SecureHandler):
         # except MissingArgumentError:
         #     self.write_error(404)
         user_id = self.get_user_id()
-        user = User.get_by_id(user_id)
-        verification = UserVerification.get_by_user(user_id)
-        if verification is None:
-            verification = UserVerification.add(user_id=user_id)
         try:
-            send_verification_email(to=user.email, code=verification.code)
-            self.success(status=204)
+            user = get_user(user_id)
+            if user.active:
+                logging.info(f"User {user_id} is already active")
+                self.write_error(400, "Error: user already active")
+            else:
+                code = get_user_verification(user_id)
+                send_verification_email(to=user.email, code=code)
+                self.success(status=204)
         except Exception as e:
             logging.error("Failed to send verification email")
             logging.error(e)
             self.write_error(500, "Error: failed to send verification email")
-            raise(e)
+        finally:
+            self.finish()
 
     def post(self, path):
         # decode json
         data = json_decode(self.request.body)
-        if 'activation' in data:
-            activation = data['activation']
-            if User.activate(activation):
+        user_id = self.get_user_id()
+        if 'code' in data:
+            code = data['code']
+            if verify_user(code, user_id):
                 self.success(status=204)
             else:
-                self.write_error(400, 'Invalid activation code')
+                self.write_error(400, 'Invalid verification code')
         else:
-            self.write_error(400, 'Missing activation code')
+            self.write_error(400, 'Missing verification code')
