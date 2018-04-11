@@ -658,8 +658,8 @@ class Event(Base, Entity):
         self.location = location
 
     @classmethod
-    def get_all_newest(cls) -> List['Event']:
-        entities = db.session.query(cls).filter(cls.end_date > datetime.datetime.now()).order_by(cls.start_date).all()
+    def get_all_newest(cls, session) -> List['Event']:
+        entities = session.query(cls).filter(cls.end_date > datetime.datetime.now()).order_by(cls.start_date).all()
         return entities
 
     @classmethod
@@ -684,20 +684,22 @@ class Event(Base, Entity):
         return end_date
 
     def json(self, deep: bool=False) -> Dict[str, Any]:
-        data = {
-            'id': self.id,
-            'organization': self.organization,
-            'title': self.title,
-            'start_date': self.start_date.isoformat(),
-            'end_date': self.end_date.isoformat(),
-            'details': self.details,
-            'servings': self.servings,
-            'address': self.address,
-            'location': self.location,
-            'food_preferences': [
-                f.json() for f in self.food_preferences
-            ]
-        }
+        with db.session_scope() as session:
+            session.add(self)
+            return dict({
+                'id': self.id,
+                'organization': self.organization,
+                'title': self.title,
+                'start_date': self.start_date.isoformat(),
+                'end_date': self.end_date.isoformat(),
+                'details': self.details,
+                'servings': self.servings,
+                'address': self.address,
+                'location': self.location,
+                'food_preferences': [
+                    f.json() for f in self.food_preferences
+                ]
+            })
 
         if self.organizer is not None:
             if deep:
@@ -726,7 +728,7 @@ class EventFoodPreference(Base):
         return db.session.query(cls).get([event_id, foodpreference_id])
 
     @classmethod
-    def add(cls, event_id: int, foodpreference: Union[int, List[int]]) -> Union['EventFoodPreference', List['EventFoodPreference']]:
+    def add(cls, session, event_id: int, foodpreference: Union[int, List[int]]) -> Union['EventFoodPreference', List['EventFoodPreference']]:
 
         if isinstance(foodpreference, list):
             event_foodpreferences = []
@@ -741,7 +743,7 @@ class EventFoodPreference(Base):
             if not event_foodpreferences:
                 event_foodpreferences = EventFoodPreference(event_id, foodpreference)
                 db.session.add(event_foodpreferences)
-        db.session.commit()
+        session.commit()
         return event_foodpreferences
 
     def json(cls, deep: bool=False) -> Dict[str, Any]:
@@ -1014,8 +1016,8 @@ class EventImage(Base, Entity):
         return event_image
 
     @classmethod
-    def get_by_event(cls, event_id: int) -> Optional['EventImage']:
-        return db.session.query(cls).filter_by(event_id=event_id).one_or_none()
+    def get_by_event(cls, session, event_id: int) -> Optional['EventImage']:
+        return session.query(cls).filter_by(event_id=event_id).one_or_none()
 
 
 class Building(Base, Entity):

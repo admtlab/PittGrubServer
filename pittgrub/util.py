@@ -4,6 +4,7 @@ from typing import Any, Dict
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.ext.associationproxy import AssociationProxy, _AssociationList
 import inflect
+
 p = inflect.engine()
 
 
@@ -40,6 +41,22 @@ def json_dict(obj: object, allow_none: bool=False) -> Dict[str, Any]:
     #        and (allow_none or obj.__getattribute__(prop) is not None)
     # })
 
+
+# def jsonify(data: object) -> dict:
+#     json = dict()
+#     if isinstance(data, (list, _AssociationList)):
+#         if len(data):
+#             typ = type(data[0]).__name__
+#             name = p.plural(typ[0].lower() + typ[1:])
+#             json[name] = [jsonify(d) for d in data]
+#             return json
+#     else:
+#          for d in [data.__dict__.keys()]:
+#              if hasattr(d, '__dict__'):
+#                  typ = type(data[0]).__name__
+#                  name = p.plural(typ[0].lower() + typ[1:])
+#                  json[name] = jsonify(d)
+#     return json
 
 def json_esc(data: object, indent: int=2) -> str:
     """JSON encode data with indent"""

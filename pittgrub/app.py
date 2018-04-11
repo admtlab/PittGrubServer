@@ -19,8 +19,19 @@ import db
 # notifiations: all notifications
 # events: all event stuff
 
-from handlers.index import HealthHandler, MainHandler, TestHandler
-from handlers.admin import HostApprovalHandler
+from handlers.admin import (
+    HostApprovalHandler
+)
+from handlers.index import (
+    HealthHandler,
+    MainHandler,
+    TestHandler
+)
+from handlers.events import (
+    EventHandler,
+    EventImageHandler,
+    EventTestHandler
+)
 from handlers.login import (
     LoginHandler,
     LogoutHandler,
@@ -30,6 +41,10 @@ from handlers.login import (
     TokenRefreshHandler,
     TokenValidationHandler,
 )
+from handlers.notifications import (
+    NotificationHandler,
+    NotificationTokenHandler,
+)
 from handlers.user import (
     UserHandler,
     UserPasswordHandler,
@@ -38,8 +53,6 @@ from handlers.user import (
     UserSettingsHandler,
     UserVerificationHandler,
 )
-from handlers.notifications import NotificationHandler, NotificationTokenHandler
-from handlers.events import EventImageHandler, EventTestHandler
 from handlers.admin import UserReferralHandler, UserApprovedReferralHandler, UserPendingReferralHandler, AdminHandler
 from storage import ImageStore
 
@@ -71,38 +84,43 @@ class App(web.Application):
         # tornado web app
         endpoints = [
             # index
-            (r"/(/*)", MainHandler),            # index/welcome
-            (r"/health(/*)", HealthHandler),    # server status
-            (r"/test(/*)", TestHandler),        # testing
+            (r"/(/*)",          MainHandler),       # index/welcome
+            (r"/health(/*)",    HealthHandler),     # server status
+            (r"/test(/*)",      TestHandler),       # testing
             # login
-            (r'/login(/*)', LoginHandler),      # log-in with credentials
-            (r'/login/refresh(/*)', TokenRefreshHandler),
-            (r'/login/validate(/*)', TokenValidationHandler),
-            (r'/logout(/*)', LogoutHandler),    # delete access token
-            (r'/signup(/*)', SignupHandler),    # sign-up
-            (r'/signup/host(/*)', HostSignupHandler),  # sign-up with host access request
+            (r'/login(/*)',             LoginHandler),              # log-in with credentials
+            (r'/login/refresh(/*)',     TokenRefreshHandler),       # refresh token
+            (r'/login/validate(/*)',    TokenValidationHandler),    # validate token
+            (r'/logout(/*)',            LogoutHandler),             # delete access token
+            (r'/signup(/*)',            SignupHandler),             # sign-up
+            (r'/signup/host(/*)',       HostSignupHandler),         # sign-up with host access request
             # admin
             (r'/admin/approveHost(/*)', HostApprovalHandler),   # approve request for host access
             # user
             (r'/users/verify(/*)', UserVerificationHandler),    # user activation
             (r'/users/preferences(/*)', UserPreferenceHandler), # user preferences (food, etc)
-            (r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)
-            (r'/password', UserPasswordHandler),    # Change user password
-            (r'/password/reset(/*)', UserPasswordResetHandler, dict(executor=thread_pool)), # Reset user's password
+            (r'/users/settings(/*)', UserSettingsHandler),      # user settings (food preferences, pantry, etc)
+            (r'/password', UserPasswordHandler),                # Change user password
+            (r'/password/reset(/*)', UserPasswordResetHandler,
+                dict(executor=thread_pool)),                    # Reset user's password
             # notifications
             (r'/notifications(/*)', NotificationHandler),   # handle notifications
             (r'/token(/*)', NotificationTokenHandler),      # add notification token
+            # events
+            (r'/events(/*)', EventHandler,
+                dict(executor=thread_pool)),        # all events
+            (r'/events/(\d+/*)', EventHandler,
+                dict(executor=thread_pool)),        # single event
+            # (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(image_store=image_store)),  # event images
+            # (r'/events/recommended/(\d+/*)', RecommendedEventHandler),  # recommended events for a user
+            # (r'/events/accepted/(\d+/*)', AcceptedEventHandler),        # accepted events for a user
+            # (r'/events/(\d+)/accept/(\d+/*)', AcceptEventHandler),      # accept an event for a user
+            # TODO: finish these
             #(r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
             #(r'/referrals(/*)', UserReferralHandler),   # get user referrals
             #(r'/referrals/pending(/*)', UserPendingReferralHandler),    # get requested user referrals
             #(r'/referrals/approved(/*)', UserApprovedReferralHandler),  # get approved user referrals
-            #(r'/events(/*)', EventHandler),      # all events
-            #(r'/events/(\d+/*)', EventHandler),  # single event
-            #(r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(image_store=image_store)),  # event images
-            #(r'/events/recommended/(\d+/*)', RecommendedEventHandler),  # recommended events for a user
-            #(r'/events/accepted/(\d+/*)', AcceptedEventHandler),        # accepted events for a user
-            #(r'/events/(\d+)/accept/(\d+/*)', AcceptEventHandler),      # accept an event for a user
-            
+
             # OLD HANDLERS
             # (r'/users/admin(/*)', AdminHandler),            # make user admin
             # (r'/userfood(/*)', UserFoodPreferencesHandler)

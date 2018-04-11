@@ -103,17 +103,17 @@ class UserApprovedReferralHandler(CORSHandler, SecureHandler):
         print(f'approved referrals: {refs}')
         self.success(status=200, payload=Payload(refs))
 
-class AdminHandler(CORSHandler, SecureHandler):
-    def post(self, path: str):
-        data = json_decode(self.request.body)
-        user_id = self.get_user_id()
-        user = User.get_by_id(user_id)
-        if user.admin:
-            new_admin = User.get_by_email(data['email'])
-            if new_admin is None:
-                self.write_error(400, 'Error: user not found')
-            else:
-                new_admin.make_admin()
-                self.success(204)
-        else:
-            self.write_error(403, 'Error: insufficient permission')
+# class AdminHandler(CORSHandler, SecureHandler):
+#     def post(self, path: str):
+#         data = json_decode(self.request.body)
+#         user_id = self.get_user_id()
+#         user = User.get_by_id(user_id)
+#         if user.admin:
+#             new_admin = User.get_by_email(data['email'])
+#             if new_admin is None:
+#                 self.write_error(400, 'Error: user not found')
+#             else:
+#                 new_admin.make_admin()
+#                 self.success(204)
+#         else:
+#             self.write_error(403, 'Error: insufficient permission')

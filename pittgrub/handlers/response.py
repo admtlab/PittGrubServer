@@ -51,15 +51,6 @@ class Payload():
         else:
             self._links[rel] = link
 
-   # def add(self, **links: str) -> None:
-   #     """Add links to payload
-   #     Overwrites url if link already exists
-   #     rel: relationship to response
-   #     link: link to add
-   #     """
-   #     for rel, link in links.items():
-   #         self.add(rel, link)
-
     def json(self, deep: bool=False) -> str:
         """Returns escaped JSON encoding of payload"""
         if isinstance(self._response, (list, _AssociationList)):
