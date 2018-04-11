@@ -4,7 +4,14 @@ from typing import Dict, Optional, Tuple, Union
 from uuid import uuid4
 
 from db import (
-    AccessToken, User, UserHostRequest, UserVerification, session_scope, UserRole, Role
+    AccessToken,
+    Role,
+    User,
+    UserHostRequest,
+    UserReferral,
+    UserRole,
+    UserVerification,
+    session_scope,
 )
 from emailer import send_verification_email
 
@@ -157,3 +164,11 @@ def get_access_token(id: int) -> 'AccessToken':
         token = AccessToken.get_by_id(session, id)
         session.expunge(token)
         return token
+
+def accept_user_referral(user_email: str, reference_email: str) -> bool:
+    with session_scope() as session:
+        requester = User.get_by_email(session, user_email)
+        reference = User.get_by_email(session, reference_email)
+        if requester is None or reference is None:
+            return False
+        UserReferral()

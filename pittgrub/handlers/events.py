@@ -3,21 +3,27 @@ Handler for event endpoints
 Author: Mark Silvis
 """
 
+import logging
 from datetime import datetime
 from io import BytesIO
-from requests import ConnectionError, HTTPError
 
 from db import Event, EventImage
 from handlers.response import Payload
 from handlers import BaseHandler, SecureHandler
 from service.event import (
+    add_event_image,
     create_event,
     get_event,
     get_events,
     get_event_image_by_event,
     get_newest,
     set_food_preferences,
+    user_accept_event,
+    user_accepted_events,
+    user_recommended_events,
+    user_recommended_events_valid,
 )
+from service.user import get_user
 from service.notification import send_push_to_users
 from service.recommender import _event_recommendation
 from storage import ImageStore
@@ -214,43 +220,34 @@ class EventHandler(BaseHandler):
             self.finish()
 
 
-class RecommendedEventHandler(BaseHandler):
+class RecommendedEventHandler(SecureHandler):
+
+    def get(self, path):
+        path = path.replace('/', '')
+        user_id = self.get_user_id()
+        events = user_recommended_events_valid(user_id)
+        self.success(200, Payload(events))
+        self.finish()
+
+
+class AcceptedEventHandler(SecureHandler):
 
     def get(self, path):
         path = path.replace('/', '')
 
         # get data
-        user = User.get_by_id(path)
-        events = user.recommended_events
-        # get accepted events
-        accepted = {e.id: e for e in user.accepted_events}
-        # remove events that are inactive or
-        # that the user has already accepted
-        events = [e for e in events if e.end_date > datetime.now() and e.id not in accepted]
-        self.set_status(200)
-        payload = Payload(events)
-        self.finish(payload)
+        user_id = self.get_user_id()
+        events = user_accepted_events(user_id)
+        self.success(200, Payload(events))
+        self.finish()
 
 
-class AcceptedEventHandler(BaseHandler):
-
-    def get(self, path):
-        path = path.replace('/', '')
-
-        # get data
-        user = User.get_by_id(path)
-        events = user.accepted_events
-        events = [e for e in events if e.end_date > datetime.now()]
-        self.set_status(200)
-        payload = Payload(events)
-        self.finish(payload)
-
-
-class AcceptEventHandler(BaseHandler):
-    def post(self, event, user):
-        UserAcceptedEvent.add(event, user)
+class AcceptEventHandler(SecureHandler):
+    def post(self, event):
+        user_id = self.get_user_id()
+        user_accept_event(event, user_id)
         self.set_status(204)
-        print(f'accepted event {event} for user {user}')
+        logging.info(f'accepted event {event} for user {user_id}')
 
 
 class EventImageHandler(BaseHandler):
@@ -259,28 +256,23 @@ class EventImageHandler(BaseHandler):
         self.image_store = image_store
 
     def get(self, event_id, path):
-        event = Event.get_by_id(event_id)
-        if event is None:
-            self.write_error(404, f'Event not found with id: {id}')
+        event_image = get_event_image_by_event(event_id)
+        if event_image is None:
+            self.write_error(404, f'Event image not found for event {event_id}')
         else:
-            event_image = EventImage.get_by_event(event_id)
-            if event_image is None:
-                self.write_error(404, 'Event does not have an image')
+            image = self.image_store.fetch_image(event_image.id)
+            if image is None:
+                self.write_error(400, 'Error reading image')
             else:
-                image = self.image_store.fetch_image(event_image.id)
-                if image is None:
-                    self.write_error(400, 'Error reading image')
-                else:
-                    out = BytesIO()
-                    image.save(out, format="JPEG")
-                    stream = out.getvalue()
-                    self.set_header("Content-Type", "image/jpeg")
-                    self.set_header("Content-Length", len(stream))
-                    self.write(stream)
+                out = BytesIO()
+                image.save(out, format="JPEG")
+                stream = out.getvalue()
+                self.set_header("Content-Type", "image/jpeg")
+                self.set_header("Content-Length", len(stream))
+                self.write(stream)
 
     def post(self, event_id, path):
-        #requester = self.get_jwt()['own']
-        event = Event.get_by_id(event_id)
+        event = get_event(event_id)
         if event is None:
             self.write_error(404, f'Event not found with id: {id}')
         #elif not requester == event.organizer_id:
@@ -291,7 +283,7 @@ class EventImageHandler(BaseHandler):
                 self.write_error(400, 'Missing image file')
             else:
                 image = Image.open(BytesIO(image['body']))
-                event_image = EventImage.add(event_id)
+                event_image = add_event_image(event_id)
                 image_id = event_image.id
                 if self.image_store.save_image(image_id, image):
                     self.success(status=201, payload=dict(image=self.image_store.get_name(image_id)))

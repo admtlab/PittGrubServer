@@ -30,7 +30,9 @@ from handlers.index import (
 from handlers.events import (
     EventHandler,
     EventImageHandler,
-    EventTestHandler
+    RecommendedEventHandler,
+    AcceptedEventHandler,
+    AcceptEventHandler,
 )
 from handlers.login import (
     LoginHandler,
@@ -53,7 +55,12 @@ from handlers.user import (
     UserSettingsHandler,
     UserVerificationHandler,
 )
-from handlers.admin import UserReferralHandler, UserApprovedReferralHandler, UserPendingReferralHandler, AdminHandler
+from handlers.admin import (
+    UserReferralHandler,
+    UserApprovedReferralHandler,
+    UserPendingReferralHandler,
+    # AdminHandler
+)
 from storage import ImageStore
 
 from tornado import concurrent, httpserver, log, web
@@ -108,15 +115,16 @@ class App(web.Application):
             (r'/token(/*)', NotificationTokenHandler),      # add notification token
             # events
             (r'/events(/*)', EventHandler,
-                dict(executor=thread_pool)),        # all events
+                dict(executor=thread_pool)),                    # all events
             (r'/events/(\d+/*)', EventHandler,
-                dict(executor=thread_pool)),        # single event
-            # (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(image_store=image_store)),  # event images
-            # (r'/events/recommended/(\d+/*)', RecommendedEventHandler),  # recommended events for a user
-            # (r'/events/accepted/(\d+/*)', AcceptedEventHandler),        # accepted events for a user
-            # (r'/events/(\d+)/accept/(\d+/*)', AcceptEventHandler),      # accept an event for a user
+                dict(executor=thread_pool)),                    # single event
+            (r'/events/(\d+/*)/images(/*)', EventImageHandler,
+                dict(image_store=image_store)),                 # event images
+            (r'/events/recommended/(\d+/*)', RecommendedEventHandler),  # recommended events for a user
+            (r'/events/accepted/(\d+/*)', AcceptedEventHandler),        # accepted events for a user
+            (r'/events/(\d+)/accept/(\d+/*)', AcceptEventHandler),      # accept an event for a user
             # TODO: finish these
-            #(r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
+            (r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
             #(r'/referrals(/*)', UserReferralHandler),   # get user referrals
             #(r'/referrals/pending(/*)', UserPendingReferralHandler),    # get requested user referrals
             #(r'/referrals/approved(/*)', UserApprovedReferralHandler),  # get approved user referrals
