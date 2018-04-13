@@ -33,7 +33,7 @@ class HostApprovalHandler(CORSHandler, SecureHandler):
         if not self.has_admin_role():
             logging.warning(f'User {self.get_user_id()} attempted to access {cls}')
             self.write_error(403, 'Error: insufficient permissions')
-        elif not 'user_id' in data:
+        elif 'user_id' not in data:
             self.write_error(400, 'Error: missing field(s) user_id')
         else:
             if not (isinstance(data['user_id'], int) or data['user_id'].isdecimal()):

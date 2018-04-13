@@ -1,7 +1,7 @@
 from typing import List, Optional, Union
 
 from . import MissingUserError
-from domain.data import UserData, UserProfileData
+from domain.data import UserData, UserProfileData, FoodPreferenceData
 from db import (
     FoodPreference,
     User,
@@ -33,34 +33,27 @@ def get_user_verification(id: int) -> str:
 def get_user(id: int) -> Optional[UserData]:
     with session_scope() as session:
         user = User.get_by_id(session, id)
-        if user is None:
-            return user
-        return UserData(user)
+        return None if not user else UserData(user)
 
 def get_user_profile(id: int) -> Optional[UserProfileData]:
     with session_scope() as session:
         user = User.get_by_id(session, id)
-        if user is None:
-            return None
-        return UserProfileData(user)
+        return None if not user else UserProfileData(user)
 
 def get_user_by_email(email: str) -> Optional[UserData]:
     with session_scope() as session:
         user = User.get_by_email(session, email)
-        if user is None:
-            return None
-        return UserData(user)
+        return None if not user else UserData(user)
 
 def get_all_users() -> List[UserData]:
     with session_scope() as session:
         users = User.get_all(session)
         return UserData.list(users)
 
-def get_user_food_preferences(id: int):
+def get_user_food_preferences(id: int) -> List[FoodPreferenceData]:
     with session_scope() as session:
         food_preferences = User.get_by_id(session, id).food_preferences
-        session.expunge_all()
-    return food_preferences
+        return FoodPreferenceData.list(food_preferences)
 
 def change_user_password(id: int, old_password: str, new_password: str) -> bool:
     """

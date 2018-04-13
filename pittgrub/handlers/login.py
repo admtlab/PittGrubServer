@@ -96,7 +96,7 @@ class HostApprovalHandler(CORSHandler, SecureHandler):
 
     def post(self, path: str):
         data = self.get_data()
-        if not 'user_id' in data:
+        if 'user_id' not in data:
             self.write_error(400, 'Error: missing field user_id')
         else:
             if not data['user_id'].isdecimal():

@@ -6,7 +6,6 @@ import jwt
 from tornado.escape import json_decode
 from tornado.web import Finish
 
-from db import User
 from emailer import send_verification_email, send_password_reset_email
 from handlers.response import Payload
 from service.auth import create_jwt, verify_jwt
@@ -32,7 +31,13 @@ class UserHandler(SecureHandler):
 
     def get(self, path: str):
         user_id = self.get_user_id()
-        get_user(user_id)
+        user = get_user(user_id)
+        if not user:
+            logging.warning(f'User {user_id} has token but not found?')
+            self.write_error(400, f'User not found with id: {user_id}')
+        else:
+            self.success(200, user)
+        self.finish()
 
     # OLD: user by id or all users
     # we don't need to share the list of users
