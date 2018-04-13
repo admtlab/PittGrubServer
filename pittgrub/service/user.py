@@ -1,7 +1,7 @@
 from typing import List, Optional, Union
 
 from . import MissingUserError
-from domain.data import UserProfileData
+from domain.data import UserData, UserProfileData
 from db import (
     FoodPreference,
     User,
@@ -30,41 +30,31 @@ def get_user_verification(id: int) -> str:
             verification = UserVerification.add(user_id=id)
         return verification.code
 
-def get_user(id: int) -> 'User':
+def get_user(id: int) -> Optional[UserData]:
     with session_scope() as session:
         user = User.get_by_id(session, id)
         if user is None:
-            raise MissingUserError(f"User not found with id: {id}")
-        session.expunge(user)
-    return user
+            return user
+        return UserData(user)
 
-def get_user_profile(id: int) -> UserProfileData:
+def get_user_profile(id: int) -> Optional[UserProfileData]:
     with session_scope() as session:
         user = User.get_by_id(session, id)
         if user is None:
-            raise MissingUserError(f"User not found with id: {id}")
+            return None
         return UserProfileData(user)
 
-def get_user_by_email(email: str) -> Optional['User']:
+def get_user_by_email(email: str) -> Optional[UserData]:
     with session_scope() as session:
         user = User.get_by_email(session, email)
         if user is None:
             return None
-        session.expunge(user)
-    return user
+        return UserData(user)
 
-def get_user_profile(id: int) -> UserProfileData:
-    with session_scope() as session:
-        user = User.get_by_id(session, id)
-        if user is None:
-            return None
-        return UserProfileData(user)
-
-def get_all_users() -> List['User']:
+def get_all_users() -> List[UserData]:
     with session_scope() as session:
         users = User.get_all(session)
-        session.expunge_all()
-    return users
+        return UserData.list(users)
 
 def get_user_food_preferences(id: int):
     with session_scope() as session:

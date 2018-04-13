@@ -26,24 +26,33 @@ from .base import CORSHandler, SecureHandler
 
 
 class UserHandler(SecureHandler):
-    def get(self, path):
-        print('*****\nin users handler\n*****')
-        path = path.replace('/', '')
+    """
+    Get user data for requesting user
+    """
 
-        # get data
-        if path:
-            id = int(path)
-            value = User.get_by_id(id)
-        else:
-            value = User.get_all()
-        # response
-        if value is None:
-            self.write_error(404, f'User not found with id: {id}')
-        else:
-            print(f'writing: {value}')
-            self.set_status(200)
-            payload = Payload(value)
-            self.finish(payload)
+    def get(self, path: str):
+        user_id = self.get_user_id()
+        get_user(user_id)
+
+    # OLD: user by id or all users
+    # we don't need to share the list of users
+    # def get(self, path):
+    #     path = path.replace('/', '')
+    #
+    #     # get data
+    #     if path:
+    #         id = int(path)
+    #         value = User.get_by_id(id)
+    #     else:
+    #         value = User.get_all()
+    #     # response
+    #     if value is None:
+    #         self.write_error(404, f'User not found with id: {id}')
+    #     else:
+    #         print(f'writing: {value}')
+    #         self.set_status(200)
+    #         payload = Payload(value)
+    #         self.finish(payload)
 
 
 class UserProfileHandler(SecureHandler):

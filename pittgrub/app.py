@@ -17,7 +17,7 @@ import db
 # tokens: token handling
 # users: Users/Verification/Preference/Settings
 # notifiations: all notifications
-# events: all event stuff
+# events: all events
 
 from handlers.admin import (
     HostApprovalHandler
@@ -106,11 +106,12 @@ class App(web.Application):
             # admin
             (r'/admin/approveHost(/*)', HostApprovalHandler),   # approve request for host access
             # user
-            (r'/users/verify(/*)', UserVerificationHandler),    # user activation
-            (r'/users/profile(/*)', UserProfileHandler),
+            (r'/users(/*)', UserHandler),                       # user data
+            (r'/users/profile(/*)', UserProfileHandler),        # user app profile
             (r'/users/preferences(/*)', UserPreferenceHandler), # user preferences (food, etc)
             (r'/users/settings(/*)', UserSettingsHandler),      # user settings (food preferences, pantry, etc)
             (r'/users/location(/*)', UserLocationHandler),
+            (r'/users/verify(/*)', UserVerificationHandler),    # user email verification
             (r'/password', UserPasswordHandler),                # Change user password
             (r'/password/reset(/*)', UserPasswordResetHandler,
                 dict(executor=thread_pool)),                    # Reset user's password
