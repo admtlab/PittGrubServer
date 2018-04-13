@@ -2,25 +2,27 @@ import base64
 import logging
 from datetime import datetime, timedelta
 
-from .base import BaseHandler, CORSHandler, SecureHandler
-from service.auth import create_jwt, decode_jwt, verify_jwt
+import jwt
+from tornado.escape import json_decode
+from tornado.web import Finish
+
+from db import User
+from emailer import send_verification_email, send_password_reset_email
+from handlers.response import Payload
+from service.auth import create_jwt, verify_jwt
 from service.user import (
     get_user,
+    get_user_profile,
     get_user_by_email,
     get_user_food_preferences,
     get_user_verification,
     update_user_food_preferences,
     update_user_password,
     update_user_settings,
+    add_location,
     verify_user
 )
-from db import FoodPreference, User, UserFoodPreference, UserVerification
-from emailer import send_verification_email, send_password_reset_email
-from handlers.response import Payload
-
-import jwt
-from tornado.escape import json_decode, json_encode
-from tornado.web import Finish, MissingArgumentError
+from .base import CORSHandler, SecureHandler
 
 
 class UserHandler(SecureHandler):
@@ -44,10 +46,17 @@ class UserHandler(SecureHandler):
             self.finish(payload)
 
 
+class UserProfileHandler(SecureHandler):
+
+    def get(self, path):
+        user_id = self.get_user_id()
+        user_profile = get_user_profile(user_id)
+        self.success(200, user_profile)
+
+
 class UserPasswordHandler(CORSHandler, SecureHandler):
     def post(self):
         user_id = self.get_user_id()
-        user = User.get_by_id(user_id)
         data = json_decode(self.request.body)
         if all(key in data for key in ('old_password', 'new_password')):
             if update_user_password(user_id, data['old_password'], data['new_password']):
@@ -112,6 +121,20 @@ class UserPasswordResetHandler(CORSHandler):
         else:
             self.write_error(400, 'Missing fields')
         self.finish()
+
+
+class UserLocationHandler(SecureHandler):
+    fields = ('latitude', 'longitude')
+
+    def post(self, path):
+        user_id = self.get_user_id()
+        data = self.get_data()
+        if all(key in data for key in self.fields):
+            add_location(user_id, data['latitude'], data['longitude'], data.get('time'))
+            self.success(204)
+        else:
+            missing_fields = ", ".join(set(data) - set(data.keys()))
+            self.write_error(400, f'Missing field(s): {missing_fields}')
 
 
 class UserSettingsHandler(SecureHandler):

@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional, Union
 
 from passlib.hash import bcrypt_sha256
-from sqlalchemy import Column, ForeignKey
+from sqlalchemy import Column, ForeignKey, desc, func
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, validates
@@ -336,6 +336,28 @@ class UserOrganization(Base):
         db.session.add(userOrg)
 
 
+class UserLocation(Base):
+    __tablename__ = 'UserLocation'
+
+    user_id = Column('user_id', BIGINT, ForeignKey('User.id'))
+    time = Column('time', DateTime, nullable=False, default=datetime.datetime.utcnow)
+    latitude = Column('latitude', DECIMAL(10, 8), nullable=False)
+    longitude = Column('longitude', DECIMAL(11, 8), nullable=False)
+
+    user = relationship('User', foreign_keys=[user_id], backref='user')
+
+    def __init__(self, id: int=None, user: int=None, time: int=None, lat: float=None, long: float=None):
+        self.id = id
+        self.user_id = user
+        self.time = time
+        self.latitude = lat
+        self.longitude = long
+
+    @classmethod
+    def most_recent_for_user(cls, session, id: int) -> 'UserLocation':
+        return session.query(UserLocation).filter_by(user_id=id).order_by(desc('time')).first()
+
+
 class UserHostRequest(Base, Entity):
     __tablename__ = 'UserHostRequest'
 
@@ -422,6 +444,12 @@ class UserReferral(Base):
         return user_referral
 
     @classmethod
+    def get_all_by_reference(cls, session, reference_id: int) -> List['UserReferral']:
+        assert reference_id > 0, 'Invalid reference id'
+        return session.query(UserReferral).filter_by(reference=reference_id).all()
+
+
+    @classmethod
     def get_referral(cls, requester_id: int) -> Optional['UserReferral']:
         assert requester_id > 0
         referral = db.session.query(cls).filter_by(requester=requester_id).one_or_none()
@@ -469,8 +497,8 @@ class UserReferral(Base):
 class ExpoToken(Base):
     __tablename__ = 'ExpoToken'
 
-    user_id = Column('user', BIGINT, ForeignKey('User.id'), primary_key=True)
     token = Column('token', VARCHAR(255), unique=True, nullable=False, primary_key=True)
+    user_id = Column('user', BIGINT, ForeignKey('User.id'), nullable=False)
 
     user = relationship(User, backref=backref('_user_expo_tokens'))
 

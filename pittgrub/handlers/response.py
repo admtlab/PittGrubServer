@@ -7,6 +7,7 @@ from http import HTTPStatus
 from typing import Dict, List, Optional, Union
 from util import json_esc
 
+from domain.data import Data
 from db import Entity
 
 import inflect
@@ -51,13 +52,16 @@ class Payload():
         else:
             self._links[rel] = link
 
-    def json(self, deep: bool=False) -> str:
+    def json(self) -> str:
         """Returns escaped JSON encoding of payload"""
         if isinstance(self._response, (list, _AssociationList)):
             if len(self._response):
-                typ = type(self._response[0]).__name__
+                if isinstance(self._response[0], Data):
+                    typ = type(self._response[0]).__name__.replace("Data", "")
+                else:
+                    typ = type(self._response[0]).__name__
                 name = p.plural(typ[0].lower()+typ[1:])
-                embedded = dict({name: [res.json(deep) for res in self._response]})
+                embedded = dict({name: [res.json() for res in self._response]})
             else:
                 embedded = dict()
             return json_esc(dict({
@@ -65,7 +69,7 @@ class Payload():
                     '_links': self._links
                 }))
         else:
-            res = self._response.json(deep)
+            res = self._response.json()
             res['_links'] = self._links
             return json_esc(res)
 

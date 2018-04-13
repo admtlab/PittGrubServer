@@ -46,7 +46,6 @@ class BaseHandler(web.RequestHandler):
         self.set_status(status)
         if payload is not None:
             self.write(payload)
-        self.finish()
 
     def write(self, chunk: Writable):
         """

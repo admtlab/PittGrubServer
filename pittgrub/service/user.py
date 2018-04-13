@@ -1,10 +1,12 @@
 from typing import List, Optional, Union
 
 from . import MissingUserError
+from domain.data import UserProfileData
 from db import (
     FoodPreference,
     User,
     UserFoodPreference,
+    UserLocation,
     UserStatus,
     UserVerification,
     session_scope
@@ -36,6 +38,13 @@ def get_user(id: int) -> 'User':
         session.expunge(user)
     return user
 
+def get_user_profile(id: int) -> UserProfileData:
+    with session_scope() as session:
+        user = User.get_by_id(session, id)
+        if user is None:
+            raise MissingUserError(f"User not found with id: {id}")
+        return UserProfileData(user)
+
 def get_user_by_email(email: str) -> Optional['User']:
     with session_scope() as session:
         user = User.get_by_email(session, email)
@@ -43,6 +52,13 @@ def get_user_by_email(email: str) -> Optional['User']:
             return None
         session.expunge(user)
     return user
+
+def get_user_profile(id: int) -> UserProfileData:
+    with session_scope() as session:
+        user = User.get_by_id(session, id)
+        if user is None:
+            return None
+        return UserProfileData(user)
 
 def get_all_users() -> List['User']:
     with session_scope() as session:
@@ -114,3 +130,7 @@ def verify_user(code: str, user_id: int) -> bool:
             UserVerification.delete(session, code)
             return True
     return False
+
+def add_location(id: int, latitude: float, longitude: float, time: 'datetime'=None):
+    with session_scope() as session:
+        session.add(UserLocation(user=id, lat=latitude, long=longitude, time=time))

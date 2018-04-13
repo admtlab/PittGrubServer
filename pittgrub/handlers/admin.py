@@ -5,20 +5,15 @@ Author: Mark Silvis
 
 import logging
 
-from db import AccessToken, User, UserReferral
+from tornado.escape import json_decode
+
+from db import UserReferral
+from handlers.base import CORSHandler, SecureHandler
+from handlers.response import Payload
 from service import MissingUserError
 from service.admin import (
-    is_admin, host_approval, get_pending_host_requests, AdminPermissionError
+    host_approval, get_pending_host_requests, AdminPermissionError, get_referrals
 )
-from service.auth import create_jwt, decode_jwt, verify_jwt
-from handlers.response import Payload, ErrorResponse
-from handlers.base import BaseHandler, CORSHandler, SecureHandler
-
-import jwt
-from jwt import DecodeError, ExpiredSignatureError
-from tornado import gen, web
-from tornado.escape import json_decode, json_encode
-from tornado.options import options
 
 
 class HostApprovalHandler(CORSHandler, SecureHandler):
@@ -58,9 +53,8 @@ class HostApprovalHandler(CORSHandler, SecureHandler):
 
 class UserReferralHandler(CORSHandler, SecureHandler):
     def get(self, path: str):
-        print(f'path: {path}')
         user_id = self.get_user_id()
-        refs = UserReferral.get_referrals(user_id)
+        refs = get_referrals(user_id)
         self.success(status=200, payload=Payload(refs))
 
     def post(self, path: str):

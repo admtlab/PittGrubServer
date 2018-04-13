@@ -52,6 +52,7 @@ from handlers.user import (
     UserPasswordHandler,
     UserPasswordResetHandler,
     UserPreferenceHandler,
+    UserLocationHandler,
     UserSettingsHandler,
     UserVerificationHandler,
 )
@@ -107,6 +108,7 @@ class App(web.Application):
             (r'/users/verify(/*)', UserVerificationHandler),    # user activation
             (r'/users/preferences(/*)', UserPreferenceHandler), # user preferences (food, etc)
             (r'/users/settings(/*)', UserSettingsHandler),      # user settings (food preferences, pantry, etc)
+            (r'/users/location(/*)', UserLocationHandler),
             (r'/password', UserPasswordHandler),                # Change user password
             (r'/password/reset(/*)', UserPasswordResetHandler,
                 dict(executor=thread_pool)),                    # Reset user's password
@@ -124,7 +126,7 @@ class App(web.Application):
             (r'/events/accepted/(\d+/*)', AcceptedEventHandler),        # accepted events for a user
             (r'/events/(\d+)/accept/(\d+/*)', AcceptEventHandler),      # accept an event for a user
             # TODO: finish these
-            (r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
+            # (r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
             #(r'/referrals(/*)', UserReferralHandler),   # get user referrals
             #(r'/referrals/pending(/*)', UserPendingReferralHandler),    # get requested user referrals
             #(r'/referrals/approved(/*)', UserApprovedReferralHandler),  # get approved user referrals
@@ -195,7 +197,7 @@ def main():
 
     # start server
     server = httpserver.HTTPServer(app)
-    if (procs == 1):
+    if procs == 1:
         # single process
         server.listen(port)
         server.start()
