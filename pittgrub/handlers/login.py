@@ -163,7 +163,7 @@ class LoginHandler(CORSHandler):
                 jwt_token = create_jwt(owner=user.id)
                 decoded = decode_jwt(jwt_token)
                 self.success(payload=dict(
-                    user=User.to_json(user),
+                    user=user.json(),
                     token=jwt_token.decode(),
                     expires=decoded['exp'],
                     issued=decoded['iat'],

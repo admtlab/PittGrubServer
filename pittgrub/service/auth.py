@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple, Union
 from uuid import uuid4
 
+from domain.data import UserData, UserProfileData
 from db import (
     AccessToken,
     Role,
@@ -102,7 +103,7 @@ def verify_jwt(token: str, secret: str=None) -> bool:
     except DecodeError:
         raise
 
-def login(email: str, password: str) -> Optional['User']:
+def login(email: str, password: str) -> 'UserData':
     with session_scope() as session:
         if User.verify_credentials(session, email, password):
             user = User.get_by_email(session, email)
@@ -112,10 +113,7 @@ def login(email: str, password: str) -> Optional['User']:
                     activation = UserVerification.add(session, user_id=user.id)
                     send_verification_email(to=email, activation=activation.code)
             user.inc_login()
-            session.commit()
-            session.refresh(user)
-            session.expunge(user)
-            return user
+            return UserData(user)
     return None
 
 def logout(access_token_id: int) -> bool:
