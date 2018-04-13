@@ -49,6 +49,7 @@ from handlers.notifications import (
 )
 from handlers.user import (
     UserHandler,
+    UserProfileHandler,
     UserPasswordHandler,
     UserPasswordResetHandler,
     UserPreferenceHandler,
@@ -106,6 +107,7 @@ class App(web.Application):
             (r'/admin/approveHost(/*)', HostApprovalHandler),   # approve request for host access
             # user
             (r'/users/verify(/*)', UserVerificationHandler),    # user activation
+            (r'/users/profile(/*)', UserProfileHandler),
             (r'/users/preferences(/*)', UserPreferenceHandler), # user preferences (food, etc)
             (r'/users/settings(/*)', UserSettingsHandler),      # user settings (food preferences, pantry, etc)
             (r'/users/location(/*)', UserLocationHandler),

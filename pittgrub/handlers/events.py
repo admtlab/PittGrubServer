@@ -174,9 +174,9 @@ class EventHandler(BaseHandler):
         else:
             # get event list
             value = get_newest()
-            self.set_status(200)
             payload = Payload(value)
-            self.finish(payload)
+            self.success(200, payload)
+            self.finish()
 
     def post(self, path):
         # required json keys

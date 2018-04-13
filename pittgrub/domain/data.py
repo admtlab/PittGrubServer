@@ -9,8 +9,9 @@ from typing import Any, Dict, List
 
 class Data(ABC):
 
+    @classmethod
     def list(self, d: List['Data']):
-        return [self.__init__(i) for i in d]
+        return [self.__init__(self, i) for i in d]
 
     def json(self) -> Dict[str, Any]:
         return self.__dict__
@@ -20,12 +21,11 @@ class EventData(Data):
 
     def __init__(self, event: 'Event'):
         self.id = event.id
-        self.created = event.created
         self.organizer = event.organizer_id
         self.organization = event.organization
         self.title = event.title
-        self.start_date = event.start_date
-        self.end_date = event.end_date
+        self.start_date = event.start_date.isoformat()
+        self.end_date = event.end_date.isoformat()
         self.details = event.details
         self.servings = event.servings
         self.address = event.address
@@ -34,7 +34,7 @@ class EventData(Data):
 
     def json(self) -> Dict[str, Any]:
         data = self.__dict__
-        data['food_preferences'] = [f.json() for f in self.food_preferences]
+        data['food_preferences'] = [{'id': f.id, 'name': f.name} for f in self.food_preferences]
         return data
 
 
@@ -59,14 +59,14 @@ class UserData(Data):
         self.id = user.id
         self.email = user.email
         self.name = user.name
-        self.status = user.status
+        self.status = user.status.name
         self.roles = [UserRoleData(role) for role in user.roles]
         self.active = user.active
         self.disabled = user.disabled
 
     def json(self) -> Dict[str, Any]:
         data = self.__dict__
-        data['roles'] = [r.json() for r in self.roles]
+        data['roles'] = [{'id': r.id, 'name': r.name} for r in self.roles]
         return data
 
 
@@ -80,7 +80,7 @@ class UserProfileData(Data):
 
     def json(self) -> Dict[str, Any]:
         data = self.__dict__
-        data['food_preferences'] = [f.json() for f in self.food_preferences]
+        data['food_preferences'] = [{'id': f.id, 'name': f.name} for f in self.food_preferences]
         return data
 
 

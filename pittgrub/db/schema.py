@@ -339,8 +339,8 @@ class UserOrganization(Base):
 class UserLocation(Base):
     __tablename__ = 'UserLocation'
 
-    user_id = Column('user_id', BIGINT, ForeignKey('User.id'))
-    time = Column('time', DateTime, nullable=False, default=datetime.datetime.utcnow)
+    user_id = Column('user_id', BIGINT, ForeignKey('User.id'), nullable=False, primary_key=True)
+    time = Column('time', DateTime, nullable=False, default=datetime.datetime.utcnow, primary_key=True)
     latitude = Column('latitude', DECIMAL(10, 8), nullable=False)
     longitude = Column('longitude', DECIMAL(11, 8), nullable=False)
 
@@ -370,7 +370,7 @@ class UserHostRequest(Base, Entity):
     approved = Column('approved', DateTime, nullable=True)
     approved_by = Column('approved_by', BIGINT, ForeignKey("User.id"), unique=False, nullable=True)
 
-    user = relationship('User', foreign_keys=[user_id], backref='user')
+    user = relationship('User', foreign_keys=[user_id], backref='_user_host_request')
     admin_approval = relationship('User', foreign_keys=[approved_by])
 
     def __init__(self, id: int=None, user: int=None, organization: str=None, directory: str=None, reason: str=None):
