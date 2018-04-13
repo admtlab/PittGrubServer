@@ -223,7 +223,6 @@ class EventHandler(BaseHandler):
 class RecommendedEventHandler(SecureHandler):
 
     def get(self, path):
-        path = path.replace('/', '')
         user_id = self.get_user_id()
         events = user_recommended_events_valid(user_id)
         self.success(200, Payload(events))
@@ -233,8 +232,6 @@ class RecommendedEventHandler(SecureHandler):
 class AcceptedEventHandler(SecureHandler):
 
     def get(self, path):
-        path = path.replace('/', '')
-
         # get data
         user_id = self.get_user_id()
         events = user_accepted_events(user_id)

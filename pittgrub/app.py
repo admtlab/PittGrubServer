@@ -125,9 +125,9 @@ class App(web.Application):
                 dict(executor=thread_pool)),                    # single event
             (r'/events/(\d+/*)/images(/*)', EventImageHandler,
                 dict(image_store=image_store)),                 # event images
-            (r'/events/recommended/(\d+/*)', RecommendedEventHandler),  # recommended events for a user
-            (r'/events/accepted/(\d+/*)', AcceptedEventHandler),        # accepted events for a user
-            (r'/events/(\d+)/accept/(\d+/*)', AcceptEventHandler),      # accept an event for a user
+            (r'/events/recommended(/*)', RecommendedEventHandler),  # recommended events for a user
+            (r'/events/accepted(/*)', AcceptedEventHandler),        # accepted events for a user
+            (r'/events/(\d+)/accept(/*)', AcceptEventHandler),      # accept an event for a user
             # TODO: finish these
             # (r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
             #(r'/referrals(/*)', UserReferralHandler),   # get user referrals
