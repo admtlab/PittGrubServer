@@ -108,10 +108,10 @@ def login(email: str, password: str) -> 'UserData':
         if User.verify_credentials(session, email, password):
             user = User.get_by_email(session, email)
             if not user.active:
-                activation = UserVerification.get_by_user(session, user.id)
-                if not activation:
-                    activation = UserVerification.add(session, user_id=user.id)
-                    send_verification_email(to=email, activation=activation.code)
+                verification = UserVerification.get_by_user(session, user.id)
+                if not verification:
+                    verification = UserVerification.add(session, user_id=user.id)
+                    send_verification_email(to=email, activation=verification.code)
             user.inc_login()
             return UserData(user)
     return None

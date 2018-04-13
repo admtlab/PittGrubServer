@@ -3,17 +3,17 @@ Login, signup, and token handler
 Author: Mark Silvis
 """
 
-import dateutil.parser
-import json
 import logging
-import time
-from base64 import b64encode, b64decode
-from copy import deepcopy
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Union
-from uuid import uuid4
 
-from db import AccessToken, User, UserHostRequest, UserReferral, UserVerification, session_scope
+from jwt import DecodeError, ExpiredSignatureError
+from tornado.escape import json_decode
+from validate_email import validate_email
+
+from db import User, UserReferral, UserVerification
+from emailer import send_verification_email
+from handlers.base import BaseHandler, CORSHandler, SecureHandler
+# from auth import create_jwt, decode_jwt, verify_jwt
+from handlers.response import Payload
 from service.admin import host_approval
 from service.auth import (
     get_access_token,
@@ -22,20 +22,8 @@ from service.auth import (
     signup,
     host_signup,
     create_jwt,
-    decode_jwt,
-    verify_jwt
+    decode_jwt
 )
-#from auth import create_jwt, decode_jwt, verify_jwt
-from handlers.response import Payload, ErrorResponse
-from handlers.base import BaseHandler, CORSHandler, SecureHandler
-from emailer import send_verification_email
-
-import jwt
-from jwt import DecodeError, ExpiredSignatureError
-from tornado import gen, web
-from tornado.escape import json_decode, json_encode
-from tornado.web import Finish
-from validate_email import validate_email
 
 
 class SignupHandler(CORSHandler):
@@ -44,7 +32,7 @@ class SignupHandler(CORSHandler):
     def post(self, path: str):
         # new user signup
         # decode json
-        data = json_decode(self.request.body)
+        data = self.get_data()
         # validate data
         if all(key in data for key in self.required):
             # check email is valid
@@ -72,19 +60,23 @@ class SignupHandler(CORSHandler):
 
 
 class HostSignupHandler(CORSHandler):
-    required = ('email', 'password', 'name', 'organization', 'directory')
+    fields = set(['email', 'password', 'name', 'organization', 'directory'])
 
     def post(self, path: str):
         # new user signup requesting host status
-        data = json_decode(self.request.body)
+        data = self.get_data()
         # validate data
-        if all(key in data for key in self.required):
+        if not all(key in data for key in self.fields):
+            # missing required field
+            missing_fields = ", ".join(self.fields - data.keys())
+            self.write_error(400, f'Error: missing field(s) {missing_fields}')
+        else:
             # check email is valid
             if not validate_email(data['email']):
                 self.write_error(400, 'Invalid email address')
             else:
                 reason = data['reason'] if 'reason' in data else None
-                user, activation = host_signup(*[data[r] for r in self.required], reason)
+                user, activation = host_signup(*[data[r] for r in self.fields], reason)
                 if user is None or activation is None:
                     self.write_error(400, 'Error: user already exists with that email address')
                 else:
@@ -97,18 +89,15 @@ class HostSignupHandler(CORSHandler):
                         expires=decoded['exp'],
                         issued=decoded['iat'],
                         type=decoded['tok']))
-        else:
-            # missing required field
-            fields = ", ".join({*self.required}-data.keys())
-            self.write_error(400, f'Error: missing field(s) {fields}')
+        self.finish()
 
 
 class HostApprovalHandler(CORSHandler, SecureHandler):
 
     def post(self, path: str):
-        data = json_decode(self.request.body)
+        data = self.get_data()
         if not 'user_id' in data:
-            self.write_error(400, 'Error: missing field(s) user_id')
+            self.write_error(400, 'Error: missing field user_id')
         else:
             if not data['user_id'].isdecimal():
                 self.write(400, 'Error: invalid user id')
@@ -127,12 +116,15 @@ class HostApprovalHandler(CORSHandler, SecureHandler):
 class ReferralHandler(CORSHandler):
 
     def post(self, path: str):
-        required = ['email', 'password', 'referral']
+        fields = set(['email', 'password', 'referral'])
         # new user signup with referral
         # decode json
         data = self.get_data()
         # validate data
-        if all(key in data for key in required):
+        if not all(key in data for key in fields):
+            missing_fields = ", ".join(fields - data.keys())
+            self.write_error(400, f'Error: missing field(s) {missing_fields}')
+        else:
             # verify referral exists
             reference = User.get_by_email(data['referral'])
             if not reference:
@@ -147,18 +139,24 @@ class ReferralHandler(CORSHandler):
                     send_verification_email(to=user.email, code=activation.code)
                 else:
                     self.write_error(400, 'Error: user already exists with that email address')
-        else:
-            fields = ", ".join(set(required)-data.keys())
-            self.write_error(400, f'Error: missing field(s) {fields}')
+        self.finish()
+
 
 
 class LoginHandler(CORSHandler):
+    fields = set(['email', 'password'])
+
     def post(self, path):
         data = json_decode(self.request.body)
-        if all(key in data for key in ('email', 'password')):
-            user = login(data['email'], data['password'])
+        if not all(key in data for key in self.fields):
+            missing_fields = ", ".join(self.fields - data.keys())
+            self.write_error(400, f'Error: missing field(s) {missing_fields}')
+        else:
+            email = data['email']
+            password = data['password']
+            user = login(email, password)
             if user is None:
-                self.write_error(400, 'Incorrect username or password')
+                self.write_error(400, 'Error: Incorrect email or password')
             else:
                 jwt_token = create_jwt(owner=user.id)
                 decoded = decode_jwt(jwt_token)
@@ -168,19 +166,19 @@ class LoginHandler(CORSHandler):
                     expires=decoded['exp'],
                     issued=decoded['iat'],
                     type=decoded['tok']))
-        else:
-            fields = ", ".join({'email', 'password'} - data.keys())
-            self.write_error(400, f'Error: missing field(s) {fields}')
+        self.finish()
+
 
 
 class LogoutHandler(SecureHandler):
+
     def get(self, path):
         jwt = self.get_jwt()
         if jwt is None:
             self.write_error(403)
         else:
             logout(jwt['id'])
-            self.success(payload="Successfully logged out\n")
+            self.success(status=200, payload="Successfully logged out\n")
 
 # class TokenHandler(BaseHandler):
 #     def post(self, path: str):
@@ -194,6 +192,7 @@ class LogoutHandler(SecureHandler):
 
 
 class TokenRefreshHandler(BaseHandler):
+
     def get(self, path: str):
         # verify token
         auth = self.request.headers.get('Authorization')
@@ -217,28 +216,28 @@ class TokenRefreshHandler(BaseHandler):
 class TokenValidationHandler(BaseHandler):
     def get(self, path: str):
         # get token
-        print('**********\nin token validation handler\n**********')
         auth = self.request.headers.get('Authorization')
-        if auth:
+        if not auth:
+            self.write_error(403)
+        else:
             # verify form
             if not auth.startswith('Bearer '):
                 self.write_error(400, f'Malformed authorization header')
-                return
-            # remove 'Bearer'
-            auth = auth[7:]
-            try:
-                decoded = decode_jwt(token=auth, verify_exp=True)
-                if get_access_token(decoded['id']) is not None:
-                    self.success(payload=dict(valid=True, expires=decoded['exp']))
-                else:
-                    self.success(payload=dict(valid=False))
-            except ExpiredSignatureError:
-                decoded = decode_jwt(token=auth, verify_exp=False)
-                self.write_error(401, dict(valid=False, expires=decoded['exp']))
-            except DecodeError as e:
-                self.write_error(401, f'Error reading access token')
-            except Exception as e:
-                logging.error(e)
-                self.write_error(500)
-        else:
-            self.write_error(403)
+            else:
+                # remove 'Bearer'
+                auth = auth[7:]
+                try:
+                    decoded = decode_jwt(token=auth, verify_exp=True)
+                    if get_access_token(decoded['id']) is not None:
+                        self.success(payload=dict(valid=True, expires=decoded['exp']))
+                    else:
+                        self.success(payload=dict(valid=False))
+                except ExpiredSignatureError:
+                    decoded = decode_jwt(token=auth, verify_exp=False)
+                    self.write_error(401, dict(valid=False, expires=decoded['exp']))
+                except DecodeError as e:
+                    self.write_error(401, f'Error reading access token')
+                except Exception as e:
+                    logging.error(e)
+                    self.write_error(500)
+        self.finish()

@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import (
     Dict,
@@ -7,14 +8,14 @@ from typing import (
     Union
 )
 
-from service.auth import decode_jwt, verify_jwt
-from handlers.response import Payload, ErrorResponse
-
 from jwt import ExpiredSignatureError
 from tornado import escape, web
 from tornado.escape import json_decode, utf8
 from tornado.util import unicode_type
 from tornado.web import Finish
+
+from handlers.response import Payload, ErrorResponse
+from service.auth import decode_jwt
 
 # typing
 Writable = TypeVar('Writable', bytes, unicode_type, Dict, Payload, object)
@@ -105,19 +106,20 @@ class SecureHandler(BaseHandler):
     """
 
     def _check_jwt(self):
-        if not self.request.method == 'OPTIONS':   # maybe not?
+        logging.info('Checking JWT')
+        if self.request.method != 'OPTIONS':   # maybe not?
+            logging.info('Not OPTIONS request')
             try:
                 if not self.verify_jwt():
-                    self.write_error(401, 'Invalid authorization token')
                     raise Finish()
             except ExpiredSignatureError:
                 self.write_error(401, 'Authorization token is expired')
                 raise Finish()
-            except:
+            except Exception as e:
                 self.write_error(401, 'Invalid authorization token')
-                raise Finish()
+                raise e
         else:
-            print(f'OPTIONS headers: {self.request.headers}')
+            logging.info(f'OPTIONS headers: {self.request.headers}')
 
     def prepare(self):
         super().prepare()

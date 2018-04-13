@@ -232,13 +232,14 @@ class UserVerificationHandler(SecureHandler):
 
     def post(self, path):
         # decode json
-        data = json_decode(self.request.body)
         user_id = self.get_user_id()
-        if 'code' in data:
-            code = data['code']
+        data = self.get_data()
+        code = data.get('code')
+        if not code:
+            self.write_error(400, 'Missing verification code')
+        else:
             if verify_user(code, user_id):
                 self.success(status=204)
             else:
                 self.write_error(400, 'Invalid verification code')
-        else:
-            self.write_error(400, 'Missing verification code')
+        self.finish()
