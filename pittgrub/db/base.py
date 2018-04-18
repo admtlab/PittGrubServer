@@ -1,12 +1,12 @@
 import enum
 import logging
-from typing import Any, Dict, List, Optional, TypeVar, Union
-
-import db
+from typing import List, Optional, Type, TypeVar, Union
 
 from passlib.hash import bcrypt_sha256
 from sqlalchemy import String, TypeDecorator
 from sqlalchemy.types import CHAR
+
+import db
 
 # typing
 E = TypeVar('Entity', bound='Entity')
@@ -21,31 +21,37 @@ def health_check() -> bool:
         logging.info(e)
         return False
 
+
 class Entity:
     """Base queries for entities"""
 
     @classmethod
-    def get_all(cls, session) -> List[E]:
+    def get_all(cls: Type[E], session) -> List[Type[E]]:
         entities = session.query(cls).all()
         return entities
 
     @classmethod
-    def get_by_id(cls, session, id: Union[int, str]) -> Optional[E]:
-        entity = session.query(cls).get(id)
+    def get_by_id(cls: Type[E], session, entity_id: Union[int, str]) -> Optional[Type[E]]:
+        entity = session.query(cls).get(entity_id)
         return entity
 
     @classmethod
-    def delete(cls, session, id: Union[int, str]) -> bool:
-        success = session.query(cls).filter_by(id=id).delete()
+    def delete(cls: Type[E], session, entity_id: Union[int, str]) -> bool:
+        success = session.query(cls).filter_by(id=entity_id).delete()
         return success
 
-    def json(cls, session, deep: bool=False) -> Dict[str, Any]:
-        pass
+    # def json(cls: Type[E], session, deep: bool=False) -> Dict[str, Any]:
+    #     pass
 
 
+# noinspection PyAbstractClass
 class Password(TypeDecorator):
     """Password hash"""
+
     impl = CHAR(75)
+
+    def process_literal_param(self, value: str, dialect):
+        return value if value is not None else None
 
     def process_bind_param(self, value: str, dialect) -> str:
         return bcrypt_sha256.hash(value)
@@ -62,10 +68,10 @@ class Password(TypeDecorator):
 
 
 class UserStatus(enum.Enum):
-    REFERRAL = 0    # waiting for referral
-    REQUESTED = 1   # waiting for verification
-    VERIFIED = 2    # verified email account, waiting for activation
-    ACCEPTED = 3    # user accepted; active account
+    REFERRAL = 0  # waiting for referral
+    REQUESTED = 1  # waiting for verification
+    VERIFIED = 2  # verified email account, waiting for activation
+    ACCEPTED = 3  # user accepted; active account
 
 
 # class UserRole(enum.Enum):
@@ -85,10 +91,10 @@ class OrganizationRole(enum.Enum):
     The role of the user belonging to an organization
     """
     MEMBER = 0  # Normal member
-    HOST = 1    # Host (creates events on behalf of organization)
+    HOST = 1  # Host (creates events on behalf of organization)
 
 
 class ReferralStatus(enum.Enum):
-    PENDING = 'pending'     # waiting for approval
-    APPROVED = 'approved'   # referral request approved
-    DENIED = 'denied'       # referral request denied
+    PENDING = 'pending'  # waiting for approval
+    APPROVED = 'approved'  # referral request approved
+    DENIED = 'denied'  # referral request denied

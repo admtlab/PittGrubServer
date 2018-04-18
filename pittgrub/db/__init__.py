@@ -1,11 +1,12 @@
 import logging
 import sys
+import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 from .base import Entity, ReferralStatus, UserStatus, health_check
 from .default import DEFAULTS
@@ -19,7 +20,7 @@ from .schema import (
 
 # database sessionmaker
 # initialized by init()
-Session = None
+Session = sessionmaker()
 
 # database testing values
 # insert when 'generate' flag is True
@@ -78,7 +79,7 @@ TEST_DATA = dict({
 })
 
 
-def __bulk_insert(engine, data: Dict[str, List[Tuple[Any]]]):
+def __bulk_insert(engine, data: Dict[str, Any]):
     schema.Base.metadata.create_all(bind=engine)
     for entity, values in data.items():
         # get class of entity
@@ -100,9 +101,9 @@ def session_scope():
     try:
         yield session
         session.commit()
-    except:
+    except Exception as e:
+        logging.warning(f'\nA ROLLBACK OCCURRED\n{e}')
         session.rollback()
-        logging.warning('\nA ROLLBACK OCCURRED')
         raise
     finally:
         session.close()
@@ -121,13 +122,15 @@ def init(username: str, password: str, url: str, database: str,
     :generate: generate tables dynamically
     """
     global Session
-    engine = create_engine(f"mysql+pymysql://{username}:{password}"
-                           f"@{url}/{database}{params}",
-                           convert_unicode=True, echo=echo,
-                           pool_recycle=1800)
-    Session = sessionmaker(bind=engine)
-    print('Inserting default data')
-    __bulk_insert(engine, DEFAULTS) # add default data
+    engine = create_engine(f'mysql+pymysql://{username}:{password}@{url}/{database}{params}',
+                           convert_unicode=True, echo=echo, pool_recycle=3600)
+    Session.configure(bind=engine)
+    logging.info('Inserting default data')
+    # add default data
+    __bulk_insert(engine, DEFAULTS)
     if generate:
-        print('Generating test data')
-        __bulk_insert(engine, TEST_DATA)    # add test data if generate flag is set to true
+        logging.warning('Inserting test data')
+        logging.warning('This is DESTRUCTIVE -- you have 3 seconds to cancel')
+        time.sleep(3)
+        # add test data if generate flag is set to true
+        __bulk_insert(engine, TEST_DATA)

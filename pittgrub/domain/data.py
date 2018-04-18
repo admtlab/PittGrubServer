@@ -4,14 +4,18 @@ Author: Mark Silvis
 """
 
 from abc import ABC
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Type, TypeVar
+
+from db.schema import Base
+
+D = TypeVar('Data', bound='Data')
 
 
 class Data(ABC):
 
     @classmethod
-    def list(self, d: List['Data']):
-        return [self.__init__(self, i) for i in d]
+    def list(cls: Type[D], data: List[Base]) -> List[D]:
+        return [cls(i) for i in data]
 
     def json(self) -> Dict[str, Any]:
         return self.__dict__
