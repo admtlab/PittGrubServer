@@ -8,7 +8,7 @@ from typing import (
     Union
 )
 
-from jwt import ExpiredSignatureError
+from jwt import DecodeError, ExpiredSignatureError
 from tornado import escape, web
 from tornado.escape import json_decode, utf8
 from tornado.util import unicode_type
@@ -115,9 +115,13 @@ class SecureHandler(BaseHandler):
             except ExpiredSignatureError:
                 self.write_error(401, 'Authorization token is expired')
                 raise Finish()
-            except Exception as e:
+            except DecodeError :
                 self.write_error(401, 'Invalid authorization token')
-                raise e
+                raise Finish()
+            except Exception as e:
+                self.write_error(401, 'Failed to read authorization token')
+                logging.warning('Failed to read authorization token\n', e)
+                raise Finish()
         else:
             logging.info(f'OPTIONS headers: {self.request.headers}')
 

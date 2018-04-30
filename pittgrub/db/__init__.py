@@ -1,6 +1,5 @@
 import logging
 import sys
-import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any, Dict
@@ -130,7 +129,5 @@ def init(username: str, password: str, url: str, database: str,
     __bulk_insert(engine, DEFAULTS)
     if generate:
         logging.warning('Inserting test data')
-        logging.warning('This is DESTRUCTIVE -- you have 3 seconds to cancel')
-        time.sleep(3)
         # add test data if generate flag is set to true
         __bulk_insert(engine, TEST_DATA)

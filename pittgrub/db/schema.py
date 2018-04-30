@@ -686,6 +686,8 @@ class Event(Base, Entity):
         self.servings = servings
         self.address = address
         self.location = location
+        self.latitude = None
+        self.longitude = None
 
     @classmethod
     def get_all_newest(cls, session) -> List['Event']:
@@ -699,17 +701,8 @@ class Event(Base, Entity):
 
     @classmethod
     def test_scalar(cls, session, user_id: int):
-        query = text(("SELECT e.*"
-                        "(SELECT COUNT(*) from UserAcceptedEvent ua"
-                        "WHERE ua.event_id=e.id AND ua.user_id=:user_id)"
-                        "as accepted,"
-                        "(SELECT COUNT(*) from UserRecommendedEvent ur"
-                        "WHERE ur.event_id=e.id AND ur.user_id=:user_id)"
-                        "as recommended"
-                      "from Event e"
-                      "WHERE e.end_date>:now"
-                      "ORDER BY e.start_date"))
-        query.bindparams(user_id=user_id, now=datetime.datetime.utcnow())
+        query = text("SELECT e.*, (SELECT COUNT(*) from UserAcceptedEvent ua WHERE ua.event_id = e.id AND ua.user_id = 2) as accepted, (SELECT COUNT(*) from UserRecommendedEvent ur WHERE ur.event_id = e.id AND ur.user_id = 2) as recommended from Event e WHERE e.end_date > :curr_date ORDER BY e.start_date")
+        query.bindparams(curr_date=datetime.datetime.utcnow())
         return session.execute(query)
 
 

@@ -145,7 +145,7 @@ class EventTestHandler(BaseHandler):
     #        print(e)
 
 
-class EventHandler(BaseHandler):
+class EventHandler(SecureHandler):
 
     def initialize(self, executor: 'ThreadPoolExecutor'):
         self.executor = executor
@@ -221,11 +221,12 @@ class EventHandler(BaseHandler):
             self.finish()
 
 
-class EventsBYUserHandler(SecureHandler):
-    user_id = self.get_user_id()
-    events = get_newest_with_user_info()
-    self.success(200, Payload(events))
-    self.finish()
+class EventsByUserHandler(SecureHandler):
+    def get(self, path):
+        user_id = self.get_user_id()
+        events = get_newest_with_user_info()
+        self.success(200, Payload(events))
+        self.finish()
 
 
 class RecommendedEventHandler(SecureHandler):
@@ -243,6 +244,7 @@ class AcceptedEventHandler(SecureHandler):
         # get data
         user_id = self.get_user_id()
         events = user_accepted_events(user_id)
+        logging.info(f'found events: {events}')
         self.success(200, Payload(events))
         self.finish()
 
@@ -255,7 +257,7 @@ class AcceptEventHandler(SecureHandler):
         logging.info(f'accepted event {event} for user {user_id}')
 
 
-class EventImageHandler(BaseHandler):
+class EventImageHandler(SecureHandler):
 
     def initialize(self, image_store: ImageStore):
         self.image_store = image_store
