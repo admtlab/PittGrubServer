@@ -16,6 +16,7 @@ def health_check() -> bool:
     try:
         with db.session_scope() as session:
             session.execute('SELECT 1')
+            print(db.Event.test_scalar(session, 2))
         return True
     except Exception as e:
         logging.info(e)

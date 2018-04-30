@@ -17,6 +17,7 @@ from service.event import (
     get_events,
     get_event_image_by_event,
     get_newest,
+    get_newest_with_user_info,
     set_food_preferences,
     user_accept_event,
     user_accepted_events,
@@ -218,6 +219,13 @@ class EventHandler(BaseHandler):
             self.set_status(400)
             self.write(f'Error: missing field(s) {fields}')
             self.finish()
+
+
+class EventsBYUserHandler(SecureHandler):
+    user_id = self.get_user_id()
+    events = get_newest_with_user_info()
+    self.success(200, Payload(events))
+    self.finish()
 
 
 class RecommendedEventHandler(SecureHandler):

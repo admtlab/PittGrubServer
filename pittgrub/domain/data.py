@@ -49,6 +49,29 @@ class EventImageData(Data):
         self.event_id = event_image.event_id
 
 
+class EventViewData(Data):
+
+    def __init__(self, event: 'Event', accepted: bool, recommended: bool):
+        self.id = event.id
+        self.organizer = event.organizer_id
+        self.organization = event.organization
+        self.title = event.title
+        self.start_date = event.start_date.isoformat()
+        self.end_date = event.end_date.isoformat()
+        self.details = event.details
+        self.servings = event.servings
+        self.address = event.address
+        self.location = event.location
+        self.food_preferences = [FoodPreferenceData(f) for f in event.food_preferences]
+        self.accepted = accepted
+        self.recommended = recommended
+
+    def json(self) -> Dict[str, Any]:
+        data = self.__dict__
+        data['food_preferences'] = [{'id': f.id, 'name': f.name} for f in self.food_preferences]
+        return data
+
+
 class FoodPreferenceData(Data):
 
     def __init__(self, fp: 'FoodPreference'):

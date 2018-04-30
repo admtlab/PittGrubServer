@@ -13,7 +13,8 @@ from db import (
 )
 from domain.data import (
     EventData,
-    EventImageData
+    EventImageData,
+    EventViewData
 )
 
 
@@ -58,6 +59,12 @@ def get_newest() -> List[EventData]:
     with session_scope() as session:
         events = Event.get_all_newest(session)
         return [EventData(e) for e in events]
+
+
+def get_newest_with_user_info(user_id: int) -> List[EventViewData]:
+    with session_scope() as session:
+        events = Event.get_all_newest_by_user(session, user_id)
+        return EventViewData.list(e)
 
 
 def user_accept_event(event: int, user: int):

@@ -3,10 +3,10 @@ import logging
 import random
 import string
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from passlib.hash import bcrypt_sha256
-from sqlalchemy import Column, ForeignKey, desc, func
+from sqlalchemy import Column, ForeignKey, desc, func, text
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, validates
@@ -660,6 +660,8 @@ class Event(Base, Entity):
     servings = Column("servings", INT, nullable=True)
     address = Column("address", VARCHAR(255), nullable=False)
     location = Column("location", VARCHAR(255), nullable=False)
+    latitude = Column('latitude', DECIMAL(10, 8), nullable=True)
+    longitude = Column('longitude', DECIMAL(11, 8), nullable=True)
 
     # mappings
     food_preferences = association_proxy('_event_foodpreferences', 'food_preference')
@@ -689,6 +691,27 @@ class Event(Base, Entity):
     def get_all_newest(cls, session) -> List['Event']:
         entities = session.query(cls).filter(cls.end_date > datetime.datetime.now()).order_by(cls.start_date).all()
         return entities
+
+    # @classmethod
+    # def get_all_newest_by_user(cls, session, user_id: int) -> List[Tuple[Event, bool, bool]]:
+    #     entities = session.query(cls).filter(cls.end_date )
+    #     return events
+
+    @classmethod
+    def test_scalar(cls, session, user_id: int):
+        query = text(("SELECT e.*"
+                        "(SELECT COUNT(*) from UserAcceptedEvent ua"
+                        "WHERE ua.event_id=e.id AND ua.user_id=:user_id)"
+                        "as accepted,"
+                        "(SELECT COUNT(*) from UserRecommendedEvent ur"
+                        "WHERE ur.event_id=e.id AND ur.user_id=:user_id)"
+                        "as recommended"
+                      "from Event e"
+                      "WHERE e.end_date>:now"
+                      "ORDER BY e.start_date"))
+        query.bindparams(user_id=user_id, now=datetime.datetime.utcnow())
+        return session.execute(query)
+
 
     @classmethod
     def add(cls, title: str, start_date: datetime, end_date: datetime,
