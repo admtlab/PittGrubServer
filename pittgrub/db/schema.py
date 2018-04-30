@@ -701,9 +701,24 @@ class Event(Base, Entity):
 
     @classmethod
     def test_scalar(cls, session, user_id: int):
-        query = text("SELECT e.*, (SELECT COUNT(*) from UserAcceptedEvent ua WHERE ua.event_id = e.id AND ua.user_id = 2) as accepted, (SELECT COUNT(*) from UserRecommendedEvent ur WHERE ur.event_id = e.id AND ur.user_id = 2) as recommended from Event e WHERE e.end_date > :curr_date ORDER BY e.start_date")
-        query.bindparams(curr_date=datetime.datetime.utcnow())
-        return session.execute(query)
+        accept_subquery = session.query(func.count())\
+            .filter(UserAcceptedEvent.user_id == user_id)\
+            .filter(UserAcceptedEvent.event_id == Event.id)\
+            .limit(1)
+        rec_subquery = session.query(func.count())\
+            .filter(UserRecommendedEvent.user_id == User.id)\
+            .filter(UserRecommendedEvent.event_id == Event.id)\
+            .limit(1)
+        return session.query(cls,
+                             accept_subquery.label('accepted'),
+                             rec_subquery.label('recommended'))\
+            .filter(cls.end_date > datetime.datetime.utcnow())\
+            .order_by(cls.start_date)\
+            .all()
+
+        # query = text("SELECT e.*, (SELECT COUNT(*) from UserAcceptedEvent ua WHERE ua.event_id = e.id AND ua.user_id = 2) as accepted, (SELECT COUNT(*) from UserRecommendedEvent ur WHERE ur.event_id = e.id AND ur.user_id = 2) as recommended from Event e WHERE e.end_date > :curr_date ORDER BY e.start_date")
+        # query.bindparams(curr_date=datetime.datetime.utcnow())
+        # return session.execute(query)
 
 
     @classmethod
