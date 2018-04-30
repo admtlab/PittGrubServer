@@ -16,6 +16,7 @@ from handlers.base import BaseHandler, CORSHandler, SecureHandler
 from handlers.response import Payload
 from service.admin import host_approval
 from service.auth import (
+    JwtTokenService,
     get_access_token,
     login,
     logout,
@@ -146,6 +147,9 @@ class ReferralHandler(CORSHandler):
 class LoginHandler(CORSHandler):
     fields = set(['email', 'password'])
 
+    def initialize(self, token_service: JwtTokenService):
+        self.token_service = token_service
+
     def post(self, path):
         data = json_decode(self.request.body)
         if not all(key in data for key in self.fields):
@@ -158,6 +162,8 @@ class LoginHandler(CORSHandler):
             if user is None:
                 self.write_error(400, 'Error: Incorrect email or password')
             else:
+                access_token = self.token_service.create_access_token(owner=user.id)
+                refresh_token = self.token_service.create_refresh_token(owner=user.id)
                 jwt_token = create_jwt(owner=user.id)
                 decoded = decode_jwt(jwt_token)
                 self.success(payload=dict(
@@ -180,18 +186,8 @@ class LogoutHandler(SecureHandler):
             logout(jwt['id'])
             self.success(status=200, payload="Successfully logged out\n")
 
-# class TokenHandler(BaseHandler):
-#     def post(self, path: str):
-#         # request token
-#         data = json_decode(self.request.body)
-#         if User.verify_credentials(data['email'], data['password']):
-#             payload = dict({'user': User.get_by_email(data['email']).id})
-#             self.success(payload=payload)
-#         else:
-#             self.write_error(401, f'Incorrect email or password')
 
-
-class TokenRefreshHandler(BaseHandler):
+class TokenRequestHandler(BaseHandler):
 
     def get(self, path: str):
         # verify token
@@ -214,30 +210,48 @@ class TokenRefreshHandler(BaseHandler):
 
 
 class TokenValidationHandler(BaseHandler):
-    def get(self, path: str):
-        # get token
-        auth = self.request.headers.get('Authorization')
-        if not auth:
-            self.write_error(403)
+    fields = set(['token'])
+
+    def initialize(self, token_service: JwtTokenService):
+        self.token_service = token_service
+
+    def post(self, path: str):
+        data = self.get_data()
+        if not all(key in data for key in self.fields):
+            missing_fields = ', '.join(self.fields - data.keys())
+            self.write_error(400, f'Error: missing field(s) {missing_fields}')
         else:
-            # verify form
-            if not auth.startswith('Bearer '):
-                self.write_error(400, f'Malformed authorization header')
-            else:
-                # remove 'Bearer'
-                auth = auth[7:]
-                try:
-                    decoded = decode_jwt(token=auth, verify_exp=True)
-                    if get_access_token(decoded['id']) is not None:
-                        self.success(payload=dict(valid=True, expires=decoded['exp']))
-                    else:
-                        self.success(payload=dict(valid=False))
-                except ExpiredSignatureError:
-                    decoded = decode_jwt(token=auth, verify_exp=False)
-                    self.write_error(401, dict(valid=False, expires=decoded['exp']))
-                except DecodeError as e:
-                    self.write_error(401, f'Error reading access token')
-                except Exception as e:
-                    logging.error(e)
-                    self.write_error(500)
+            token = data['token']
+            valid = self.token_service.validate_token(token)
+            self.success(payload=dict(valid=valid))
         self.finish()
+
+
+# class TokenValidationHandler(BaseHandler):
+#     def get(self, path: str):
+#         # get token
+#         auth = self.request.headers.get('Authorization')
+#         if not auth:
+#             self.write_error(403)
+#         else:
+#             # verify form
+#             if not auth.startswith('Bearer '):
+#                 self.write_error(400, f'Malformed authorization header')
+#             else:
+#                 # remove 'Bearer'
+#                 auth = auth[7:]
+#                 try:
+#                     decoded = decode_jwt(token=auth, verify_exp=True)
+#                     if get_access_token(decoded['id']) is not None:
+#                         self.success(payload=dict(valid=True, expires=decoded['exp']))
+#                     else:
+#                         self.success(payload=dict(valid=False))
+#                 except ExpiredSignatureError:
+#                     decoded = decode_jwt(token=auth, verify_exp=False)
+#                     self.write_error(401, dict(valid=False, expires=decoded['exp']))
+#                 except DecodeError as e:
+#                     self.write_error(401, f'Error reading access token')
+#                 except Exception as e:
+#                     logging.error(e)
+#                     self.write_error(500)
+#         self.finish()

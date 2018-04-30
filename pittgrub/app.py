@@ -40,7 +40,7 @@ from handlers.login import (
     HostSignupHandler,
     ReferralHandler,
     SignupHandler,
-    TokenRefreshHandler,
+    TokenRequestHandler,
     TokenValidationHandler,
 )
 from handlers.notifications import (
@@ -63,6 +63,7 @@ from handlers.admin import (
     UserPendingReferralHandler,
     # AdminHandler
 )
+from service.auth import JwtTokenService
 from storage import ImageStore
 
 from tornado import concurrent, httpserver, log, web
@@ -79,7 +80,13 @@ log.enable_pretty_logging()
 class App(web.Application):
     """Wrapper around Tornado web application with configuration"""
 
-    def __init__(self, debug: bool, image_store: ImageStore, static_path: str=None, **db_config: Dict[str, str]) -> None:
+    def __init__(
+            self,
+            debug: bool,
+            token_service: JwtTokenService,
+            image_store: ImageStore,
+            static_path: str=None,
+            **db_config: Dict[str, str]) -> None:
         """Initialize application
 
         debug: debug mode enabled
@@ -97,9 +104,12 @@ class App(web.Application):
             (r"/health(/*)",    HealthHandler),     # server status
             (r"/test(/*)",      TestHandler),       # testing
             # login
-            (r'/login(/*)',             LoginHandler),              # log-in with credentials
-            (r'/login/refresh(/*)',     TokenRefreshHandler),       # refresh token
-            (r'/login/validate(/*)',    TokenValidationHandler),    # validate token
+            (r'/login(/*)',             LoginHandler,
+                dict(token_service=token_service)),              # log-in with credentials
+            (r'/token/request(/*)',     TokenRequestHandler,
+                dict(token_service=token_service)),       # request new access token
+            (r'/token/validate(/*)',    TokenValidationHandler,
+                dict(token_service=token_service)),    # validate token
             (r'/logout(/*)',            LogoutHandler),             # delete access token
             (r'/signup(/*)',            SignupHandler),             # sign-up
             (r'/signup/host(/*)',       HostSignupHandler),         # sign-up with host access request
@@ -170,6 +180,9 @@ def main():
     procs = server_config.getint('procs')
     debug = server_config.getboolean('debug')
 
+    # token service configuration
+    token_service = JwtTokenService(server_config.get('secret'))
+
     # database configuration
     db_config = config['DB']
     username = db_config.get('username')
@@ -195,8 +208,8 @@ def main():
     logging.basicConfig(filename=filename, level=level, format=fmt)
 
     # create app
-    app = App(debug, image_store=image_store, username=username, password=password,
-              url=url, database=database, params=params, generate=generate)
+    app = App(debug, token_service=token_service, image_store=image_store, username=username,
+              password=password, url=url, database=database, params=params, generate=generate)
 
     # start server
     server = httpserver.HTTPServer(app)

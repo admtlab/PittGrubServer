@@ -1,9 +1,12 @@
 import configparser
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 from uuid import uuid4
 
-from domain.data import UserData, UserProfileData
+import jwt
+from jwt import DecodeError, ExpiredSignatureError
+from tornado.options import options
+
 from db import (
     AccessToken,
     Role,
@@ -14,11 +17,123 @@ from db import (
     UserVerification,
     session_scope,
 )
+from domain.data import UserData
 from emailer import send_verification_email
 
-import jwt
-from jwt import DecodeError, ExpiredSignatureError
-from tornado.options import options
+
+class JwtTokenService:
+    issuer: str = 'PittGrub'
+
+    def __init__(self, secret: str, alg: str='HS256'):
+        assert secret
+        self.__secret = secret
+        self.__alg = alg
+
+    @property
+    def secret(self):
+        return self.__secret
+
+    @property
+    def alg(self):
+        return self.__alg
+
+    def create_access_token(self, owner: int, expires: datetime=None) -> bytes:
+        assert owner, 'Owner required'
+        assert expires is None or expires >= datetime.utcnow(), 'Expiration must be in the future'
+        issued = datetime.utcnow()
+        expires = expires or datetime.utcnow()+timedelta(minutes=20)
+
+        with session_scope() as session:
+            user = User.get_by_id(session, owner)
+            roles = [role.name for role in user.roles]
+            key = self.secret
+            token = jwt.encode(
+                payload={'own': owner, 'roles': ','.join(roles),
+                         'iss': self.issuer, 'iat': issued, 'exp': expires,},
+                key=key,
+                algorithm=self.alg,
+                headers={'tok': 'acc'})
+        return token
+
+    def create_refresh_token(self, owner: int) -> bytes:
+        assert owner, 'Owner required'
+        issued = datetime.utcnow()
+
+        with session_scope() as session:
+            user = User.get_by_id(session, owner)
+            roles = [role.name for role in user.roles]
+            key = self.secret+user.password
+            token = jwt.encode(
+                payload={'own': owner, 'roles': ','.join(roles),
+                         'iss': self.issuer, 'iat': issued,},
+                key=key,
+                algorithm=self.alg,
+                headers={'tok': 'ref'})
+        return token
+
+    def create_password_reset_token(self, owner: int, expires: datetime=None):
+        assert owner, 'Owner required'
+        assert expires is None or expires >= datetime.utcnow(), 'Expiration must be in the future'
+
+        issued = datetime.utcnow()
+        expires = expires or datetime.utcnow()+timedelta(hours=24)
+
+        with session_scope() as session:
+            user = User.get_by_id(session, owner)
+            roles = [role.name for role in user.roles]
+            key = user.password
+            token = jwt.encode(
+                payload={'own': owner, 'roles': ','.join(roles),
+                         'iss': self.issuer, 'iat': issued, 'exp': expires,},
+                key=key,
+                algorithm=self.alg,
+                headers={'tok': 'pas'})
+        return token
+
+    def decode_access_token(self, token: str, verify_exp: bool=False) -> Dict[str, Any]:
+        assert token, 'Token required'
+        assert jwt.get_unverified_header(token).get('tok') == 'acc', 'Access token required'
+        return jwt.decode(token, key=self.secret, algorithms=[self.alg], options={'verify_exp': verify_exp})
+
+    def decode_refresh_token(self, token: str) -> Dict[str, Any]:
+        assert token, 'Token required'
+        assert jwt.get_unverified_header(token).get('tok') == 'ref', 'Refresh token required'
+        user = jwt.decode(token, verify=False).get('own')
+        with session_scope() as session:
+            password = User.get_by_id(session, user).password
+        key = self.secret+password
+        return jwt.decode(token, key=key, algorithms=[self.alg])
+
+    def decode_password_token(self, token: str, verify_exp: bool=False) -> Dict[str, Any]:
+        assert token, 'Token required'
+        assert jwt.get_unverified_header(token).get('tok') == 'pas', 'Password reset token required'
+        user = jwt.decode(token, verify=False).get('own')
+        with session_scope() as session:
+            password = User.get_by_id(session, user).password
+        return jwt.decode(token, key=password, algorithms=[self.alg], options={'verify_exp': verify_exp})
+
+    def validate_token(self, token: str) -> bool:
+        """
+        Validate that the token is not expired
+        :param token: stringified jwt
+        :return: True if valid, False if expired or on error
+        """
+        assert token, 'Token required'
+        token_type = jwt.get_unverified_header(token).get('tok')
+        try:
+            if token_type == 'acc':
+                self.decode_access_token(token, True)
+            elif token_type == 'ref':
+                self.decode_refresh_token(token)
+            elif token_type == 'pas':
+                self.decode_password_token(token, True)
+            else:
+                # return False
+                # temporarily assume it's an access token (previous token)
+                self.decode_access_token(token, True)
+            return True
+        except (ExpiredSignatureError, DecodeError):
+            return False
 
 
 def create_jwt(owner: int,
@@ -62,7 +177,7 @@ def create_jwt(owner: int,
                 'iat': issued,
                 'exp': expires,
                 'tok': 'Bearer'},
-            secret, algorithm='HS256')
+            key=secret, algorithm='HS256')
         # encoded = jwt.encode({'own': owner, 'iss': issuer,
                             #   'iat': issued, 'exp': expires, 'tok': 'Bearer'},
                             #  secret, algorithm='HS256')
