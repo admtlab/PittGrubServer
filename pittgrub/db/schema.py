@@ -32,7 +32,6 @@ class User(Base, Entity):
     name = Column('name', VARCHAR(255), unique=False, nullable=True)
     active = Column('active', BOOLEAN, nullable=False, default=False)
     disabled = Column('disabled', BOOLEAN, nullable=False, default=False)
-    # host = Column('host', BOOLEAN, nullable=False, default=False)
     expo_token = Column('expo_token', VARCHAR(255), nullable=True)
     login_count = Column('login_count', INT, nullable=False)
     pitt_pantry = Column('pitt_pantry', BOOLEAN, nullable=False, default=False)
@@ -46,11 +45,20 @@ class User(Base, Entity):
     accepted_events = association_proxy('_user_accepted_events', 'event')
     checkedin_events = association_proxy('_user_checkedin_events', 'event')
 
-    def __init__(self, id: int=None, email: str=None, password: str=None,
-                 status: UserStatus=None, name: str=None,
-                 active: bool=False, disabled: bool=False,
-                 login_count: int=0, expo_token: str=None,
-                 pitt_pantry: bool=False, eagerness: int=3):
+
+    def __init__(
+            self,
+            id: int=None,
+            email: str=None,
+            password: str=None,
+            status: UserStatus=None,
+            name: str=None,
+            active: bool=False,
+            disabled: bool=False,
+            login_count: int=0,
+            expo_token: str=None,
+            pitt_pantry: bool=False,
+            eagerness: int=3):
         self.id = id
         self.created = datetime.datetime.utcnow()
         self.email = email
@@ -59,7 +67,6 @@ class User(Base, Entity):
         self.name = name
         self.active = active
         self.disabled = disabled
-        # self.host = host
         self.login_count = login_count
         self.expo_token = expo_token
         self.pitt_pantry = pitt_pantry
@@ -75,6 +82,10 @@ class User(Base, Entity):
     def is_admin(self) -> bool:
         return 'Admin' in [r.name for r in self.roles]
 
+    @property
+    def is_host(self) -> bool:
+        return 'Host' in [r.name for r in self.roles]
+
     @classmethod
     def get_by_email(cls, session, email: str) -> Optional['User']:
         """
@@ -83,18 +94,20 @@ class User(Base, Entity):
         :param email:   user email
         :return:        user
         """
-        return session.query(cls).filter_by(email=email).one_or_none()
+        return session.query(cls)\
+            .filter_by(email=email)\
+            .one_or_none()
 
-    @classmethod
-    def get_roles(cls, session, user_id) -> List['Role']:
-        """
-        Get roles belonging to user
-        :param session: database session
-        :param user_id: id of user
-        :return:        roles
-        """
-        user_roles = session.query(UserRole).filter_by(user_id=user_id).all()
-        return [r.role for r in user_roles]
+    # @classmethod
+    # def get_roles(cls, session, user_id) -> List['Role']:
+    #     """
+    #     Get roles belonging to user
+    #     :param session: database session
+    #     :param user_id: id of user
+    #     :return:        roles
+    #     """
+    #     user_roles = session.query(UserRole).filter_by(user_id=user_id).all()
+    #     return [r.role for r in user_roles]
 
     @classmethod
     def create(cls, session, user: 'User', roles: List['Role']=None) -> Optional['User']:
@@ -671,11 +684,20 @@ class Event(Base, Entity):
 
     organizer = relationship("User", foreign_keys=[organizer_id])
 
-    def __init__(self, id: int=None, organizer: int=None,
-                 organization: str=None, title: str=None,
-                 start_date: datetime=None, end_date: datetime=None,
-                 details: str=None, servings: int=None,
-                 address: str=None, location: str=None):
+    def __init__(
+        self,
+        id: int=None,
+        organizer: int=None,
+        organization: str=None,
+        title: str=None,
+        start_date: datetime=None,
+        end_date: datetime=None,
+        details: str=None,
+        servings: int=None,
+        address: str=None,
+        location: str=None,
+        latitude: Decimal=None,
+        longitude: Decimal=None):
         self.id = id
         self.organizer_id = organizer
         self.organization = organization
@@ -686,51 +708,32 @@ class Event(Base, Entity):
         self.servings = servings
         self.address = address
         self.location = location
-        self.latitude = None
-        self.longitude = None
+        self.latitude = latitude
+        self.longitude = longitude
 
     @classmethod
-    def get_all_newest(cls, session) -> List['Event']:
-        entities = session.query(cls).filter(cls.end_date > datetime.datetime.now()).order_by(cls.start_date).all()
+    def get_all_active(cls, session) -> List['Event']:
+        entities = session.query(cls)\
+            .filter(cls.end_date > datetime.datetime.now())\
+            .order_by(cls.start_date)\
+            .all()
         return entities
 
-    # @classmethod
-    # def get_all_newest_by_user(cls, session, user_id: int) -> List[Tuple[Event, bool, bool]]:
-    #     entities = session.query(cls).filter(cls.end_date )
-    #     return events
-
     @classmethod
-    def test_scalar(cls, session, user_id: int):
+    def get_all_active_by_user(cls, session, user_id: int) -> List[Tuple['Event', int, int]]:
         accept_subquery = session.query(func.count())\
             .filter(UserAcceptedEvent.user_id == user_id)\
-            .filter(UserAcceptedEvent.event_id == Event.id)\
-            .limit(1)
+            .filter(UserAcceptedEvent.event_id == Event.id)
         rec_subquery = session.query(func.count())\
             .filter(UserRecommendedEvent.user_id == User.id)\
-            .filter(UserRecommendedEvent.event_id == Event.id)\
-            .limit(1)
-        return session.query(cls,
-                             accept_subquery.label('accepted'),
-                             rec_subquery.label('recommended'))\
+            .filter(UserRecommendedEvent.event_id == Event.id)
+        return session.query(
+                cls,
+                accept_subquery.label('accepted'),
+                rec_subquery.label('recommended'))\
             .filter(cls.end_date > datetime.datetime.utcnow())\
             .order_by(cls.start_date)\
             .all()
-
-        # query = text("SELECT e.*, (SELECT COUNT(*) from UserAcceptedEvent ua WHERE ua.event_id = e.id AND ua.user_id = 2) as accepted, (SELECT COUNT(*) from UserRecommendedEvent ur WHERE ur.event_id = e.id AND ur.user_id = 2) as recommended from Event e WHERE e.end_date > :curr_date ORDER BY e.start_date")
-        # query.bindparams(curr_date=datetime.datetime.utcnow())
-        # return session.execute(query)
-
-
-    @classmethod
-    def add(cls, title: str, start_date: datetime, end_date: datetime,
-            details: str, servings: int, address: str, location: str) -> 'Event':
-        event = Event(title=title, start_date=start_date, end_date=end_date,
-                      details=details, servings=servings, address=address,
-                      location=location)
-        db.session.add(event)
-        db.session.commit()
-        db.session.refresh(event)
-        return event
 
     #@validates('start_date')
     #def validate_start_date(self, key: datetime, start_date: datetime) -> datetime:

@@ -32,11 +32,21 @@ class BaseHandler(web.RequestHandler):
                 self.request.headers['X-Forwarded-Proto'] != 'https'):
             self.redirect(re.sub(r'^([^:]+)', 'https', self.request.full_url()))
 
+    def _check_post_data(self):
+        if self.request.method == 'POST':
+            if self.required_fields and len(self.required_fields):
+                data = self.get_data
+                missing_fields = ", ".join(self.required_fields - data.keys())
+                if missing_fields:
+                    self.write_error(400, f'Error: missing field(s) {missing_fields}')
+                    raise Finish()
+
     def get_data(self):
         return json_decode(self.request.body)
 
     def prepare(self):
         self._check_https()
+        self._check_post_data()
 
     def success(self, status: int=200, payload: Writable=None):
         """

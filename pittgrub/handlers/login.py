@@ -145,33 +145,25 @@ class ReferralHandler(CORSHandler):
 
 
 class LoginHandler(CORSHandler):
-    fields = set(['email', 'password'])
+    required_fields = set(['email', 'password'])
 
     def initialize(self, token_service: JwtTokenService):
         self.token_service = token_service
 
     def post(self, path):
-        data = json_decode(self.request.body)
-        if not all(key in data for key in self.fields):
-            missing_fields = ", ".join(self.fields - data.keys())
-            self.write_error(400, f'Error: missing field(s) {missing_fields}')
+        data = self.get_data()
+        email = data['email']
+        password = data['password']
+        user = login(email, password)
+        if user is None:
+            self.write_error(400, 'Error: Incorrect email or password')
         else:
-            email = data['email']
-            password = data['password']
-            user = login(email, password)
-            if user is None:
-                self.write_error(400, 'Error: Incorrect email or password')
-            else:
-                access_token = self.token_service.create_access_token(owner=user.id)
-                refresh_token = self.token_service.create_refresh_token(owner=user.id)
-                jwt_token = create_jwt(owner=user.id)
-                decoded = decode_jwt(jwt_token)
-                self.success(payload=dict(
-                    user=user.json(),
-                    token=jwt_token.decode(),
-                    expires=decoded['exp'],
-                    issued=decoded['iat'],
-                    type=decoded['tok']))
+            access_token = self.token_service.create_access_token(owner=user.id)
+            refresh_token = self.token_service.create_refresh_token(owner=user.id)
+            self.success(payload=dict(
+                user=user.json(),
+                refresh_token=refresh_token,
+                access_token=access_token))
         self.finish()
 
 

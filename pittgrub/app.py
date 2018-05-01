@@ -12,21 +12,11 @@ import sys
 from typing import Dict
 
 import db
-# index: Main, Health, Test
-# login: Login, Logout, Signup, Referrals
-# tokens: token handling
-# users: Users/Verification/Preference/Settings
-# notifiations: all notifications
-# events: all events
 
 from handlers.admin import (
     HostApprovalHandler
 )
-from handlers.index import (
-    HealthHandler,
-    MainHandler,
-    TestHandler
-)
+from handlers.index import HealthHandler, MainHandler
 from handlers.events import (
     EventHandler,
     EventImageHandler,
@@ -100,44 +90,37 @@ class App(web.Application):
         # tornado web app
         endpoints = [
             # index
-            (r"/(/*)",          MainHandler),       # index/welcome
-            (r"/health(/*)",    HealthHandler),     # server status
-            (r"/test(/*)",      TestHandler),       # testing
-            # login
-            (r'/login(/*)',             LoginHandler,
-                dict(token_service=token_service)),              # log-in with credentials
-            (r'/token/request(/*)',     TokenRequestHandler,
-                dict(token_service=token_service)),       # request new access token
-            (r'/token/validate(/*)',    TokenValidationHandler,
-                dict(token_service=token_service)),    # validate token
-            (r'/logout(/*)',            LogoutHandler),             # delete access token
-            (r'/signup(/*)',            SignupHandler),             # sign-up
-            (r'/signup/host(/*)',       HostSignupHandler),         # sign-up with host access request
+            (r"/(/*)", MainHandler),
+            # server status
+            (r"/health(/*)", HealthHandler),
+            # login/token
+            (r'/login(/*)', LoginHandler, dict(token_service=token_service)),
+            (r'/token/request(/*)', TokenRequestHandler, dict(token_service=token_service)),
+            (r'/token/validate(/*)', TokenValidationHandler, dict(token_service=token_service)),
+            (r'/logout(/*)', LogoutHandler),
+            (r'/signup(/*)', SignupHandler),
+            (r'/signup/host(/*)', HostSignupHandler),
             # admin
-            (r'/admin/approveHost(/*)', HostApprovalHandler),   # approve request for host access
-            # user
-            (r'/users(/*)', UserHandler),                       # user data
-            (r'/users/profile(/*)', UserProfileHandler),        # user app profile
-            (r'/users/preferences(/*)', UserPreferenceHandler), # user preferences (food, etc)
-            (r'/users/settings(/*)', UserSettingsHandler),      # user settings (food preferences, pantry, etc)
+            (r'/admin/approveHost(/*)', HostApprovalHandler),
+            # users
+            (r'/users(/*)', UserHandler),
+            (r'/users/profile(/*)', UserProfileHandler),
+            (r'/users/preferences(/*)', UserPreferenceHandler),
+            (r'/users/settings(/*)', UserSettingsHandler),
             (r'/users/location(/*)', UserLocationHandler),
-            (r'/users/verify(/*)', UserVerificationHandler),    # user email verification
-            (r'/password', UserPasswordHandler),                # Change user password
-            (r'/password/reset(/*)', UserPasswordResetHandler,
-                dict(executor=thread_pool)),                    # Reset user's password
-            # notifications
-            (r'/notifications(/*)', NotificationHandler),   # handle notifications
-            (r'/token(/*)', NotificationTokenHandler),      # add notification token
+            (r'/users/verify(/*)', UserVerificationHandler),
+            (r'/password', UserPasswordHandler),
+            (r'/password/reset(/*)', UserPasswordResetHandler, dict(executor=thread_pool)),
             # events
-            (r'/events(/*)', EventHandler,
-                dict(executor=thread_pool)),                    # all events
-            (r'/events/(\d+/*)', EventHandler,
-                dict(executor=thread_pool)),                    # single event
-            (r'/events/(\d+/*)/images(/*)', EventImageHandler,
-                dict(image_store=image_store)),                 # event images
-            (r'/events/recommended(/*)', RecommendedEventHandler),  # recommended events for a user
-            (r'/events/accepted(/*)', AcceptedEventHandler),        # accepted events for a user
-            (r'/events/(\d+)/accept(/*)', AcceptEventHandler),      # accept an event for a user
+            (r'/events(/*)', EventHandler, dict(executor=thread_pool)),
+            (r'/events/(\d+/*)', EventHandler, dict(executor=thread_pool)),
+            (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(image_store=image_store)),
+            (r'/events/recommended(/*)', RecommendedEventHandler),
+            (r'/events/accepted(/*)', AcceptedEventHandler),
+            (r'/events/(\d+)/accept(/*)', AcceptEventHandler),
+            # notifications
+            (r'/notifications(/*)', NotificationHandler),
+            (r'/token(/*)', NotificationTokenHandler),
             # TODO: finish these
             # (r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
             #(r'/referrals(/*)', UserReferralHandler),   # get user referrals
@@ -154,15 +137,18 @@ class App(web.Application):
         ]
 
         # server settings
-        settings = dict(
-            static_path=static_path,
-            debug=debug,)
+        settings = dict(static_path=static_path, debug=debug,)
         web.Application.__init__(self, endpoints, settings)
 
         # initialize database
-        db.init(username=db_config['username'], password=db_config['password'],
-                url=db_config['url'], database=db_config['database'],
-                params=db_config['params'], echo=debug, generate=db_config['generate'])
+        db.init(
+            echo=debug,
+            username=db_config['username'],
+            password=db_config['password'],
+            url=db_config['url'],
+            database=db_config['database'],
+            params=db_config['params'],
+            generate=db_config['generate'])
 
 
 def main():
@@ -180,9 +166,6 @@ def main():
     procs = server_config.getint('procs')
     debug = server_config.getboolean('debug')
 
-    # token service configuration
-    token_service = JwtTokenService(server_config.get('secret'))
-
     # database configuration
     db_config = config['DB']
     username = db_config.get('username')
@@ -196,6 +179,9 @@ def main():
     else:
         params = ''
 
+    # token service configuration
+    token_service = JwtTokenService(server_config.get('secret'))
+  
     # storage configuration
     store_config = config['STORE']
     image_store = ImageStore(store_config.get('images'))
@@ -208,8 +194,16 @@ def main():
     logging.basicConfig(filename=filename, level=level, format=fmt)
 
     # create app
-    app = App(debug, token_service=token_service, image_store=image_store, username=username,
-              password=password, url=url, database=database, params=params, generate=generate)
+    app = App(
+        debug=debug,
+        token_service=token_service,
+        image_store=image_store,
+        username=username,
+        password=password,
+        url=url,
+        database=database,
+        params=params,
+        generate=generate)
 
     # start server
     server = httpserver.HTTPServer(app)

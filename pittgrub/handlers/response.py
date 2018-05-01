@@ -8,10 +8,9 @@ from typing import Dict, List, Optional, Union
 from util import json_esc
 
 from domain.data import Data
-from db import Entity
 
 import inflect
-from sqlalchemy.ext.associationproxy import _AssociationList
+
 
 p = inflect.engine()
 
@@ -19,18 +18,18 @@ p = inflect.engine()
 class Payload():
     """Response payload"""
 
-    def __init__(self, response: Union[Entity, List[Entity]], **links: str):
+    def __init__(self, response: Union[Data, List[Data]], **links: Dict[str, str]):
         # response
-        assert response is not None, 'Response must not be None'
+        assert response, 'Response must not be None'
         self._response = response
         # links
         if len(links):
-            self._links = {key.lower(): {'href': val} for key, val in links.items()}
+            self.add_links(links)
         else:
             self._links = None
 
     @property
-    def response(self) -> Union[Entity, List[Entity]]:
+    def response(self) -> Union[Data, List[Data]]:
         """Get payload response"""
         return self._response
 
@@ -39,9 +38,9 @@ class Payload():
         """Get payload links"""
         return self._links
 
-    def add(self, rel: str, link: str) -> None:
+    def add_link(self, rel: str, link: str) -> None:
         """Add link to payload
-        Overwrites url if link already exists
+        Overwrites link if href already exists
         rel: relationship to response
         link: link to add
         """
@@ -52,9 +51,21 @@ class Payload():
         else:
             self._links[rel] = link
 
+    def add_links(self, **links) -> None:
+        """Add links to payload
+        Overwrites link if href already exists
+        links: map of links, i.e. {rel: link}
+        """
+        if self._links is None:
+            # links hasn't been created yet
+            self._links = {key.lower(): {'href': val} for key, val in links.items()}
+        else:
+            self._links.update({key.lower(): {'href': val} for key, val in links.items()})
+
+
     def json(self) -> str:
         """Returns escaped JSON encoding of payload"""
-        if isinstance(self._response, (list, _AssociationList)):
+        if isinstance(self._response, list):
             if len(self._response):
                 if isinstance(self._response[0], Data):
                     typ = type(self._response[0]).__name__.replace("Data", "")
