@@ -16,8 +16,8 @@ from service.event import (
     get_event,
     get_events,
     get_event_image_by_event,
-    get_newest,
-    get_newest_with_user_info,
+    get_active,
+    get_active_by_user,
     set_food_preferences,
     user_accept_event,
     user_accepted_events,
@@ -174,7 +174,7 @@ class EventHandler(SecureHandler):
                     self.finish(payload)
         else:
             # get event list
-            value = get_newest()
+            value = get_active()
             payload = Payload(value)
             self.success(200, payload)
             self.finish()
@@ -224,7 +224,7 @@ class EventHandler(SecureHandler):
 class EventsByUserHandler(SecureHandler):
     def get(self, path):
         user_id = self.get_user_id()
-        events = get_newest_with_user_info()
+        events = get_active_by_user(user_id)
         self.success(200, Payload(events))
         self.finish()
 

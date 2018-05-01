@@ -55,15 +55,15 @@ def get_events() -> List[EventData]:
         return EventData.list(events)
 
 
-def get_newest() -> List[EventData]:
+def get_active() -> List[EventData]:
     with session_scope() as session:
-        events = Event.get_all_newest(session)
+        events = Event.get_all_active(session)
         return [EventData(e) for e in events]
 
 
-def get_newest_with_user_info(user_id: int) -> List[EventViewData]:
+def get_active_by_user(user_id: int) -> List[EventViewData]:
     with session_scope() as session:
-        events = Event.get_all_newest_by_user(session, user_id)
+        events = Event.get_all_active_by_user(session, user_id)
         return EventViewData.list(e)
 
 

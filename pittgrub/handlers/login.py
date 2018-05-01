@@ -162,8 +162,8 @@ class LoginHandler(CORSHandler):
             refresh_token = self.token_service.create_refresh_token(owner=user.id)
             self.success(payload=dict(
                 user=user.json(),
-                refresh_token=refresh_token,
-                access_token=access_token))
+                refresh_token=refresh_token.decode(),
+                access_token=access_token.decode()))
         self.finish()
 
 

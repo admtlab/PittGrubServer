@@ -9,13 +9,15 @@ from typing import (
 )
 
 from jwt import DecodeError, ExpiredSignatureError
-from tornado import escape, web
+from tornado import web
 from tornado.escape import json_decode, utf8
 from tornado.util import unicode_type
 from tornado.web import Finish
 
 from handlers.response import Payload, ErrorResponse
 from service.auth import decode_jwt
+from util import json_esc
+
 
 # typing
 Writable = TypeVar('Writable', bytes, unicode_type, Dict, Payload, object)
@@ -35,13 +37,15 @@ class BaseHandler(web.RequestHandler):
     def _check_post_data(self):
         if self.request.method == 'POST':
             if self.required_fields and len(self.required_fields):
-                data = self.get_data
+                data = self.get_data()
                 missing_fields = ", ".join(self.required_fields - data.keys())
                 if missing_fields:
                     self.write_error(400, f'Error: missing field(s) {missing_fields}')
                     raise Finish()
 
     def get_data(self):
+        if not self.request.body:
+            return dict()
         return json_decode(self.request.body)
 
     def prepare(self):
@@ -67,15 +71,15 @@ class BaseHandler(web.RequestHandler):
         if self._finished:
             raise RuntimeError("Cannot write() after finish()")
         if isinstance(chunk, dict):
-            chunk = escape.json_encode(chunk)
+            chunk = json_esc(chunk)
         elif isinstance(chunk, Payload):
-            chunk.add('self', self.request.uri)
+            chunk.add_link('self', self.request.uri)
             chunk = chunk.json()
         elif isinstance(chunk, ErrorResponse):
             chunk = chunk.json()
         elif not isinstance(chunk, (bytes, unicode_type)):
             payload = Payload(chunk)
-            payload.add('self', self.request.uri)
+            payload.add_link('self', self.request.uri)
             chunk = payload.json()
         self.set_header("Content-Type", "application/json; charset=UTF-8")
         chunk = utf8(chunk)
