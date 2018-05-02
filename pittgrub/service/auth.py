@@ -64,8 +64,6 @@ class JwtTokenService:
             user = User.get_by_id(session, owner)
             roles = [role.name for role in user.roles]
             key = self.secret + user.password
-            logging.info('generated refresh token with key: ')
-            logging.info(key)
             token = jwt.encode(
                 payload={'own': owner, 'roles': ','.join(roles),
                          'iss': self.issuer, 'iat': issued,},
@@ -96,7 +94,6 @@ class JwtTokenService:
     def decode_access_token(self, token: str, verify_exp: bool=False) -> Dict[str, Any]:
         assert token, 'Token required'
         assert jwt.get_unverified_header(token).get('tok') == 'acc', 'Access token required'
-        logging.info('token: ', token)
         return jwt.decode(token, key=self.secret, algorithms=[self.alg], options={'verify_exp': verify_exp})
 
     def decode_refresh_token(self, token: str) -> Dict[str, Any]:
@@ -106,8 +103,6 @@ class JwtTokenService:
         with session_scope() as session:
             password = User.get_by_id(session, user).password
         key = self.secret + password
-        logging.info('refresh key: ')
-        logging.info(key)
         return jwt.decode(token.encode(), key=key, algorithms=[self.alg], options={'verify_exp': False})
 
     def decode_password_token(self, token: str, verify_exp: bool=False) -> Dict[str, Any]:

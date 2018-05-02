@@ -15,8 +15,6 @@ class TokenRequestHandler(BaseHandler):
 
     def post(self, path: str):
         token = self.get_data()['token']
-        logging.info('got jwt:')
-        logging.info(token)
         if not get_unverified_header(token).get('tok') == 'ref':
             self.write_error(401, f'Error: Refresh token required')
         else:

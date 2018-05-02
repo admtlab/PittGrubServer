@@ -114,7 +114,6 @@ class AcceptedEventHandler(SecureHandler):
         # get data
         user_id = self.get_user_id()
         events = user_accepted_events(user_id)
-        logging.info(f'found events: {events}')
         self.success(200, Payload(events))
         self.finish()
 
