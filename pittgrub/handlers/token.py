@@ -11,6 +11,8 @@ class TokenRequestHandler(SecureHandler):
 
     def get(self, path: str):
         token = self.get_jwt()
+        logging.info('got jwt:')
+        logging.info(token)
         if not get_unverified_header(token).get('tok') == 'ref':
             self.write_error(401, f'Error: Refresh token required')
         else:
@@ -37,6 +39,11 @@ class TokenValidationHandler(BaseHandler):
     def post(self, path: str):
         data = self.get_data()
         token = data['token']
+        logging.info('in token validation')
+        logging.info('data: ')
+        logging.info(data)
+        logging.info('validating token: ')
+        logging.info(token)
         valid = self.token_service.validate_token(token)
         self.success(payload=dict(valid=valid))
         self.finish()

@@ -125,9 +125,9 @@ class SecureHandler(BaseHandler):
     def _check_jwt(self):
         logging.info('Checking JWT')
         if self.request.method != 'OPTIONS':   # maybe not?
-            logging.info('Not OPTIONS request')
             try:
-                self.verify_jwt()
+                if not self.verify_jwt():
+                    raise Finish()
             except ExpiredSignatureError:
                 self.write_error(401, 'Authorization token is expired')
                 raise Finish()
@@ -156,12 +156,15 @@ class SecureHandler(BaseHandler):
         :raises: ExpiredSignatureError: if verifying and token is expired
         """
         auth = self.request.headers.get('Authorization')
+        logging.info('headers')
+        logging.info(self.request.headers)
         if auth is not None and auth.startswith('Bearer '):
             token = auth[7:]  # remove 'Bearer '
             if get_unverified_header(token).get('tok') == 'acc':
                 return self.token_service.decode_access_token(token, verify)
             elif get_unverified_header(token).get('tok') == 'ref':
-                return self.token_service.decode_refresh_token(token, verify)
+                logging.info('is refresh token')
+                return self.token_service.decode_refresh_token(token)
         return None
 
     def verify_jwt(self) -> Optional[bool]:
