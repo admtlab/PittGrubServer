@@ -57,7 +57,7 @@ def get_event(id: int) -> Optional[EventData]:
 def get_event_by_user(id: int, user_id: int) -> Optional[EventViewData]:
     with session_scope() as session:
         event = Event.get_by_user(session, id, user_id)
-        return EventViewData(event)
+        return EventViewData(*event)
 
 
 def get_events() -> List[EventData]:
@@ -75,7 +75,8 @@ def get_active() -> List[EventData]:
 def get_active_by_user(user_id: int) -> List[EventViewData]:
     with session_scope() as session:
         events = Event.get_all_active_by_user(session, user_id)
-        return EventViewData.list(events)
+        logging.info('events: ', events)
+        return [EventViewData(*event) for event in events]
 
 
 def user_accept_event(event: int, user: int):
@@ -117,6 +118,8 @@ def set_food_preferences(id: int, prefs: List[int]):
 def get_event_image_by_event(id: int) -> Optional[EventImageData]:
     with session_scope() as session:
         event_image = EventImage.get_by_event(session, id)
+        if event_image is None:
+            return None
         return EventImageData(event_image)
 
 

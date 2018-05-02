@@ -41,7 +41,7 @@ class LoginHandler(CORSHandler):
                 refresh_token=refresh_token.decode(),
                 access_token=access_token.decode()
             ))
-        log_activity(user.id, Activity.LOGIN)
+            log_activity(user.id, Activity.LOGIN)
         self.finish()
 
 

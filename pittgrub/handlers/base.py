@@ -2,6 +2,7 @@ import logging
 import re
 from typing import (
     Dict,
+    List,
     Optional,
     TypeVar,
     Union
@@ -34,7 +35,7 @@ class BaseHandler(web.RequestHandler):
 
     def _check_post_data(self):
         if self.request.method == 'POST':
-            if self.required_fields and len(self.required_fields):
+            if hasattr(self, 'required_fields') and len(self.required_fields):
                 data = self.get_data()
                 missing_fields = ", ".join(self.required_fields - data.keys())
                 if missing_fields:

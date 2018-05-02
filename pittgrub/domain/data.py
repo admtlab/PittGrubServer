@@ -63,8 +63,8 @@ class EventViewData(Data):
         self.address = event.address
         self.location = event.location
         self.food_preferences = [FoodPreferenceData(f) for f in event.food_preferences]
-        self.accepted = accepted
-        self.recommended = recommended
+        self.accepted = bool(accepted) 
+        self.recommended = bool(recommended)
 
     def json(self) -> Dict[str, Any]:
         data = self.__dict__

@@ -69,7 +69,7 @@ class UserProfileHandler(SecureHandler):
         self.finish()
 
 class UserPasswordHandler(CORSHandler, SecureHandler):
-    required_fields = set(['old_password'], ['new_password'])
+    required_fields = set(['old_password', 'new_password'])
 
     def post(self):
         user_id = self.get_user_id()

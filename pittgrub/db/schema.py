@@ -728,7 +728,7 @@ class Event(Base, Entity):
         self.longitude = longitude
 
     @classmethod
-    def get_by_user(cls, session, id: int, user_id: int) -> Optional[Event]:
+    def get_by_user(cls, session, id: int, user_id: int) -> Optional[Tuple['Event', int, int]]:
         accept_subquery = session.query(func.count())\
             .filter(UserAcceptedEvent.user_id == user_id)\
             .filter(UserAcceptedEvent.event_id == Event.id)
