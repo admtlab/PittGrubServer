@@ -7,10 +7,11 @@ from service.auth import JwtTokenService
 from service.user import get_user, update_expo_token
 
 
-class TokenRequestHandler(SecureHandler):
+class TokenRequestHandler(BaseHandler):
+    required_fields = set(['token'])
 
-    def get(self, path: str):
-        token = self.get_jwt()
+    def post(self, path: str):
+        token = self.get_data()['token']
         logging.info('got jwt:')
         logging.info(token)
         if not get_unverified_header(token).get('tok') == 'ref':
@@ -32,9 +33,6 @@ class TokenRequestHandler(SecureHandler):
 
 class TokenValidationHandler(BaseHandler):
     required_fields = set(['token'])
-
-    def initialize(self, token_service: JwtTokenService):
-        self.token_service = token_service
 
     def post(self, path: str):
         data = self.get_data()
