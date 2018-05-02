@@ -7,17 +7,14 @@ from tornado.escape import json_decode
 from tornado.web import Finish
 
 from emailer import send_verification_email, send_password_reset_email
-from handlers.response import Payload
 from service.auth import create_jwt, verify_jwt
 from service.user import (
     get_user,
     get_user_profile,
     get_user_by_email,
-    get_user_food_preferences,
     get_user_verification,
-    update_user_food_preferences,
     update_user_password,
-    update_user_settings,
+    update_user_profile,
     add_location,
     verify_user
 )
@@ -39,26 +36,6 @@ class UserHandler(SecureHandler):
             self.success(200, user)
         self.finish()
 
-    # OLD: user by id or all users
-    # we don't need to share the list of users
-    # def get(self, path):
-    #     path = path.replace('/', '')
-    #
-    #     # get data
-    #     if path:
-    #         id = int(path)
-    #         value = User.get_by_id(id)
-    #     else:
-    #         value = User.get_all()
-    #     # response
-    #     if value is None:
-    #         self.write_error(404, f'User not found with id: {id}')
-    #     else:
-    #         print(f'writing: {value}')
-    #         self.set_status(200)
-    #         payload = Payload(value)
-    #         self.finish(payload)
-
 
 class UserProfileHandler(SecureHandler):
 
@@ -66,20 +43,42 @@ class UserProfileHandler(SecureHandler):
         user_id = self.get_user_id()
         user_profile = get_user_profile(user_id)
         self.success(200, user_profile)
+        self.finish()
 
+    def post(self, path):
+        user_id = self.get_user_id()
+        data = self.get_data()
+        logging.info(f'Updating settings for user {user_id}, settings {data}')
+        food = data.get('food_preferences')
+        pantry = data.get('pantry')
+        eager = data.get('eagerness')
+
+        # validate data
+        if food is not None and not all([1 <= int(pref) <= 4 for pref in food]):
+            fields = ", ".join(set(food) - set(range(1, 5)))
+            self.write_error(400, f'Food preferences not found: {fields}')
+            raise Finish()
+        if pantry is not None and not isinstance(pantry, bool):
+            self.write_error(400, f'Pantry value must be true or false')
+            raise Finish()
+        if eager is not None and (not isinstance(eager, int) or not 1 <= eager <= 5):
+            self.write_error(400, f'Eagerness value must be from 1 to 5')
+            raise Finish()
+        update_user_profile(user_id, food, pantry, eager)
+        self.success(204)
+        self.finish()
 
 class UserPasswordHandler(CORSHandler, SecureHandler):
+    required_fields = set(['old_password'], ['new_password'])
+
     def post(self):
         user_id = self.get_user_id()
         data = json_decode(self.request.body)
-        if all(key in data for key in ('old_password', 'new_password')):
-            if update_user_password(user_id, data['old_password'], data['new_password']):
-                self.success(status=200)
-            else:
-                self.write_error(400, 'Incorrect password')
+        if update_user_password(user_id, data['old_password'], data['new_password']):
+            self.success(status=200)
         else:
-            fields = ", ".join(set('old_password', 'new_password') - data.keys())
-            self.write_error(400, f'Missing field(s): {fields}')
+            self.write_error(400, 'Incorrect password')
+        self.finish()
 
 
 class UserPasswordResetHandler(CORSHandler):
@@ -138,95 +137,18 @@ class UserPasswordResetHandler(CORSHandler):
 
 
 class UserLocationHandler(SecureHandler):
-    fields = ('latitude', 'longitude')
+    required_fields = set(['latitude', 'longitude'])
 
     def post(self, path):
         user_id = self.get_user_id()
         data = self.get_data()
-        if all(key in data for key in self.fields):
-            add_location(user_id, data['latitude'], data['longitude'], data.get('time'))
-            self.success(204)
-        else:
-            missing_fields = ", ".join(set(data) - set(data.keys()))
-            self.write_error(400, f'Missing field(s): {missing_fields}')
-
-
-class UserSettingsHandler(SecureHandler):
-    def get(self, path):
-        # check token
-        user_id = self.get_user_id()
-        if user_id:
-            user = get_user(user_id)
-            settings = user.json_settings()
-            self.success(payload=Payload(settings))
-        else:
-            self.write_error(403, 'Authentication is required')
-
-    def post(self, path):
-        user_id = self.get_user_id()
-        data = json_decode(self.request.body)
-        logging.info(f'Updating settings for user {user_id}, settings {data}')
-        if 'food_preferences' in data:
-            # ensure preference ids are legit
-            if all([1 <= int(pref) <= 4 for pref in data['food_preferences']]):
-                update_user_food_preferences(user_id, data['food_preferences'])
-            else:
-                fields = ", ".join(set(data['food_preferences']) - set(range(1, 5)))
-                self.write_error(400, f'Food preferences not found: {fields}')
-                raise Finish()
-        pantry = None
-        eager = None
-        if 'pantry' in data:
-            if not isinstance(data['pantry'], bool):
-                self.write_error(400, f'Pantry value must be true or false')
-                raise Finish()
-            pantry = data['pantry']
-        if 'eagerness' in data:
-            if 0 < data['eagerness']:
-                self.write_error(400, f'Eagerness must be greater than 0')
-                raise Finish()
-            eager = data['eagerness']
-        update_user_settings(user_id, pantry, eager)
-        self.success(status=204)
-
-
-class UserPreferenceHandler(SecureHandler):
-
-    def get(self, path):
-        # check token
-        user_id = self.get_user_id()
-        try:
-            food_preferences = get_user_food_preferences(user_id)
-            self.success(payload=Payload(food_preferences))
-        except Exception as e:
-            logging.error(e)
-            self.write_error(500, "Error getting user food preferences")
-            self.finish()
-
-    def post(self, path):
-        user_id = self.get_user_id()
-        data = json_decode(self.request.body)
-        # ensure food preference ids are legitimate
-        if all([1 <= int(pref) <= 4 for pref in data]):
-            update_user_food_preferences(user_id, data)
-            self.success(204)
-        else:
-            fields = ", ".join(set(data) - set(range(1, 5)))
-            self.write_error(400, f'Food prefereneces not found: {fields}')
+        add_location(user_id, data['latitude'], data['longitude'], data.get('time'))
+        self.success(204)
+        self.finish()
 
 
 class UserVerificationHandler(SecureHandler):
     def get(self, path):
-        # GET request support verification code as url param
-        # switching to make GET request resend verification
-        # try:
-        #     id = self.get_query_argument('id')
-        #     if User.activate(id):
-        #         self.success(payload='Successfully verified account')
-        #     else:
-        #         self.write_error(404)
-        # except MissingArgumentError:
-        #     self.write_error(404)
         user_id = self.get_user_id()
         try:
             user = get_user(user_id)

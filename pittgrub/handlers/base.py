@@ -2,22 +2,20 @@ import logging
 import re
 from typing import (
     Dict,
-    List,
     Optional,
     TypeVar,
     Union
 )
 
-from jwt import DecodeError, ExpiredSignatureError
+from jwt import DecodeError, ExpiredSignatureError, get_unverified_header
 from tornado import web
 from tornado.escape import json_decode, utf8
 from tornado.util import unicode_type
 from tornado.web import Finish
 
 from handlers.response import Payload, ErrorResponse
-from service.auth import decode_jwt
+from service.auth import JwtTokenService
 from util import json_esc
-
 
 # typing
 Writable = TypeVar('Writable', bytes, unicode_type, Dict, Payload, object)
@@ -49,6 +47,7 @@ class BaseHandler(web.RequestHandler):
         return json_decode(self.request.body)
 
     def prepare(self):
+        super().prepare()        
         self._check_https()
         self._check_post_data()
 
@@ -119,13 +118,15 @@ class SecureHandler(BaseHandler):
     Verifies authentication prior to completing request
     """
 
+    def initialize(self, token_service: JwtTokenService):
+        self.token_service = token_service
+
     def _check_jwt(self):
         logging.info('Checking JWT')
         if self.request.method != 'OPTIONS':   # maybe not?
             logging.info('Not OPTIONS request')
             try:
-                if not self.verify_jwt():
-                    raise Finish()
+                self.verify_jwt()
             except ExpiredSignatureError:
                 self.write_error(401, 'Authorization token is expired')
                 raise Finish()
@@ -155,8 +156,11 @@ class SecureHandler(BaseHandler):
         """
         auth = self.request.headers.get('Authorization')
         if auth is not None and auth.startswith('Bearer '):
-            jwt = auth[7:]  # remove 'Bearer '
-            return decode_jwt(token=jwt, verify_exp=verify)
+            token = auth[7:]  # remove 'Bearer '
+            if get_unverified_header(token).get('tok') == 'acc':
+                return self.token_service.decode_access_token(token, verify)
+            elif get_unverified_header(token).get('tok') == 'ref':
+                return self.token_service.decode_refresh_token(token, verify)
         return None
 
     def verify_jwt(self) -> Optional[bool]:

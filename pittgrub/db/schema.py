@@ -15,7 +15,7 @@ from sqlalchemy.types import (
 )
 
 import db
-from db.base import Entity, Password, OrganizationRole, ReferralStatus, UserStatus
+from db.base import Entity, Password, OrganizationRole, ReferralStatus, UserStatus, Activity
 
 # database db.session variables
 Base = declarative_base()
@@ -257,6 +257,22 @@ def create_user(session, user: User, role: 'Role'=None) -> Optional[User]:
         session.refresh(user)
         session.add(UserRole(user.id, role.id))
         return user
+
+
+class UserActivity(Base):
+    __tablename__ = 'UserActivity'
+    
+    id = Column('id', BIGINT, primary_key=True, autoincrement=True)
+    user_id = Column('user_id', BIGINT, ForeignKey('User.id'))
+    activity = Column('activity', Enum(Activity), nullable=False)
+    time = Column('time', DateTime, nullable=False, default=datetime.datetime.utcnow)
+
+    user = relationship(User, backref=backref('_user_activities'))
+
+    def __init__(self, user_id: int=None, activity: Activity=None):
+        self.user_id = user_id
+        self.activity = activity
+        self.time = datetime.datetime.utcnow()
 
 
 class Role(Base, Entity):
@@ -685,19 +701,19 @@ class Event(Base, Entity):
     organizer = relationship("User", foreign_keys=[organizer_id])
 
     def __init__(
-        self,
-        id: int=None,
-        organizer: int=None,
-        organization: str=None,
-        title: str=None,
-        start_date: datetime=None,
-        end_date: datetime=None,
-        details: str=None,
-        servings: int=None,
-        address: str=None,
-        location: str=None,
-        latitude: Decimal=None,
-        longitude: Decimal=None):
+            self,
+            id: int=None,
+            organizer: int=None,
+            organization: str=None,
+            title: str=None,
+            start_date: datetime=None,
+            end_date: datetime=None,
+            details: str=None,
+            servings: int=None,
+            address: str=None,
+            location: str=None,
+            latitude: Decimal=None,
+            longitude: Decimal=None):
         self.id = id
         self.organizer_id = organizer
         self.organization = organization
@@ -710,6 +726,21 @@ class Event(Base, Entity):
         self.location = location
         self.latitude = latitude
         self.longitude = longitude
+
+    @classmethod
+    def get_by_user(cls, session, id: int, user_id: int) -> Optional[Event]:
+        accept_subquery = session.query(func.count())\
+            .filter(UserAcceptedEvent.user_id == user_id)\
+            .filter(UserAcceptedEvent.event_id == Event.id)
+        rec_subquery = session.query(func.count())\
+            .filter(UserRecommendedEvent.user_id == user_id)\
+            .filter(UserRecommendedEvent.event_id == Event.id)
+        return session.query(
+                cls,
+                accept_subquery.label('accepted'),
+                rec_subquery.label('recommended'))\
+            .filter(cls.id == id)\
+            .one_or_none()
 
     @classmethod
     def get_all_active(cls, session) -> List['Event']:
@@ -735,41 +766,10 @@ class Event(Base, Entity):
             .order_by(cls.start_date)\
             .all()
 
-    #@validates('start_date')
-    #def validate_start_date(self, key: datetime, start_date: datetime) -> datetime:
-    #    assert start_date >= datetime.datetime.now(), "Start date must be after current time"
-    #    return start_date
-
     @validates('end_date')
     def validate_end_date(self, key: datetime, end_date: datetime) -> datetime:
         assert end_date > self.start_date, "End date must come after start date"
         return end_date
-
-    def json(self, deep: bool=False) -> Dict[str, Any]:
-        with db.session_scope() as session:
-            session.add(self)
-            return dict({
-                'id': self.id,
-                'organization': self.organization,
-                'title': self.title,
-                'start_date': self.start_date.isoformat(),
-                'end_date': self.end_date.isoformat(),
-                'details': self.details,
-                'servings': self.servings,
-                'address': self.address,
-                'location': self.location,
-                'food_preferences': [
-                    f.json() for f in self.food_preferences
-                ]
-            })
-
-        if self.organizer is not None:
-            if deep:
-                data['organizer'] = self.organizer.json(False)
-            else:
-                data['organizer'] = self.organizer.id
-
-        return data
 
 
 class EventFoodPreference(Base):

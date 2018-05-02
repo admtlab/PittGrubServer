@@ -6,17 +6,19 @@ Author: Mark Silvis (marksilvis@pitt.edu)
 # python
 import configparser
 import logging
-import os.path
 import re
 import sys
 from typing import Dict
 
-import db
+import os.path
+from tornado import concurrent, httpserver, log, web
+from tornado.ioloop import IOLoop
+from tornado.options import define, options, parse_command_line
 
+import db
 from handlers.admin import (
     HostApprovalHandler
 )
-from handlers.index import HealthHandler, MainHandler
 from handlers.events import (
     EventHandler,
     EventImageHandler,
@@ -24,42 +26,25 @@ from handlers.events import (
     AcceptedEventHandler,
     AcceptEventHandler,
 )
+from handlers.index import HealthHandler, MainHandler
 from handlers.login import (
     LoginHandler,
     LogoutHandler,
     HostSignupHandler,
-    ReferralHandler,
     SignupHandler,
-    TokenRequestHandler,
-    TokenValidationHandler,
 )
-from handlers.notifications import (
-    NotificationHandler,
-    NotificationTokenHandler,
-)
+from handlers.notifications import NotificationHandler
+from handlers.token import TokenRequestHandler, TokenValidationHandler, NotificationTokenHandler
 from handlers.user import (
     UserHandler,
     UserProfileHandler,
     UserPasswordHandler,
     UserPasswordResetHandler,
-    UserPreferenceHandler,
     UserLocationHandler,
-    UserSettingsHandler,
     UserVerificationHandler,
-)
-from handlers.admin import (
-    UserReferralHandler,
-    UserApprovedReferralHandler,
-    UserPendingReferralHandler,
-    # AdminHandler
 )
 from service.auth import JwtTokenService
 from storage import ImageStore
-
-from tornado import concurrent, httpserver, log, web
-from tornado.ioloop import IOLoop
-from tornado.options import define, options, parse_command_line
-
 
 # options
 define("config", default="./config.ini", type=str,
@@ -93,34 +78,33 @@ class App(web.Application):
             (r"/(/*)", MainHandler),
             # server status
             (r"/health(/*)", HealthHandler),
-            # login/token
+            # login/singup
             (r'/login(/*)', LoginHandler, dict(token_service=token_service)),
+            (r'/logout(/*)', LogoutHandler, dict(token_service=token_service)),
+            (r'/signup(/*)', SignupHandler, dict(token_service=token_service)),
+            (r'/signup/host(/*)', HostSignupHandler, dict(token_service=token_service)),
+            # token
             (r'/token/request(/*)', TokenRequestHandler, dict(token_service=token_service)),
             (r'/token/validate(/*)', TokenValidationHandler, dict(token_service=token_service)),
-            (r'/logout(/*)', LogoutHandler),
-            (r'/signup(/*)', SignupHandler),
-            (r'/signup/host(/*)', HostSignupHandler),
+            (r'/token(/*)', NotificationTokenHandler, dict(token_service=token_service)),
             # admin
-            (r'/admin/approveHost(/*)', HostApprovalHandler),
+            (r'/admin/approveHost(/*)', HostApprovalHandler, dict(token_service=token_service)),
             # users
-            (r'/users(/*)', UserHandler),
-            (r'/users/profile(/*)', UserProfileHandler),
-            (r'/users/preferences(/*)', UserPreferenceHandler),
-            (r'/users/settings(/*)', UserSettingsHandler),
-            (r'/users/location(/*)', UserLocationHandler),
-            (r'/users/verify(/*)', UserVerificationHandler),
-            (r'/password', UserPasswordHandler),
+            (r'/users(/*)', UserHandler, dict(token_service=token_service)),
+            (r'/users/profile(/*)', UserProfileHandler, dict(token_service=token_service)),
+            (r'/users/location(/*)', UserLocationHandler, dict(token_service=token_service)),
+            (r'/users/verify(/*)', UserVerificationHandler, dict(token_service=token_service)),
+            (r'/password', UserPasswordHandler, dict(token_service=token_service)),
             (r'/password/reset(/*)', UserPasswordResetHandler, dict(executor=thread_pool)),
             # events
-            (r'/events(/*)', EventHandler, dict(executor=thread_pool)),
-            (r'/events/(\d+/*)', EventHandler, dict(executor=thread_pool)),
-            (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(image_store=image_store)),
-            (r'/events/recommended(/*)', RecommendedEventHandler),
-            (r'/events/accepted(/*)', AcceptedEventHandler),
-            (r'/events/(\d+)/accept(/*)', AcceptEventHandler),
+            (r'/events(/*)', EventHandler, dict(token_service=token_service, executor=thread_pool)),
+            (r'/events/(\d+/*)', EventHandler, dict(token_service=token_service, executor=thread_pool)),
+            (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(token_service=token_service, image_store=image_store)),
+            (r'/events/recommended(/*)', RecommendedEventHandler, dict(token_service=token_service)),
+            (r'/events/accepted(/*)', AcceptedEventHandler, dict(token_service=token_service)),
+            (r'/events/(\d+)/accept(/*)', AcceptEventHandler, dict(token_service=token_service)),
             # notifications
-            (r'/notifications(/*)', NotificationHandler),
-            (r'/token(/*)', NotificationTokenHandler),
+            (r'/notifications(/*)', NotificationHandler, dict(token_service=token_service)),
             # TODO: finish these
             # (r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
             #(r'/referrals(/*)', UserReferralHandler),   # get user referrals

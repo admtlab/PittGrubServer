@@ -20,21 +20,27 @@ from domain.data import (
 
 def create_event(
         title: str,
+        organizer: int,
         start_date: 'datetime',
         end_date: 'datetime',
         details: str,
         servings: int,
         address: str,
-        location: str) -> EventData:
+        location: str,
+        latitude,
+        longitude) -> EventData:
     with session_scope() as session:
         event = Event(
             title=title,
+            organizer=organizer,
             start_date=start_date,
             end_date=end_date,
             details=details,
             servings=servings,
             address=address,
-            location=location)
+            location=location,
+            latitude=latitude,
+            longitude=longitude)
         if event is None:
             return None
         session.add(event)
@@ -47,6 +53,11 @@ def get_event(id: int) -> Optional[EventData]:
     with session_scope() as session:
         event = Event.get_by_id(session, id)
         return EventData(event)
+
+def get_event_by_user(id: int, user_id: int) -> Optional[EventViewData]:
+    with session_scope() as session:
+        event = Event.get_by_user(session, id, user_id)
+        return EventViewData(event)
 
 
 def get_events() -> List[EventData]:
@@ -64,7 +75,7 @@ def get_active() -> List[EventData]:
 def get_active_by_user(user_id: int) -> List[EventViewData]:
     with session_scope() as session:
         events = Event.get_all_active_by_user(session, user_id)
-        return EventViewData.list(e)
+        return EventViewData.list(events)
 
 
 def user_accept_event(event: int, user: int):

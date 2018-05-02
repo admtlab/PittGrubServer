@@ -7,14 +7,14 @@ from typing import Any, Dict
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from .base import Entity, ReferralStatus, UserStatus, health_check
+from .base import Entity, ReferralStatus, UserStatus, health_check, Activity
 from .default import DEFAULTS
 from .schema import (
     AccessToken, Building, Event, EventFoodPreference, EventImage, EventType,
     EventTypeRel, FoodPreference, Role, User, UserAcceptedEvent,
     UserCheckedInEvent, UserFoodPreference, UserHostRequest,
     UserRecommendedEvent, UserReferral, UserRole, UserVerification,
-    UserLocation
+    UserLocation, UserActivity
 )
 
 # database sessionmaker

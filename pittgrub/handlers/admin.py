@@ -17,10 +17,9 @@ from service.admin import (
 
 
 class HostApprovalHandler(CORSHandler, SecureHandler):
+    required_fields = set(['user_id'])
 
     def get(self, path: str):
-        tok = self.get_jwt()
-        logging.info(f"roles found: {tok['roles']}")
         if not self.has_admin_role():
             logging.warning(f'User {self.get_user_id()} attempted to access {cls}')
             self.write_error(403, 'Error: insufficient permissions')
@@ -29,25 +28,20 @@ class HostApprovalHandler(CORSHandler, SecureHandler):
             self.success(200, payload=Payload(host_requests))
 
     def post(self, path: str):
-        data = json_decode(self.request.body)
-        if not self.has_admin_role():
-            logging.warning(f'User {self.get_user_id()} attempted to access {cls}')
-            self.write_error(403, 'Error: insufficient permissions')
-        elif 'user_id' not in data:
-            self.write_error(400, 'Error: missing field(s) user_id')
+        data = self.get_data()
+        if not data['user_id'].isdecimal():
+            self.write(400, 'Error: invalid user id')
         else:
-            if not (isinstance(data['user_id'], int) or data['user_id'].isdecimal()):
-                self.write(400, 'Error: invalid user id')
-            else:
-                user_id = int(data['user_id'])
-                admin_id = self.get_user_id()
-                try:
-                    if not host_approval(user_id, admin_id):
-                        self.write_error(400, f'Error: no request found for user with id: {user_id}')
-                    else:
-                        self.set_status(204)
-                except (MissingUserError, AdminPermissionError):
-                    self.write_error(403, 'Error: insufficient permissions')
+            admin_id = self.get_user_id()
+            try:
+                if not host_approval(data['user_id'], admin_id):
+                    self.write_error(400, 'Error: incorrect user id')
+                else:
+                    self.set_status(204)
+            except AdminPermissionError:
+                self.write_error(403, 'Error: insufficient permissions')
+            except MissingUserError:
+                self.write_error(400, 'Error: User not found')
         self.finish()
 
 

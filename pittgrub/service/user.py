@@ -1,9 +1,6 @@
 from typing import List, Optional, Union
 
-from . import MissingUserError
-from domain.data import UserData, UserProfileData, FoodPreferenceData
 from db import (
-    FoodPreference,
     User,
     UserFoodPreference,
     UserLocation,
@@ -11,6 +8,8 @@ from db import (
     UserVerification,
     session_scope
 )
+from domain.data import UserData, UserProfileData, FoodPreferenceData
+from . import MissingUserError
 
 
 def _is_user(session, id: int) -> bool:
@@ -84,16 +83,15 @@ def update_user_password(user: Union['User', int], password: str) -> bool:
             user.password = password
     return True
 
-def update_user_food_preferences(id: int, food_preferences: List[int]=None):
-    with session_scope() as session:
-        UserFoodPreference.update(session, id, food_preferences)
 
-def update_user_settings(id: int, pantry: bool=None, eager: int=None):
+def update_user_profile(id: int, food: List[int] = None, pantry: bool=None, eager: int=None):
     with session_scope() as session:
         user = get_user(id)
-        if pantry is not None:
+        if food:
+            UserFoodPreference.update(session, id, food)
+        if pantry:
             user.pantry_status = pantry
-        if eager is not None:
+        if eager:
             user.eagerness = eager
 
 def update_expo_token(id: int, token: str) -> bool:

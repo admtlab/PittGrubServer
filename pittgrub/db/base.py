@@ -8,6 +8,7 @@ from sqlalchemy.types import CHAR
 
 import db
 
+
 # typing
 E = TypeVar('Entity', bound='Entity')
 
@@ -37,16 +38,15 @@ class Entity:
 
     @classmethod
     def delete(cls: Type[E], session, entity_id: Union[int, str]) -> bool:
-        success = session.query(cls).filter_by(id=entity_id).delete()
+        success = session.query(cls)\
+            .filter_by(id=entity_id)\
+            .delete()
         return success
 
-    # def json(cls: Type[E], session, deep: bool=False) -> Dict[str, Any]:
-    #     pass
-
-
-# noinspection PyAbstractClass
 class Password(TypeDecorator):
-    """Password hash"""
+    """Password hash
+    Hash is SHA-256
+    """
 
     impl = CHAR(75)
 
@@ -73,6 +73,14 @@ class UserStatus(enum.Enum):
     VERIFIED = 2  # verified email account, waiting for activation
     ACCEPTED = 3  # user accepted; active account
 
+
+class Activity(enum.Enum):
+    LOGIN = 0
+    LOGOUT = 1
+    ACTIVE = 2
+    INACTIVE = 3
+    BACKGROUND = 4
+    REFRESH = 5
 
 # class UserRole(enum.Enum):
 #     USER = 0    # normal user
