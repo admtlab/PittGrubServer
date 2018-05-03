@@ -42,7 +42,7 @@ class JwtTokenService:
         assert owner, 'Owner required'
         assert expires is None or expires >= datetime.utcnow(), 'Expiration must be in the future'
         issued = datetime.utcnow()
-        expires = expires or datetime.utcnow()+timedelta(minutes=20)
+        expires = expires or datetime.utcnow()+timedelta(hours=2)
 
         with session_scope() as session:
             user = User.get_by_id(session, owner)
