@@ -39,7 +39,7 @@ class BaseHandler(web.RequestHandler):
                 data = self.get_data()
                 missing_fields = ", ".join(self.required_fields - data.keys())
                 if missing_fields:
-                    self.write_error(400, f'Error: missing field(s) {missing_fields}')
+                    self.write_error(400, f'Error: missing field(s): {missing_fields}')
                     raise Finish()
 
     def get_data(self):

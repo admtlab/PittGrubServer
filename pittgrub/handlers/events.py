@@ -67,35 +67,38 @@ class EventHandler(SecureHandler):
             self.finish()
 
     def post(self, path):
-        # decode json
-        data = self.get_data()
-        # validate data
-        data['start_date'] = dateutil.parser.parse(data['start_date'])
-        data['start_date'] = data['start_date'].replace(tzinfo=None)
-        data['end_date'] = dateutil.parser.parse(data['end_date'])
-        data['end_date'] = data['end_date'].replace(tzinfo=None)
-        data['organizer'] = self.get_user_id()
-        foodprefs = data.pop('food_preferences')
-        # add event
-        event = create_event(**data)
-        if event:
-            # add food preferences
-            set_food_preferences(event.id, foodprefs)
-            payload = Payload(event)
-            self.success(201, payload)
-            # asynchronously send notification to recommend users
-            self.executor.submit(
-                send_push_to_users,
-                _event_recommendation(event),
-                'PittGrub: New Event!',
-                event.title,
-                data={
-                    'type': 'event',
-                    'event': event.title,
-                    'title':'PittGrub: New event!',
-                    'body': event.title})
+        if not self.has_host_role():
+            self.write_error(400, 'Error: insufficient permissions')
         else:
-            self.set_status(400)
+            # decode json
+            data = self.get_data()
+            # validate data
+            data['start_date'] = dateutil.parser.parse(data['start_date'])
+            data['start_date'] = data['start_date'].replace(tzinfo=None)
+            data['end_date'] = dateutil.parser.parse(data['end_date'])
+            data['end_date'] = data['end_date'].replace(tzinfo=None)
+            data['organizer'] = self.get_user_id()
+            foodprefs = data.pop('food_preferences')
+            # add event
+            event = create_event(**data)
+            if event:
+                # add food preferences
+                set_food_preferences(event.id, foodprefs)
+                payload = Payload(event)
+                self.success(201, payload)
+                # asynchronously send notification to recommend users
+                self.executor.submit(
+                    send_push_to_users,
+                    _event_recommendation(event),
+                    'PittGrub: New Event!',
+                    event.title,
+                    data={
+                        'type': 'event',
+                        'event': event.title,
+                        'title':'PittGrub: New event!',
+                        'body': event.title})
+            else:
+                self.set_status(400)
         self.finish()
 
 
