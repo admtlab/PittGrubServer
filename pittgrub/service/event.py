@@ -23,12 +23,12 @@ def create_event(
         organizer: int,
         start_date: 'datetime',
         end_date: 'datetime',
-        details: str,
         servings: int,
         address: str,
-        location: str,
         latitude,
-        longitude) -> EventData:
+        longitude,
+        details: str=None,
+        location: str=None) -> EventData:
     with session_scope() as session:
         event = Event(
             title=title,
@@ -44,7 +44,7 @@ def create_event(
         if event is None:
             return None
         session.add(event)
-        session.commit(event)
+        session.commit()
         session.refresh(event)
         return EventData(event)
 

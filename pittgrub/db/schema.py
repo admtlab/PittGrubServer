@@ -786,8 +786,8 @@ class EventFoodPreference(Base):
         self.foodpref_id = foodpreference
 
     @classmethod
-    def get_by_id(cls, event_id: int, foodpreference_id: int) -> Optional['EventFoodPreference']:
-        return db.session.query(cls).get([event_id, foodpreference_id])
+    def get_by_id(cls, session, event_id: int, foodpreference_id: int) -> Optional['EventFoodPreference']:
+        return session.query(cls).get([event_id, foodpreference_id])
 
     @classmethod
     def add(cls, session, event_id: int, foodpreference: Union[int, List[int]]) -> Union['EventFoodPreference', List['EventFoodPreference']]:
@@ -795,16 +795,16 @@ class EventFoodPreference(Base):
         if isinstance(foodpreference, list):
             event_foodpreferences = []
             for fp in foodpreference:
-                event_foodpreference = EventFoodPreference.get_by_id(event_id, fp)
+                event_foodpreference = EventFoodPreference.get_by_id(session, event_id, fp)
                 if not event_foodpreference:
                     event_foodpreference = EventFoodPreference(event_id, fp)
-                    db.session.add(event_foodpreference)
+                    session.add(event_foodpreference)
                 event_foodpreferences.append(event_foodpreference)
         else:
-            event_foodpreferences = EventFoodPreference.get_by_id(event_id, foodpreference)
+            event_foodpreferences = EventFoodPreference.get_by_id(session, event_id, foodpreference)
             if not event_foodpreferences:
                 event_foodpreferences = EventFoodPreference(event_id, foodpreference)
-                db.session.add(event_foodpreferences)
+                session.add(event_foodpreferences)
         session.commit()
         return event_foodpreferences
 

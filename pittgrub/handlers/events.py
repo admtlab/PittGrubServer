@@ -6,7 +6,7 @@ Author: Mark Silvis
 import logging
 from io import BytesIO
 
-import dateutil
+import dateutil.parser
 from PIL import Image
 
 from handlers import SecureHandler
@@ -31,7 +31,7 @@ from storage import ImageStore
 
 
 class EventHandler(SecureHandler):
-    required_fields = set(["title", "start_date", "end_date", "address", "servings", "food_preferences", "latitude", "longitude"])
+    required_fields = set(["title", "details", "start_date", "end_date", "address", "location", "servings", "food_preferences", "latitude", "longitude"])
 
     def initialize(self, token_service: JwtTokenService, executor: 'ThreadPoolExecutor'):
         super().initialize(token_service)
