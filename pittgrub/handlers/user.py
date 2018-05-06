@@ -15,6 +15,7 @@ from service.user import (
     get_user_verification,
     update_user_password,
     update_user_profile,
+    change_user_password,
     add_location,
     verify_user
 )
@@ -73,8 +74,10 @@ class UserPasswordHandler(CORSHandler, SecureHandler):
 
     def post(self):
         user_id = self.get_user_id()
-        data = json_decode(self.request.body)
-        if update_user_password(user_id, data['old_password'], data['new_password']):
+        data = self.get_data()
+        old_pass = data.get('old_password')
+        new_pass = data.get('new_password')
+        if change_user_password(user_id, old_pass, new_pass):
             self.success(status=200)
         else:
             self.write_error(400, 'Incorrect password')
