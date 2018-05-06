@@ -112,6 +112,7 @@ class RecommendedEventHandler(SecureHandler):
 
 
 class AcceptedEventHandler(SecureHandler):
+    required_fields = set(['event_id'])
 
     def get(self, path):
         # get data
@@ -124,6 +125,7 @@ class AcceptedEventHandler(SecureHandler):
 class AcceptEventHandler(SecureHandler):
     def post(self, event):
         user_id = self.get_user_id()
+        event = self.get_data().get('event_id')
         user_accept_event(event, user_id)
         self.set_status(204)
         self.finish()

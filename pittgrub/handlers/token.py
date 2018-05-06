@@ -54,9 +54,9 @@ class NotificationTokenHandler(SecureHandler):
 
     def post(self, path):
         user_id = self.get_user_id()
-        data = self.get_data()
+        token = self.get_data().get('token')
         try:
-            update_expo_token(user_id, data['token'])
+            update_expo_token(user_id, token)
             self.success(204)
         except Exception as e:
             logging.error(e)

@@ -86,7 +86,7 @@ class App(web.Application):
             # token
             (r'/token/request(/*)', TokenRequestHandler, dict(token_service=token_service)),
             (r'/token/validate(/*)', TokenValidationHandler, dict(token_service=token_service)),
-            (r'/token(/*)', NotificationTokenHandler, dict(token_service=token_service)),
+            (r'/token/notification(/*)', NotificationTokenHandler, dict(token_service=token_service)),
             # admin
             (r'/admin/approveHost(/*)', HostApprovalHandler, dict(token_service=token_service)),
             # users
@@ -102,7 +102,7 @@ class App(web.Application):
             (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(token_service=token_service, image_store=image_store)),
             (r'/events/recommended(/*)', RecommendedEventHandler, dict(token_service=token_service)),
             (r'/events/accepted(/*)', AcceptedEventHandler, dict(token_service=token_service)),
-            (r'/events/(\d+)/accept(/*)', AcceptEventHandler, dict(token_service=token_service)),
+            (r'/events/accept(/*)', AcceptEventHandler, dict(token_service=token_service)),
             # notifications
             (r'/notifications(/*)', NotificationHandler, dict(token_service=token_service)),
             # TODO: finish these
