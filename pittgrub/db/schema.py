@@ -320,6 +320,13 @@ class UserRole(Base):
         user_role = UserRole(user_id, Role.get_by_name(session, role_name).id)
         session.add(user_role)
 
+    @classmethod
+    def create_host(session, user_id: int):
+        role = Role.get_by_name(session, 'Host')
+        user_role = UserRole(user_id, role.id)
+        session.add(user_role)
+
+
 
 class Organization(Base, Entity):
     """

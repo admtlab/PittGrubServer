@@ -1,9 +1,10 @@
 import datetime
 from typing import List
 
-from . import MissingUserError
-from domain.data import UserReferralData, UserHostRequestData
 from db import User, UserHostRequest, UserReferral, UserRole, session_scope
+from domain.data import UserReferralData, UserHostRequestData
+from . import MissingUserError
+
 
 class AdminPermissionError(Exception):
     pass
@@ -39,5 +40,6 @@ def host_approval(user_id: int, admin_id: int) -> bool:
             return False
         user_host_req.approved = datetime.datetime.utcnow()
         user_host_req.approved_by = admin_id
+        UserRole.create_host(session, user_id)
         session.merge(user_host_req)
     return True
