@@ -24,9 +24,9 @@ def get_user_verification(id: int) -> str:
     with session_scope() as session:
         if not _is_user(session, id):
             raise MissingUserError(f"User not found with id: {id}")
-        verification = UserVerification.get_by_user(id)
+        verification = UserVerification.get_by_user(session, id)
         if verification is None:
-            verification = UserVerification.add(user_id=id)
+            verification = UserVerification.add(session, user_id=id)
         return verification.code
 
 def get_user(id: int) -> Optional[UserData]:
