@@ -73,14 +73,11 @@ def change_user_password(id: int, old_password: str, new_password: str) -> bool:
             user.password = new_password
     return True
 
-def update_user_password(user: Union['User', int], password: str) -> bool:
+def update_user_password(id: int, password: str) -> bool:
     with session_scope() as session:
-        if isinstance(user, int):
-            session.add(user)
-            user.password = password
-        else:
-            user = User.get_by_id(session, user)
-            user.password = password
+        user = User.get_by_id(session, id)
+        user.password = password
+        session.merge(user)
     return True
 
 
