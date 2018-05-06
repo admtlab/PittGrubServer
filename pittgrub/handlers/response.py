@@ -20,7 +20,7 @@ class Payload():
 
     def __init__(self, response: Union[Data, List[Data]], **links: Dict[str, str]):
         # response
-        assert response, 'Response must not be None'
+        assert response is not None, 'Response must not be None'
         self._response = response
         # links
         if len(links):

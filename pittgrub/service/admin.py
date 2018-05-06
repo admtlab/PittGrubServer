@@ -21,6 +21,8 @@ def is_admin(id: int) -> bool:
 def get_pending_host_requests():
     with session_scope() as session:
         host_requests = UserHostRequest.get_all_pending(session)
+        print('found host requests')
+        print(host_requests)
         return UserHostRequestData.list(host_requests)
 
 def get_referrals(reference: int) -> List[UserReferralData]:

@@ -128,9 +128,9 @@ class UserHostRequestData(Data):
         self.organization = req.organization
         self.directory = req.directory
         self.reason = req.reason
-        self.created = req.created
+        self.created = req.created.isoformat()
         self.approved = req.approved
-        self.approved_by = req.approved_by.id
+        self.approved_by = req.approved_by
         self.user = {'id': req.user_id, 'email': req.user.email, 'name': req.user.name}
 
 

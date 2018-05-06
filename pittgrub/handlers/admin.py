@@ -29,7 +29,8 @@ class HostApprovalHandler(CORSHandler, SecureHandler):
 
     def post(self, path: str):
         data = self.get_data()
-        if not data['user_id'].isdecimal():
+        user_id = data.get('user_id')
+        if not isinstance(user_id, int):
             self.write(400, 'Error: invalid user id')
         else:
             admin_id = self.get_user_id()
