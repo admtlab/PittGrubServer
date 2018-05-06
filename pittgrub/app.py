@@ -94,8 +94,8 @@ class App(web.Application):
             (r'/users/profile(/*)', UserProfileHandler, dict(token_service=token_service)),
             (r'/users/location(/*)', UserLocationHandler, dict(token_service=token_service)),
             (r'/users/verify(/*)', UserVerificationHandler, dict(token_service=token_service)),
-            (r'users/password', UserPasswordHandler, dict(token_service=token_service)),
-            (r'users/password/reset(/*)', UserPasswordResetHandler, dict(executor=thread_pool)),
+            (r'/users/password', UserPasswordHandler, dict(token_service=token_service)),
+            (r'/users/password/reset(/*)', UserPasswordResetHandler, dict(token_service=token_service, executor=thread_pool)),
             # events
             (r'/events(/*)', EventHandler, dict(token_service=token_service, executor=thread_pool)),
             (r'/events/(\d+/*)', EventHandler, dict(token_service=token_service, executor=thread_pool)),
