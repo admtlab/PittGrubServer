@@ -76,8 +76,9 @@ def change_user_password(id: int, old_password: str, new_password: str) -> bool:
 def update_user_password(id: int, password: str) -> bool:
     with session_scope() as session:
         user = User.get_by_id(session, id)
+        if user is None:
+            raise MissingUserError(f"User not found with id: {id}")
         user.password = password
-        session.merge(user)
     return True
 
 
