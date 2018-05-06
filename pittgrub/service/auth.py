@@ -257,7 +257,8 @@ def host_signup(email: str, password: str, name: str, organization: str, directo
         user = User.create(session, User(email=email, password=password, name=name))
         if user is not None:
             activation = UserVerification.add(session, user.id)
-            UserHostRequest(user=user.id, organization=organization, directory=directory, reason=reason)
+            host_request = UserHostRequest(user=user.id, organization=organization, directory=directory, reason=reason)
+            session.add(host_request)
             return UserData(user), activation.code
     return None, None
 
