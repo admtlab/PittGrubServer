@@ -101,6 +101,7 @@ class UserPasswordResetHandler(CORSHandler):
             if user:
                 token = self.token_service.create_password_reset_token(user.id)
                 encoded = base64.b64encode(token).decode()
+                logging.info('encoded: ', encoded)
                 self.executor.submit(send_password_reset_email, user.email, encoded)
                 self.success(status=204)
             else:
@@ -115,11 +116,11 @@ class UserPasswordResetHandler(CORSHandler):
                 logging.warning(f'Encountered invalid token: {data["token"]}')
                 self.write_error(400, 'Password reset failed, invalid token')
                 raise Finish()
-            owner = jwt.decode(token, verify=False)['own']
+            owner = self.token_service.decode_password_token(token, False)['own']
             user = get_user(owner)
             if user is not None:
                 try:
-                    if verify_jwt(token, user.password):
+                    if self.token_service.validate_token(token):
                         password = data['password']
                         if not update_user_password(owner, password):
                             logging.error(f'Failed password reset for user {owner.id}')
