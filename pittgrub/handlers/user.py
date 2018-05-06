@@ -1,13 +1,10 @@
 import base64
 import logging
-from datetime import datetime, timedelta
 
-import jwt
 from tornado.escape import json_decode
 from tornado.web import Finish
 
 from emailer import send_verification_email, send_password_reset_email
-from service.auth import create_jwt, verify_jwt
 from service.user import (
     get_user,
     get_user_profile,

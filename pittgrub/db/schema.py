@@ -1,12 +1,11 @@
 import datetime
-import logging
 import random
 import string
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from passlib.hash import bcrypt_sha256
-from sqlalchemy import Column, ForeignKey, desc, func, text
+from sqlalchemy import Column, ForeignKey, desc, func
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, validates
@@ -98,17 +97,6 @@ class User(Base, Entity):
             .filter_by(email=email)\
             .one_or_none()
 
-    # @classmethod
-    # def get_roles(cls, session, user_id) -> List['Role']:
-    #     """
-    #     Get roles belonging to user
-    #     :param session: database session
-    #     :param user_id: id of user
-    #     :return:        roles
-    #     """
-    #     user_roles = session.query(UserRole).filter_by(user_id=user_id).all()
-    #     return [r.role for r in user_roles]
-
     @classmethod
     def create(cls, session, user: 'User', roles: List['Role']=None) -> Optional['User']:
         """
@@ -137,126 +125,8 @@ class User(Base, Entity):
             return False
         return bcrypt_sha256.verify(password, user.password)
 
-    @classmethod
-    def activate(cls, session, activation_id: str) -> bool:
-        activation = UserVerification.get_by_code(session, activation_id)
-        if activation:
-            user = cls.get_by_id(session, activation.user_id)
-            user.active = True
-            user.status = UserStatus.ACCEPTED
-            UserVerification.delete(session, activation_id)
-            return True
-        return False
-
-    @classmethod
-    def increment_login(cls, session, id: int):
-        assert int is not None
-        user = User.get_by_id(session, id)
-        user.login_count += 1
-
-    @classmethod
-    def update_preferences(cls, session, id: int, preferences: List):
-        assert id is not None
-        assert preferences is not None
-        UserFoodPreference.update(session, id, preferences)
-
-    @classmethod
-    def change_password(cls, session, id: int, new_password: str):
-        assert not not new_password
-        user = User.get_by_id(session, id)
-        user.password = new_password
-
     def verify_password(self, password: str) -> bool:
         return bcrypt_sha256.verify(password, self.password)
-
-    def verification(self, session, verification_code: str) -> bool:
-        verification = UserVerification.get_by_user(session, self.id)
-        if verification and verification.code is verification_code:
-            self.active = True
-            UserVerification.delete(session, verification_code)
-
-    def add_expo_token(self, expo_token: str):
-        self.expo_token = expo_token
-
-    def inc_login(self):
-        self.login_count += 1
-
-    # def make_host(self, session):
-    #     self.host = True
-    #     db.session.commit()
-    #     db.session.refresh(self)
-
-    def make_host(self, session):
-        host_role = Role.get_by_name(session, 'Host')
-        user_role = UserRole(self.id, host_role.id)
-        session.add(user_role)
-
-    def update_eagerness(self, value: int):
-        assert 0 < value
-        self.eagerness = value
-        db.session.commit()
-        db.session.refresh(self)
-
-    def set_pitt_pantry(self, status: bool):
-        assert status is not None
-        self.pitt_pantry = status
-        db.session.commit()
-        db.session.refresh(self)
-
-    def json_info(cls) -> Dict[str, Union[bool, int, str]]:
-        """Get json serializable representation of account related info"""
-        return dict(
-            id=cls.id,
-            active=cls.active,
-            host=cls.host,
-            status=cls.status.name)
-
-    def json_settings(cls) -> Dict[str, Any]:
-        """Get json serializable representation of user settings"""
-        return dict(
-            eagerness=cls.eagerness,
-            pantry=cls.pitt_pantry,
-            food_preferences=[f.json() for f in cls.food_preferences])
-
-    @classmethod
-    def to_json(self, user: 'User') -> Dict[str, Any]:
-        with db.session_scope() as session:
-            session.add(user)
-            json = dict(
-                    id=user.id,
-                    email=user.email,
-                    status=user.status.name,
-                    roles=[role.json() for role in user.roles],
-                    eagerness=user.eagerness,
-                    pantry=user.pitt_pantry,
-                    food_preferences=[f.json() for f in user.food_preferences]
-            )
-        return json
-
-    def json(cls, deep: bool=True) -> Dict[str, Any]:
-        json = dict(
-            id=cls.id,
-            email=cls.email,
-            status=cls.status.name,
-            eagerness=cls.eagerness,
-            pantry=cls.pitt_pantry
-        )
-        if deep:
-            json['food_preferences'] = [f.json() for f in cls.food_preferences]
-        else:
-            json['food_preferences'] = [f.id for f in cls.food_preferences]
-        return json
-
-
-def create_user(session, user: User, role: 'Role'=None) -> Optional[User]:
-        if session.query(User).filter_by(email=user.email).one_or_none() is not None:
-            return None
-        role = role or session.query(Role).filter_by(name='User').one_or_none()
-        session.add(user)
-        session.commit()
-        session.refresh(user)
-        session.add(UserRole(user.id, role.id))
-        return user
 
 
 class UserActivity(Base):
@@ -294,10 +164,6 @@ class Role(Base, Entity):
     def get_by_name(cls, session, name: str) -> Optional['Role']:
         return session.query(cls).filter_by(name=name).one_or_none()
 
-    def json(self):
-        return dict({'id': self.id, 'name': self.name})
-
-
 
 class UserRole(Base):
     """
@@ -316,60 +182,62 @@ class UserRole(Base):
         self.role_id = role_id
 
     @classmethod
-    def add(cls, session, user_id: int, role_name: str) -> 'UserRole':
-        user_role = UserRole(user_id, Role.get_by_name(session, role_name).id)
-        session.add(user_role)
-
-    @classmethod
     def create_host(cls, session, user_id: int):
         role = Role.get_by_name(session, 'Host')
         user_role = UserRole(user_id, role.id)
         session.add(user_role)
 
 
+"""
+Organization will be used in the future
+with more sophisticated event/organization features
+"""
+# class Organization(Base, Entity):
+#     """
+#     NOT CURRENTLY USED
+#     """
+#     __tablename__ = 'Organization'
+#
+#     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
+#     name = Column('name', VARCHAR(255), unique=True, nullable=False)
+#     description = Column('description', VARCHAR(255), nullable=False)
+#     url = Column('url', VARCHAR(512), unique=False, nullable=True)
+#     created = Column('created', DateTime, nullable=False, default=datetime.datetime.utcnow)
+#
+#     def __init__(self, id: int=None, name: str=None, description: str=None, url: str=None):
+#         self.id = id
+#         self.name = name
+#         self.description = description
+#         self.url = url
+#         self.created = datetime.datetime.utcnow()
 
-class Organization(Base, Entity):
-    """
-    NOT CURRENTLY USED
-    """
-    __tablename__ = 'Organization'
 
-    id = Column('id', BIGINT, primary_key=True, autoincrement=True)
-    name = Column('name', VARCHAR(255), unique=True, nullable=False)
-    description = Column('description', VARCHAR(255), nullable=False)
-    url = Column('url', VARCHAR(512), unique=False, nullable=True)
-    created = Column('created', DateTime, nullable=False, default=datetime.datetime.utcnow)
-
-    def __init__(self, id: int=None, name: str=None, description: str=None, url: str=None):
-        self.id = id
-        self.name = name
-        self.description = description
-        self.url = url
-        self.created = datetime.datetime.utcnow()
-
-
-class UserOrganization(Base):
-    """
-    NOT CURRENLTY USED
-    """
-    __tablename__ = 'UserOrganization'
-
-    user_id = Column('user_id', BIGINT, ForeignKey('User.id'), primary_key=True)
-    organization_id = Column('organization_id', BIGINT, ForeignKey('Organization.id'), primary_key=True)
-    role = Column('role', Enum(OrganizationRole), nullable=False, default=OrganizationRole.MEMBER)
-
-    user = relationship(User, backref=backref('_user_organizations'))
-    organization = relationship(Organization)
-
-    def __init__(self, user: int=None, organization: int=None, role: OrganizationRole=None):
-        self.user_id = user
-        self.organization_id = organization
-        self.role = role
-
-    @classmethod
-    def add(cls, user_id: int, organization_id: int, role: OrganizationRole=OrganizationRole.MEMBER) -> 'UserOrganization':
-        userOrg = UserOrganization(user_id, organization_id, role)
-        db.session.add(userOrg)
+"""
+Organization will be used in the future
+with more sophisticated event/organization features
+"""
+# class UserOrganization(Base):
+#     """
+#     NOT CURRENLTY USED
+#     """
+#     __tablename__ = 'UserOrganization'
+#
+#     user_id = Column('user_id', BIGINT, ForeignKey('User.id'), primary_key=True)
+#     organization_id = Column('organization_id', BIGINT, ForeignKey('Organization.id'), primary_key=True)
+#     role = Column('role', Enum(OrganizationRole), nullable=False, default=OrganizationRole.MEMBER)
+#
+#     user = relationship(User, backref=backref('_user_organizations'))
+#     organization = relationship(Organization)
+#
+#     def __init__(self, user: int=None, organization: int=None, role: OrganizationRole=None):
+#         self.user_id = user
+#         self.organization_id = organization
+#         self.role = role
+#
+#     @classmethod
+#     def add(cls, user_id: int, organization_id: int, role: OrganizationRole=OrganizationRole.MEMBER) -> 'UserOrganization':
+#         userOrg = UserOrganization(user_id, organization_id, role)
+#         db.session.add(userOrg)
 
 
 class UserLocation(Base):
@@ -391,7 +259,10 @@ class UserLocation(Base):
 
     @classmethod
     def most_recent_for_user(cls, session, id: int) -> 'UserLocation':
-        return session.query(UserLocation).filter_by(user_id=id).order_by(desc('time')).first()
+        return session.query(UserLocation)\
+            .filter_by(user_id=id)\
+            .order_by(desc('time'))\
+            .first()
 
 
 class UserHostRequest(Base, Entity):
@@ -426,35 +297,6 @@ class UserHostRequest(Base, Entity):
     @classmethod
     def get_all_pending(cls, session):
         return session.query(cls).filter(cls.approved.is_(None)).all()
-
-    @classmethod
-    def approve_host(cls, session, user_id: int, admin_id: int) -> bool:
-        user_host_req = UserHostRequest.get_by_user_id(session, user_id)
-        if user_host_req is None or user_host_req.approved is not None:
-            return False
-        user_host_req.approved = datetime.datetime.utcnow()
-        user_host_req.approved_by = admin_id
-        session.merge(user_host_req)
-        session.commit()
-        return True
-
-    @classmethod
-    def add(cls, user_id, organization, directory, reason):
-        host_request = UserHostRequest(user=user_id, organization=organization, directory=directory, reason=reason)
-        db.session.add(host_request)
-        db.session.commit()
-
-    def json(self, deep=False):
-        with db.session_scope() as session:
-            session.add(self)
-            return dict({
-                'id': self.id,
-                'user': dict({ 'id': self.user_id, 'email': self.user.email, 'name': self.user.name }),
-                'organization': self.organization,
-                'directory': self.directory,
-                'reason': self.reason,
-                'created': self.created.isoformat()
-            })
 
 
 class UserReferral(Base):
@@ -555,12 +397,6 @@ class ExpoToken(Base):
         session.refresh(expo_token)
         return expo_token
 
-    def json(self, deep: bool=False) -> Dict[str, Any]:
-        return {
-            'user_id': self.user_id,
-            'token': self.token
-        }
-
 
 class FoodPreference(Base, Entity):
     __tablename__ = 'FoodPreference'
@@ -573,15 +409,6 @@ class FoodPreference(Base, Entity):
         self.id = id
         self.name = name
         self.description = description
-
-    def json(self, deep: bool=False) -> Dict[str, Any]:
-        with db.session_scope() as session:
-            session.add(self)
-            return dict({
-                'id': self.id,
-                'name': self.name,
-                'description': self.description
-            })
 
 
 class UserFoodPreference(Base):
@@ -616,19 +443,6 @@ class UserFoodPreference(Base):
         cls.delete(session, user_id)
         cls.add(session, user_id, foodpreferences)
 
-    @classmethod
-    def delete(cls, session, user_id: int):
-        prefs = session.query(cls).filter_by(user_id=user_id)
-        prefs.delete()
-
-    def json(cls, deep: bool=False) -> Dict[str, Any]:
-        if deep:
-            return {'user': cls.user.json(False),
-                    'food_preference': cls.food_preference.json(deep)}
-        else:
-            return {'user': cls.user_id,
-                    'food_preferences': cls.foodpref_id}
-
 
 class UserVerification(Base):
     __tablename__ = 'UserVerification'
@@ -661,12 +475,6 @@ class UserVerification(Base):
     def get_by_user(cls, session, user_id: int) -> Optional['UserVerification']:
         """Get entity by user"""
         return session.query(cls).filter_by(user_id=user_id).one_or_none()
-
-    @classmethod
-    def delete_by_code(cls, session, code: str) -> bool:
-        """Delete instance"""
-        success = session.query(cls).filter_by(code=code).delete()
-        return success
 
     @classmethod
     def delete(cls, session, user_id: int) -> bool:
@@ -815,58 +623,36 @@ class EventFoodPreference(Base):
         session.commit()
         return event_foodpreferences
 
-    def json(cls, deep: bool=False) -> Dict[str, Any]:
-        if deep:
-            return {
-                'event': cls.event.json(deep),
-                'food_preference': cls.food_preference.json()
-            }
-        else:
-            return {
-                'event': cls.event_id,
-                'food_preference': cls.foodpref_id
-            }
 
-
-class EventType(Base, Entity):
-    __tablename__ = 'EventType'
-
-    id = Column('id', BIGINT, primary_key=True, autoincrement=True)
-    name = Column('name', VARCHAR(255), unique=True, nullable=False)
-    description = Column('description', VARCHAR(255), nullable=False)
-
-    def __init__(self, id: int=None, name: str=None, description: str=None):
-        self.id = id
-        self.name = name
-        self.description = description
-
-    def json(cls) -> Dict[str, Any]:
-        return {
-            'id': cls.id,
-            'name': cls.name,
-            'description': cls.description
-        }
-
-
-class EventTypeRel(Base):
-    __tablename__ = 'EventTypeRel'
-
-    event_id = Column('event_id', BIGINT, ForeignKey('Event.id'), primary_key=True)
-    event_type_id = Column("event_type_id", BIGINT, ForeignKey('EventType.id'), primary_key=True)
-
-    event = relationship(Event, backref=backref('_event_type'))
-    event_type = relationship(EventType)
-
-    def __init__(self, event: 'Event'=None, event_type: 'EventType'=None):
-        self.event = event
-        self.event_type = event_type
-
-    def json(cls) -> Dict[str, Any]:
-        return {
-            'event': cls.event_id,
-            'type': cls.event_type_id
-        }
-
+"""
+Event types are not currently used
+"""
+# class EventType(Base, Entity):
+#     __tablename__ = 'EventType'
+#
+#     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
+#     name = Column('name', VARCHAR(255), unique=True, nullable=False)
+#     description = Column('description', VARCHAR(255), nullable=False)
+#
+#     def __init__(self, id: int=None, name: str=None, description: str=None):
+#         self.id = id
+#         self.name = name
+#         self.description = description
+#
+#
+# class EventTypeRel(Base):
+#     __tablename__ = 'EventTypeRel'
+#
+#     event_id = Column('event_id', BIGINT, ForeignKey('Event.id'), primary_key=True)
+#     event_type_id = Column("event_type_id", BIGINT, ForeignKey('EventType.id'), primary_key=True)
+#
+#     event = relationship(Event, backref=backref('_event_type'))
+#     event_type = relationship(EventType)
+#
+#     def __init__(self, event: 'Event'=None, event_type: 'EventType'=None):
+#         self.event = event
+#         self.event_type = event_type
+#
 
 class UserRecommendedEvent(Base):
     __tablename__ = 'UserRecommendedEvent'
@@ -900,20 +686,6 @@ class UserRecommendedEvent(Base):
         entities = db.session.query(cls).filter(cls.event.end_date > datetime.datetime.utcnow())
         return entities
 
-    def json(cls, deep: bool=False) -> Dict[str, Any]:
-        if deep:
-            return {
-                'event': cls.event.json(deep),
-                'user': cls.user.json(False),
-                'time': cls.time
-            }
-        else:
-            return {
-                'event': cls.event_id,
-                'user': cls.user_id,
-                'time': cls.time
-            }
-
 
 class UserAcceptedEvent(Base):
     __tablename__ = 'UserAcceptedEvent'
@@ -944,20 +716,6 @@ class UserAcceptedEvent(Base):
             db.session.commit()
         return user_accepted_event
 
-    def json(cls, deep: bool=False) -> Dict[str, Any]:
-        if deep:
-            return {
-                'event': cls.event.json(deep),
-                'user': cls.user.json(False),
-                'time': cls.time
-            }
-        else:
-            return {
-                'event': cls.event_id,
-                'user': cls.user_id,
-                'time': cls.time
-            }
-
 
 class UserCheckedInEvent(Base):
     __tablename__ = 'UserCheckedInEvent'
@@ -978,92 +736,55 @@ class UserCheckedInEvent(Base):
     def get_by_id(cls, event_id: int, user_id: int) -> Optional['UserCheckedInEvent']:
         return db.session.query(cls).get([event_id, user_id])
 
-    def json(cls, deep: bool=False) -> Dict[str, Any]:
-        if deep:
-            return {
-                'event': cls.event.json(deep),
-                'user': cls.user.json(False),
-                'time': cls.time
-            }
-        else:
-            return {
-                'event': cls.event_id,
-                'user': cls.user_id,
-                'time': cls.time
-            }
 
-
-class AccessToken(Base, Entity):
-    __tablename__ = 'AccessToken'
-
-    id = Column('id', CHAR(32), primary_key=True)
-    user_id = Column('user_id', BIGINT, ForeignKey('User.id'), unique=True)
-    expires = Column('expires', DateTime, nullable=False)
-
-    def __init__(self, id: str, user_id: str, expires: datetime):
-        self.id = id
-        self.user_id = user_id
-        self.expires = expires
-
-    @property
-    def valid(self) -> bool:
-        return self.expires > datetime.datetime.utcnow()
-
-    # @validates('expires')
-    # def validate_expires(self, key: str, expires: datetime) -> str:
-    #     """Expiration date should be after current time"""
-    #     assert expires > datetime.datetime.now()
-    #     return expires
-
-    @classmethod
-    def add(cls, id: str, user_id: int, expires: datetime) -> Optional['AccessToken']:
-        # validate
-        assert expires > datetime.datetime.now()
-        assert User.get_by_id(user_id) is not None
-
-        access_token = AccessToken(id, user_id, expires)
-        db.session.add(access_token)
-        db.session.commit()
-        db.session.refresh(access_token)
-        return access_token
-
-    @classmethod
-    def get_by_user(cls, user_id: int) -> Optional['AccessToken']:
-        return db.session.query(cls).filter_by(user_id=user_id).one_or_none()
-
-    @classmethod
-    def is_valid(cls, id: str) -> bool:
-        token = db.session.query(cls).get(id)
-        return token.valid
-
-    @classmethod
-    def invalidate(cls, id: str):
-        token = db.session.query(cls).get(id)
-        token.expire()
-        db.session.commit()
-
-    # @classmethod
-    # def refresh(cls, id: str, expires: datetime) -> 'AccessToken':
-    #     token = db.session.query(cls).get(id)
-    #     token.expires = expires
-    #     db.session.commit()
-    #     db.session.refresh(token)
-    #     return token
-
-    @classmethod
-    def delete(cls, session, id: str) -> bool:
-        success = session.query(cls).filter_by(id=id).delete()
-        return success
-
-    def expire(self):
-        self.expires = datetime.datetime.now()
-
-    def json(cls) -> Dict[str, Any]:
-        return dict(
-            token=cls.id,
-            user=cls.user_id,
-            expires=cls.expires
-        )
+"""
+TODO: Verify that this can be deleted
+"""
+# class AccessToken(Base, Entity):
+#     __tablename__ = 'AccessToken'
+#
+#     id = Column('id', CHAR(32), primary_key=True)
+#     user_id = Column('user_id', BIGINT, ForeignKey('User.id'), unique=True)
+#     expires = Column('expires', DateTime, nullable=False)
+#
+#     def __init__(self, id: str, user_id: str, expires: datetime):
+#         self.id = id
+#         self.user_id = user_id
+#         self.expires = expires
+#
+#     @property
+#     def valid(self) -> bool:
+#         return self.expires > datetime.datetime.utcnow()
+#
+#     @classmethod
+#     def add(cls, id: str, user_id: int, expires: datetime) -> Optional['AccessToken']:
+#         # validate
+#         assert expires > datetime.datetime.now()
+#         assert User.get_by_id(user_id) is not None
+#
+#         access_token = AccessToken(id, user_id, expires)
+#         db.session.add(access_token)
+#         db.session.commit()
+#         db.session.refresh(access_token)
+#         return access_token
+#
+#     @classmethod
+#     def get_by_user(cls, user_id: int) -> Optional['AccessToken']:
+#         return db.session.query(cls).filter_by(user_id=user_id).one_or_none()
+#
+#     @classmethod
+#     def invalidate(cls, id: str):
+#         token = db.session.query(cls).get(id)
+#         token.expire()
+#         db.session.commit()
+#
+#     @classmethod
+#     def delete(cls, session, id: str) -> bool:
+#         success = session.query(cls).filter_by(id=id).delete()
+#         return success
+#
+#     def expire(self):
+#         self.expires = datetime.datetime.now()
 
 
 class EventImage(Base, Entity):
