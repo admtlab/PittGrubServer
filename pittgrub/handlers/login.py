@@ -96,11 +96,11 @@ class HostSignupHandler(CORSHandler):
             self.write_error(400, 'Invalid email address')
         else:
             reason = data['reason'] if 'reason' in data else None
-            user, activation = host_signup(*[data[r] for r in self.required_fields], reason)
-            if user is None or activation is None:
+            user, code = host_signup(*[data[r] for r in self.required_fields], reason)
+            if user is None or code is None:
                 self.write_error(400, 'Error: user already exists with that email address')
             else:
-                send_verification_email(to=user.email, code=activation.code)
+                send_verification_email(to=user.email, code=code)
                 access_token = self.token_service.create_access_token(owner=user.id)
                 refresh_token = self.token_service.create_refresh_token(owner=user.id)
                 self.success(payload=dict(

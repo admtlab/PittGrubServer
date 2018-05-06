@@ -252,19 +252,13 @@ def signup(email: str, password: str, name: str=None) -> Tuple[Optional['UserDat
     return None, None
 
 
-def host_signup(email: str, password: str, name: str, organization: str, directory: str, reason: str=None) -> Optional['User']:
+def host_signup(email: str, password: str, name: str, organization: str, directory: str, reason: str=None) -> Tuple[Optional['UserData'], Optional[str]]:
     with session_scope() as session:
         user = User.create(session, User(email=email, password=password, name=name))
         if user is not None:
             activation = UserVerification.add(session, user.id)
             user_host_req = UserHostRequest(user=user.id, organization=organization, directory=directory, reason=reason)
-            session.add(user_host_req)
-            session.commit()
-            session.refresh(user)
-            session.refresh(activation)
-            session.expunge(user)
-            session.expunge(activation)
-            return user, activation
+            return UserData(user), activation.code
     return None, None
 
 def approve_host(user_id: int, admin_id: int) -> bool:
