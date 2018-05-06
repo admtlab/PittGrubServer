@@ -5,7 +5,6 @@ import jwt
 from jwt import DecodeError, ExpiredSignatureError
 
 from db import (
-    AccessToken,
     User,
     UserHostRequest,
     UserReferral,
@@ -140,7 +139,7 @@ def login(email: str, password: str) -> 'UserData':
                 if not verification:
                     verification = UserVerification.add(session, user_id=user.id)
                     send_verification_email(to=email, activation=verification.code)
-            user.inc_login()
+            user.login_count += 1
             return UserData(user)
     return None
 

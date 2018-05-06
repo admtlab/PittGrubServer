@@ -10,8 +10,8 @@ from sqlalchemy.orm import sessionmaker
 from .base import Entity, ReferralStatus, UserStatus, health_check, Activity
 from .default import DEFAULTS
 from .schema import (
-    AccessToken, Building, Event, EventFoodPreference, EventImage, EventType,
-    EventTypeRel, FoodPreference, Role, User, UserAcceptedEvent,
+    Building, Event, EventFoodPreference, EventImage,
+    FoodPreference, Role, User, UserAcceptedEvent,
     UserCheckedInEvent, UserFoodPreference, UserHostRequest,
     UserRecommendedEvent, UserReferral, UserRole, UserVerification,
     UserLocation, UserActivity
