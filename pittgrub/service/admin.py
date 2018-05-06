@@ -2,7 +2,7 @@ import datetime
 from typing import List
 
 from . import MissingUserError
-from domain.data import UserReferralData
+from domain.data import UserReferralData, UserHostRequestData
 from db import User, UserHostRequest, UserReferral, UserRole, session_scope
 
 class AdminPermissionError(Exception):
@@ -21,8 +21,7 @@ def is_admin(id: int) -> bool:
 def get_pending_host_requests():
     with session_scope() as session:
         host_requests = UserHostRequest.get_all_pending(session)
-        session.expunge_all()
-    return host_requests
+        return UserHostRequestData.list(host_requests)
 
 def get_referrals(reference: int) -> List[UserReferralData]:
     with session_scope() as session:
