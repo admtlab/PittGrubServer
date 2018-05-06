@@ -86,7 +86,8 @@ class UserPasswordHandler(CORSHandler, SecureHandler):
 
 class UserPasswordResetHandler(CORSHandler):
 
-    def initialize(self, executor: 'ThreadPoolExecutor'):
+    def initialize(self, token_service: 'JwtTokenService', executor: 'ThreadPoolExecutor'):
+        self.token_service = token_service
         self.executor = executor
 
     def post(self, path):
@@ -98,9 +99,8 @@ class UserPasswordResetHandler(CORSHandler):
             # they are requesting the reset link
             user = get_user_by_email(data['email'])
             if user:
-                jwt_token = create_jwt(
-                    owner=user.id, secret=user.password, expires=datetime.utcnow() + timedelta(hours=24))
-                encoded = base64.b64encode(jwt_token).decode()
+                token = self.token_service.create_password_reset_token(user.id)
+                encoded = base64.b64encode(token).decode()
                 self.executor.submit(send_password_reset_email, user.email, encoded)
                 self.success(status=204)
             else:
