@@ -95,8 +95,13 @@ class HostSignupHandler(CORSHandler):
         if not validate_email(data['email']):
             self.write_error(400, 'Invalid email address')
         else:
-            reason = data['reason'] if 'reason' in data else None
-            user, code = host_signup(*[data[r] for r in self.required_fields], reason)
+            email = data.get('email')
+            password = data.get('password')
+            name = data.get('name')
+            organization = data.get('organization')
+            directory = data.get('directory')
+            reason = data.get('reason')
+            user, code = host_signup(email, password, name, organization, directory, reason)
             if user is None or code is None:
                 self.write_error(400, 'Error: user already exists with that email address')
             else:
