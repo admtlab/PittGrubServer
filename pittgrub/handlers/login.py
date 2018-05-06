@@ -9,7 +9,6 @@ from db import UserReferral, UserVerification
 from emailer import send_verification_email
 from handlers.base import CORSHandler, SecureHandler
 from handlers.response import Payload
-from service.admin import host_approval
 from service.analytics import log_activity, Activity
 from service.auth import (
     JwtTokenService,
@@ -68,11 +67,11 @@ class SignupHandler(CORSHandler):
             self.write_error(400, 'Invalid email address')
         else:
             name = data['name'] if 'name' in data else None
-            user, activation = signup(data['email'], data['password'], name)
-            if user is None or activation is None:
+            user, code = signup(data['email'], data['password'], name)
+            if user is None or code is None:
                 self.write_error(400, 'Error: user already exists with that email address')
             else:
-                send_verification_email(to=user.email, code=activation.code)
+                send_verification_email(to=user.email, code=code)
                 access_token = self.token_service.create_access_token(owner=user.id)
                 refresh_token = self.token_service.create_refresh_token(owner=user.id)
                 self.success(payload=dict(

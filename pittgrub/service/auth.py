@@ -236,17 +236,19 @@ def logout(access_token_id: int) -> bool:
     with session_scope() as session:
         AccessToken.delete(session, access_token_id)
 
-def signup(email: str, password: str, name: str=None) -> Tuple[Optional['User'], Optional['UserVerification']]:
+def signup(email: str, password: str, name: str=None) -> Tuple[Optional['UserData'], Optional[str]]:
+    """
+    Sign user up with
+    :param email:
+    :param password:
+    :param name:
+    :return:
+    """
     with session_scope() as session:
         user = User.create(session, User(email=email, password=password))
         if user is not None:
             activation = UserVerification.add(session, user.id)
-            session.commit()
-            session.refresh(user)
-            session.refresh(activation)
-            session.expunge(user)
-            session.expunge(activation)
-            return user, activation
+            return UserData(user), activation.code
     return None, None
 
 
