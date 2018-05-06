@@ -62,6 +62,8 @@ class EventViewData(Data):
         self.servings = event.servings
         self.address = event.address
         self.location = event.location
+        self.latitude = float(event.latitude) if event.latitude is not None else None
+        self.longitude = float(event.longitude) if event.longitude is not None else None
         self.food_preferences = [FoodPreferenceData(f) for f in event.food_preferences]
         self.accepted = bool(accepted) 
         self.recommended = bool(recommended)
