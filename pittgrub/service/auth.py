@@ -144,9 +144,6 @@ def login(email: str, password: str) -> 'UserData':
             return UserData(user)
     return None
 
-def logout(access_token_id: int) -> bool:
-    with session_scope() as session:
-        AccessToken.delete(session, access_token_id)
 
 def signup(email: str, password: str, name: str=None) -> Tuple[Optional['UserData'], Optional[str]]:
     """
