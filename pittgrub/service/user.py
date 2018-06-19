@@ -85,13 +85,14 @@ def update_user_password(id: int, password: str) -> bool:
 
 def update_user_profile(id: int, food: List[int] = None, pantry: bool=None, eager: int=None):
     with session_scope() as session:
-        user = get_user(id)
+        user = User.get_by_id(session, id)
         if food:
             UserFoodPreference.update(session, id, food)
         if pantry:
-            user.pantry_status = pantry
+            user.pitt_pantry = pantry
         if eager:
             user.eagerness = eager
+        session.merge(user)
 
 def update_expo_token(id: int, token: str) -> bool:
     with session_scope() as session:

@@ -471,6 +471,10 @@ class UserFoodPreference(Base):
         cls.delete(session, user_id)
         cls.add(session, user_id, foodpreferences)
 
+    @classmethod
+    def delete(cls, session, user_id: int):
+        session.query(cls).filter_by(user_id=user_id).delete()
+
 
 class UserVerification(Base):
     __tablename__ = 'UserVerification'
