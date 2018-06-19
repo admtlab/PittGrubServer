@@ -66,8 +66,8 @@ class App(web.Application):
             # server status
             (r"/health(/*)", HealthHandler),
             # email list
-            (r'/email/add(/*)', EmailListAddHandler),
-            (r'/email/remove(/*)', EmailListRemoveHandler),
+            (r'/email/add/([^/]+)', EmailListAddHandler),
+            (r'/email/remove/([^/]+)', EmailListRemoveHandler),
             # login/singup
             (r'/login(/*)', LoginHandler, dict(token_service=token_service)),
             (r'/logout(/*)', LogoutHandler, dict(token_service=token_service)),
