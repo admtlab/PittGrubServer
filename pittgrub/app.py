@@ -6,45 +6,32 @@ Author: Mark Silvis (marksilvis@pitt.edu)
 # python
 import configparser
 import logging
+import os.path
 import re
 import sys
 from typing import Dict
 
-import os.path
 from tornado import concurrent, httpserver, log, web
 from tornado.ioloop import IOLoop
 from tornado.options import define, options, parse_command_line
 
 import db
-from handlers.admin import (
-    HostApprovalHandler
-)
-from handlers.events import (
-    EventHandler,
-    EventImageHandler,
-    RecommendedEventHandler,
-    AcceptedEventHandler,
-    AcceptEventHandler,
-)
-from handlers.index import HealthHandler, MainHandler
-from handlers.login import (
-    LoginHandler,
-    LogoutHandler,
-    HostSignupHandler,
-    SignupHandler,
-)
+from handlers.admin import HostApprovalHandler
+from handlers.events import (AcceptedEventHandler, AcceptEventHandler,
+                             EventHandler, EventImageHandler,
+                             RecommendedEventHandler)
+from handlers.index import EmailListAddHandler, EmailListRemoveHandler, HealthHandler, MainHandler
+from handlers.login import (HostSignupHandler, LoginHandler, LogoutHandler,
+                            SignupHandler)
 from handlers.notifications import NotificationHandler
-from handlers.token import TokenRequestHandler, TokenValidationHandler, NotificationTokenHandler
-from handlers.user import (
-    UserHandler,
-    UserProfileHandler,
-    UserPasswordHandler,
-    UserPasswordResetHandler,
-    UserLocationHandler,
-    UserVerificationHandler,
-)
+from handlers.token import (NotificationTokenHandler, TokenRequestHandler,
+                            TokenValidationHandler)
+from handlers.user import (UserHandler, UserLocationHandler,
+                           UserPasswordHandler, UserPasswordResetHandler,
+                           UserProfileHandler, UserVerificationHandler)
 from service.auth import JwtTokenService
 from storage import ImageStore
+
 
 # options
 define("config", default="./config.ini", type=str,
@@ -78,6 +65,9 @@ class App(web.Application):
             (r"/(/*)", MainHandler),
             # server status
             (r"/health(/*)", HealthHandler),
+            # email list
+            (r'/email/add(/*)', EmailListAddHandler),
+            (r'/email/remove(/*)', EmailListRemoveHandler),
             # login/singup
             (r'/login(/*)', LoginHandler, dict(token_service=token_service)),
             (r'/logout(/*)', LogoutHandler, dict(token_service=token_service)),

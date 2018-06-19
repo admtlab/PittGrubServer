@@ -8,8 +8,33 @@ import logging
 
 from __init__ import __version__
 from db import health_check
-from handlers.base import BaseHandler
+from handlers.base import BaseHandler, CORSHandler
+from service.user import add_to_email_list, remove_from_email_list
 from util import json_esc
+from validate_email import validate_email
+
+
+class EmailListAddHandler(CORSHandler):
+    def get(self, path):
+        email = path.replace('/', '')
+
+        if email and validate_email(email) and add_to_email_list(email):
+            self.success(200)
+        else:
+            self.write_error(400)
+        self.finish()
+
+
+class EmailListRemoveHandler(CORSHandler):
+    """Remove email signup"""
+    def get(self, path):
+        email = path.replace('/', '')
+
+        if email and validate_email(email) and remove_from_email_list(email):
+            self.success(200)
+        else:
+            self.write_error(400)
+        self.finish()
 
 
 class HealthHandler(BaseHandler):

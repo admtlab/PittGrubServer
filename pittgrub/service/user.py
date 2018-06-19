@@ -1,6 +1,7 @@
 from typing import List, Optional, Union
 
 from db import (
+    EmailList,
     User,
     UserFoodPreference,
     UserLocation,
@@ -113,3 +114,19 @@ def verify_user(code: str, user_id: int) -> bool:
 def add_location(id: int, latitude: float, longitude: float, time: 'datetime'=None):
     with session_scope() as session:
         session.add(UserLocation(user=id, lat=latitude, long=longitude, time=time))
+
+def add_to_email_list(email: str) -> bool:
+    assert email is not None
+    with session_scope() as session:
+        if not EmailList.find_by_email(email):
+            session.add(EmailList(email=email))
+        return True
+    return False
+
+def remove_from_email_list(email: str) -> bool:
+    assert email is not None
+    with session_scope() as session:
+        if EmailList.find_by_email(email):
+            EmailList.remove(email)
+        return True
+    return False

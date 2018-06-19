@@ -1,5 +1,6 @@
 import datetime
 import random
+import secrets
 import string
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -9,15 +10,39 @@ from sqlalchemy import Column, ForeignKey, desc, func
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, validates
-from sqlalchemy.types import (
-    BIGINT, BOOLEAN, CHAR, DECIMAL, DateTime, Enum, INT, VARCHAR, SMALLINT
-)
+from sqlalchemy.types import (BIGINT, BOOLEAN, CHAR, DECIMAL, INT, SMALLINT,
+                              VARCHAR, DateTime, Enum)
 
 import db
-from db.base import Entity, Password, OrganizationRole, ReferralStatus, UserStatus, Activity
+from db.base import (Activity, Entity, OrganizationRole, Password,
+                     ReferralStatus, UserStatus)
 
 # database db.session variables
 Base = declarative_base()
+
+
+class EmailList(Base, Entity):
+    __tablename__ = 'EmailList'
+
+    id = Column('id', BIGINT, primary_key=True, autoincrement=True)
+    email = Column('email', VARCHAR(255), unique=True, nullable=False)
+    created = Column('created', DateTime, nullable=False, default=datetime.datetime.utcnow)
+
+    def __init__(self, email: str=None):
+        self.email = email
+
+    @classmethod
+    def remove(cls, session, email: str):
+        return session.query(cls)\
+            .filter_by(email=email)\
+            .delete()
+
+    @classmethod
+    def find_by_email(cls, session, email: str):
+        return session.query(cls)\
+            .filter_by(email=email)\
+            .one_or_none()
+
 
 
 class User(Base, Entity):
@@ -35,7 +60,8 @@ class User(Base, Entity):
     login_count = Column('login_count', INT, nullable=False)
     pitt_pantry = Column('pitt_pantry', BOOLEAN, nullable=False, default=False)
     eagerness = Column('eagerness', INT, nullable=False, default=3)
-
+    email_subscription = Column('email_subscription', BOOLEAN, nullable=False, default=True)
+    
     # mappings
     roles = association_proxy('_user_roles', 'role')
     expo_tokens = association_proxy('_user_expo_tokens', 'token')
@@ -188,6 +214,7 @@ class UserRole(Base):
         session.add(user_role)
 
 
+# TODO: complete organization
 """
 Organization will be used in the future
 with more sophisticated event/organization features
@@ -212,6 +239,7 @@ with more sophisticated event/organization features
 #         self.created = datetime.datetime.utcnow()
 
 
+# TODO: complete user organization relationship
 """
 Organization will be used in the future
 with more sophisticated event/organization features
@@ -737,65 +765,17 @@ class UserCheckedInEvent(Base):
         return db.session.query(cls).get([event_id, user_id])
 
 
-"""
-TODO: Verify that this can be deleted
-"""
-# class AccessToken(Base, Entity):
-#     __tablename__ = 'AccessToken'
-#
-#     id = Column('id', CHAR(32), primary_key=True)
-#     user_id = Column('user_id', BIGINT, ForeignKey('User.id'), unique=True)
-#     expires = Column('expires', DateTime, nullable=False)
-#
-#     def __init__(self, id: str, user_id: str, expires: datetime):
-#         self.id = id
-#         self.user_id = user_id
-#         self.expires = expires
-#
-#     @property
-#     def valid(self) -> bool:
-#         return self.expires > datetime.datetime.utcnow()
-#
-#     @classmethod
-#     def add(cls, id: str, user_id: int, expires: datetime) -> Optional['AccessToken']:
-#         # validate
-#         assert expires > datetime.datetime.now()
-#         assert User.get_by_id(user_id) is not None
-#
-#         access_token = AccessToken(id, user_id, expires)
-#         db.session.add(access_token)
-#         db.session.commit()
-#         db.session.refresh(access_token)
-#         return access_token
-#
-#     @classmethod
-#     def get_by_user(cls, user_id: int) -> Optional['AccessToken']:
-#         return db.session.query(cls).filter_by(user_id=user_id).one_or_none()
-#
-#     @classmethod
-#     def invalidate(cls, id: str):
-#         token = db.session.query(cls).get(id)
-#         token.expire()
-#         db.session.commit()
-#
-#     @classmethod
-#     def delete(cls, session, id: str) -> bool:
-#         success = session.query(cls).filter_by(id=id).delete()
-#         return success
-#
-#     def expire(self):
-#         self.expires = datetime.datetime.now()
-
-
 class EventImage(Base, Entity):
     __tablename__ = "EventImage"
 
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
     event_id = Column('event', BIGINT, ForeignKey('Event.id'), unique=False)
+    url = Column('url', VARCHAR(10), unique=True, nullable=False)
 
-    def __init__(self, id: int=None, event_id: int=None):
+    def __init__(self, id: int=None, event_id: int=None, url: str=None):
         self.id = id
         self.event_id = event_id
+        self.url = url or secrets.token_urlsafe(10)
 
     @classmethod
     def add(cls, event_id: id) -> 'EventImage':
