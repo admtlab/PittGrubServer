@@ -119,7 +119,7 @@ def add_location(id: int, latitude: float, longitude: float, time: 'datetime'=No
 def add_to_email_list(email: str) -> bool:
     assert email is not None
     with session_scope() as session:
-        if not EmailList.find_by_email(email):
+        if not EmailList.find_by_email(session, email):
             session.add(EmailList(email=email))
         return True
     return False
@@ -127,7 +127,7 @@ def add_to_email_list(email: str) -> bool:
 def remove_from_email_list(email: str) -> bool:
     assert email is not None
     with session_scope() as session:
-        if EmailList.find_by_email(email):
-            EmailList.remove(email)
+        if EmailList.find_by_email(session, email):
+            EmailList.remove(session, email)
         return True
     return False
