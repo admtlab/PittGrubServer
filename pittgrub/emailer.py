@@ -96,9 +96,8 @@ NEWSLETTER_SIGNUP_HTML = """\
 
 <p style="font-family:sans-serif;font-size:16px"> Thanks for signing up for the PittGrub newsletter! We will notify you when the PittGrub app is available on the iOS App Store and Google Play Store.
 
-<br>
-
-<a style="background-color:#336699;border:1px solid #336699;border-radius:3px;color:#ffffff;display:inline-block;font-family:sans-serif;font-size:16px;line-height:40px;text-align:center;text-decoration:none;width:150px;-webkit-text-size-adjust:none;mso-hide:all;" class="button" target="_blank" href='https://api.pittrub.com/email/remove/{email}'>Unsubscribe</a>
+<br><br>
+<p style="color:#aaaaaa;font-size:10px"><a href='https://api.pittgrub.com/email/remove/{email}'>Click here to unsubscribe.</a></p>
 """
 
 
@@ -254,10 +253,12 @@ def send_email_list_confirmation(to: str) -> bool:
     # body
     text_body = NEWSLETTER_SIGNUP_TEXT.format(email=to)
     html_body = NEWSLETTER_SIGNUP_HTML.format(email=to)
+    msg.attach(MIMEText(text_body, 'text'))
+    msg.attach(MIMEText(html_body, 'html'))
 
     # send message
     email_server.ehlo()
     email_server.starttls()
     email_server.login(EMAIL_USER, EMAIL_PASS)
-    email_server.sendmail(msf['From'], msg['To'], msg.as_string())
+    email_server.sendmail(msg['From'], msg['To'], msg.as_string())
     email_server.quit()
