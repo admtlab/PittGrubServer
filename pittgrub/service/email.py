@@ -103,12 +103,7 @@ class EmailServer:
         self.user = user
         self.password = password
 
-    def send_email(self,
-                   to: str,
-                   subject: str,
-                   text,
-                   html,
-                   sender: str=None):
+    def send_email(self, to: str, subject: str, text, html, sender: str=None):
         sender = sender or f'{EMAIL_SENDER} <{self.address}>'
         email_server = smtplib.SMTP(self.host, self.port)
         # construct message

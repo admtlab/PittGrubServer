@@ -11,32 +11,26 @@ import re
 import sys
 from typing import Dict
 
-import db
-from handlers.index import (
-    MainHandler, HealthHandler, NotificationTokenHandler,
-    PreferenceHandler, EventHandler, RecommendedEventHandler,
-    AcceptedEventHandler, AcceptEventHandler
-)
-from handlers.login import (
-    LoginHandler, LogoutHandler, SignupHandler,
-    TokenRefreshHandler, TokenValidationHandler,
-    ReferralHandler
-)
-from handlers.user import (
-    UserHandler, UserVerificationHandler, UserPreferenceHandler,
-    UserPasswordHandler, UserPasswordResetHandler,
-    UserSettingsHandler
-)
-from handlers.notifications import NotificationHandler
-from handlers.events import EventImageHandler, EventTestHandler
-from handlers.admin import UserReferralHandler, UserApprovedReferralHandler, UserPendingReferralHandler, AdminHandler
-from storage import ImageStore
-
 from tornado import concurrent, httpserver, log, web
 from tornado.ioloop import IOLoop
-from tornado.options import options, define, parse_command_line
-from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
+from tornado.options import define, options, parse_command_line
+
+import db
+from handlers.admin import HostApprovalHandler
+from handlers.events import (AcceptedEventHandler, AcceptEventHandler,
+                             EventHandler, EventImageHandler,
+                             RecommendedEventHandler)
+from handlers.index import EmailListAddHandler, EmailListRemoveHandler, HealthHandler, MainHandler
+from handlers.login import (HostSignupHandler, LoginHandler, LogoutHandler,
+                            SignupHandler)
+from handlers.notifications import NotificationHandler
+from handlers.token import (NotificationTokenHandler, TokenRequestHandler,
+                            TokenValidationHandler)
+from handlers.user import (UserHandler, UserLocationHandler,
+                           UserPasswordHandler, UserPasswordResetHandler,
+                           UserProfileHandler, UserVerificationHandler)
+from service.auth import JwtTokenService
+from storage import ImageStore
 
 
 # options
@@ -45,14 +39,16 @@ define("config", default="./config.ini", type=str,
 parse_command_line()
 log.enable_pretty_logging()
 
-# async task executors
-THREAD_POOL = concurrent.futures.ThreadPoolExecutor(4)
-
-
 class App(web.Application):
     """Wrapper around Tornado web application with configuration"""
 
-    def __init__(self, debug: bool, image_store: ImageStore, static_path: str=None, **db_config: Dict[str, str]) -> None:
+    def __init__(
+            self,
+            debug: bool,
+            token_service: JwtTokenService,
+            image_store: ImageStore,
+            static_path: str=None,
+            **db_config: Dict[str, str]) -> None:
         """Initialize application
 
         debug: debug mode enabled
@@ -60,50 +56,73 @@ class App(web.Application):
         db_config: database config
         """
 
+        # async task executors
+        thread_pool = concurrent.futures.ThreadPoolExecutor(4)
+
         # tornado web app
         endpoints = [
-            (r"/(/*)", MainHandler),            # index
-            (r"/health(/*)", HealthHandler),    # check status
-            # (r'/users(/*)', UserHandler),       # all users
-            # (r'/users/(\d+/*)', UserHandler),   # single user
-            (r'/users/activate(/*)', UserVerificationHandler),      # user activation
-            (r'/users/preferences(/*)', UserPreferenceHandler),     # user preferences (food, etc)
-            (r'/users/settings(/*)', UserSettingsHandler),  # user settings (food prefs, pantry, etc)
-            (r'/users/admin(/*)', AdminHandler),            # make user admin
-            (r'/notifications(/*)', NotificationHandler),   # handle notifications
-            (r'/token(/*)', NotificationTokenHandler),      # add notification token
-            (r'/signup(/*)', SignupHandler),                # sign-up
-            (r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
-            (r'/login(/*)', LoginHandler),              # log-in with credentials
-            (r'/referrals(/*)', UserReferralHandler),   # get user referrals
-            (r'/referrals/pending(/*)', UserPendingReferralHandler),    # get requested user referrals
-            (r'/referrals/approved(/*)', UserApprovedReferralHandler),  # get approved user referrals
-            (r'/password', UserPasswordHandler),    # Change user password
-            (r'/password/reset(/*)', UserPasswordResetHandler, dict(executor=THREAD_POOL)), # Reset user's password
-            (r'/login/refresh(/*)', TokenRefreshHandler),
-            (r'/login/validate(/*)', TokenValidationHandler),
-            (r'/logout(/*)', LogoutHandler),
-            (r'/p(/*)', PreferenceHandler),
-            (r'/events(/*)', EventHandler),      # all events
-            (r'/events/(\d+/*)', EventHandler),  # single event
-            (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(image_store=image_store)),  # event images
-            # (r'/events/new(/*)', EventTestHandler), # newest events
-            (r'/events/recommended/(\d+/*)', RecommendedEventHandler),  # recommended events for a user
-            (r'/events/accepted/(\d+/*)', AcceptedEventHandler),        # accepted events for a user
-            (r'/events/(\d+)/accept/(\d+/*)', AcceptEventHandler),      # accept an event for a user
+            # index
+            (r"/(/*)", MainHandler),
+            # server status
+            (r"/health(/*)", HealthHandler),
+            # email list
+            (r'/email/add/([^/]+)', EmailListAddHandler),
+            (r'/email/remove/([^/]+)', EmailListRemoveHandler),
+            # login/singup
+            (r'/login(/*)', LoginHandler, dict(token_service=token_service)),
+            (r'/logout(/*)', LogoutHandler, dict(token_service=token_service)),
+            (r'/signup(/*)', SignupHandler, dict(token_service=token_service)),
+            (r'/signup/host(/*)', HostSignupHandler, dict(token_service=token_service)),
+            # token
+            (r'/token/request(/*)', TokenRequestHandler, dict(token_service=token_service)),
+            (r'/token/validate(/*)', TokenValidationHandler, dict(token_service=token_service)),
+            (r'/token/notification(/*)', NotificationTokenHandler, dict(token_service=token_service)),
+            # admin
+            (r'/admin/approveHost(/*)', HostApprovalHandler, dict(token_service=token_service)),
+            # users
+            (r'/users(/*)', UserHandler, dict(token_service=token_service)),
+            (r'/users/profile(/*)', UserProfileHandler, dict(token_service=token_service)),
+            (r'/users/location(/*)', UserLocationHandler, dict(token_service=token_service)),
+            (r'/users/verify(/*)', UserVerificationHandler, dict(token_service=token_service)),
+            (r'/users/password', UserPasswordHandler, dict(token_service=token_service)),
+            (r'/users/password/reset(/*)', UserPasswordResetHandler, dict(token_service=token_service, executor=thread_pool)),
+            # events
+            (r'/events(/*)', EventHandler, dict(token_service=token_service, executor=thread_pool)),
+            (r'/events/(\d+/*)', EventHandler, dict(token_service=token_service, executor=thread_pool)),
+            (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(token_service=token_service, image_store=image_store)),
+            (r'/events/recommended(/*)', RecommendedEventHandler, dict(token_service=token_service)),
+            (r'/events/accepted(/*)', AcceptedEventHandler, dict(token_service=token_service)),
+            (r'/events/accept(/*)', AcceptEventHandler, dict(token_service=token_service)),
+            # notifications
+            (r'/notifications(/*)', NotificationHandler, dict(token_service=token_service)),
+            # TODO: finish these
+            # (r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
+            #(r'/referrals(/*)', UserReferralHandler),   # get user referrals
+            #(r'/referrals/pending(/*)', UserPendingReferralHandler),    # get requested user referrals
+            #(r'/referrals/approved(/*)', UserApprovedReferralHandler),  # get approved user referrals
+
+            # OLD HANDLERS
+            # (r'/users/admin(/*)', AdminHandler),            # make user admin
             # (r'/userfood(/*)', UserFoodPreferencesHandler)
+            # (r'/events/new(/*)', EventTestHandler), # newest events
+            # (r'/p(/*)', PreferenceHandler),
+            # (r'/users/(\d+/*)', UserHandler),   # single user
+            # (r'/users(/*)', UserHandler),       # all users
         ]
 
         # server settings
-        settings = dict(
-            static_path=static_path,
-            debug=debug,)
+        settings = dict(static_path=static_path, debug=debug,)
         web.Application.__init__(self, endpoints, settings)
 
         # initialize database
-        db.init(username=db_config['username'], password=db_config['password'],
-                url=db_config['url'], database=db_config['database'],
-                params=db_config['params'], echo=debug, generate=db_config['generate'])
+        db.init(
+            echo=debug,
+            username=db_config['username'],
+            password=db_config['password'],
+            url=db_config['url'],
+            database=db_config['database'],
+            params=db_config['params'],
+            generate=db_config['generate'])
 
 
 def main():
@@ -134,6 +153,9 @@ def main():
     else:
         params = ''
 
+    # token service configuration
+    token_service = JwtTokenService(server_config.get('secret'))
+  
     # storage configuration
     store_config = config['STORE']
     image_store = ImageStore(store_config.get('images'))
@@ -146,12 +168,20 @@ def main():
     logging.basicConfig(filename=filename, level=level, format=fmt)
 
     # create app
-    app = App(debug, image_store=image_store, username=username, password=password,
-              url=url, database=database, params=params, generate=generate)
+    app = App(
+        debug=debug,
+        token_service=token_service,
+        image_store=image_store,
+        username=username,
+        password=password,
+        url=url,
+        database=database,
+        params=params,
+        generate=generate)
 
     # start server
     server = httpserver.HTTPServer(app)
-    if (procs == 1):
+    if procs == 1:
         # single process
         server.listen(port)
         server.start()

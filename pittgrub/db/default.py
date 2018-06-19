@@ -23,6 +23,11 @@ DEFAULTS = dict({
             "(milk products), eggs, meat (red meat, poultry, and seafood), "
             "and honey."),
     ],
+    'Role': [
+        (1, 'User', "View events, receive notifications"),
+        (2, 'Host', "Create events"),
+        (3, 'Admin', "Approve hosts, manage application"),
+    ],
     'Building': [
         (1, "Allen Hall", 40.44461599, -79.95841026),
         (2, "Alumni Hall", 40.44557946, -79.95388269),

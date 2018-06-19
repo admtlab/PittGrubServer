@@ -1,59 +1,90 @@
 import base64
 import logging
-from datetime import datetime, timedelta
 
-from .base import BaseHandler, CORSHandler, SecureHandler
-from auth import create_jwt, decode_jwt, verify_jwt
-from db import FoodPreference, User, UserFoodPreference, UserVerification
+from tornado.escape import json_decode
+from tornado.web import Finish
+
 from emailer import send_verification_email, send_password_reset_email
-from handlers.response import Payload
-
-import jwt
-from tornado.escape import json_decode, json_encode
-from tornado.web import Finish, MissingArgumentError
+from service.user import (
+    get_user,
+    get_user_profile,
+    get_user_by_email,
+    get_user_verification,
+    update_user_password,
+    update_user_profile,
+    change_user_password,
+    add_location,
+    verify_user
+)
+from .base import CORSHandler, SecureHandler
 
 
 class UserHandler(SecureHandler):
+    """
+    Get user data for requesting user
+    """
+
+    def get(self, path: str):
+        user_id = self.get_user_id()
+        user = get_user(user_id)
+        if not user:
+            logging.warning(f'User {user_id} has token but not found?')
+            self.write_error(400, f'User not found with id: {user_id}')
+        else:
+            self.success(200, user)
+        self.finish()
+
+
+class UserProfileHandler(SecureHandler):
+
     def get(self, path):
-        print('*****\nin users handler\n*****')
-        path = path.replace('/', '')
+        user_id = self.get_user_id()
+        user_profile = get_user_profile(user_id)
+        self.success(200, user_profile)
+        self.finish()
 
-        # get data
-        if path:
-            id = int(path)
-            value = User.get_by_id(id)
-        else:
-            value = User.get_all()
-        # response
-        if value is None:
-            self.write_error(404, f'User not found with id: {id}')
-        else:
-            print(f'writing: {value}')
-            self.set_status(200)
-            payload = Payload(value)
-            self.finish(payload)
+    def post(self, path):
+        user_id = self.get_user_id()
+        data = self.get_data()
+        logging.info(f'Updating settings for user {user_id}, settings {data}')
+        food = data.get('food_preferences')
+        pantry = data.get('pantry')
+        eager = data.get('eagerness')
 
+        # validate data
+        if food is not None and not all([1 <= int(pref) <= 4 for pref in food]):
+            fields = ", ".join(set(food) - set(range(1, 5)))
+            self.write_error(400, f'Food preferences not found: {fields}')
+            raise Finish()
+        if pantry is not None and not isinstance(pantry, bool):
+            self.write_error(400, f'Pantry value must be true or false')
+            raise Finish()
+        if eager is not None and (not isinstance(eager, int) or not 1 <= eager <= 5):
+            self.write_error(400, f'Eagerness value must be from 1 to 5')
+            raise Finish()
+        update_user_profile(user_id, food, pantry, eager)
+        self.success(204)
+        self.finish()
 
 class UserPasswordHandler(CORSHandler, SecureHandler):
+    required_fields = set(['old_password', 'new_password'])
+
     def post(self):
-        user_id = self.get_jwt()['own']
-        user = User.get_by_id(user_id)
-        print(user.password)
-        data = json_decode(self.request.body)
-        if all(key in data for key in ('old_password', 'new_password')):
-            if User.verify_credentials(user.email, data['old_password']):
-                User.change_password(user_id, data['new_password'])
-                self.success(status=200)
-            else:
-                self.write_error(400, 'Incorrect email or password')
+        user_id = self.get_user_id()
+        data = self.get_data()
+        old_pass = data.get('old_password')
+        new_pass = data.get('new_password')
+        if change_user_password(user_id, old_pass, new_pass):
+            self.success(status=200)
         else:
-            fields = ", ".join(set('old_password', 'new_password') - data.keys())
-            self.write_error(400, f'Missing field(s): {fields}')
+            self.write_error(400, 'Incorrect password')
+        self.finish()
 
 
 class UserPasswordResetHandler(CORSHandler):
 
-    def initialize(self, executor: 'ThreadPoolExecutor'):
+    def initialize(self, token_service: 'JwtTokenService', executor: 'ThreadPoolExecutor'):
+        self.token_service = token_service
         self.executor = executor
 
     def post(self, path):
@@ -63,13 +94,11 @@ class UserPasswordResetHandler(CORSHandler):
         data = json_decode(self.request.body)
         if 'email' in data:
             # they are requesting the reset link
-            user = User.get_by_email(data['email'])
+            user = get_user_by_email(data['email'])
             if user:
-                jwt_token = create_jwt(
-                    owner=user.id, secret=user.password, expires=datetime.utcnow() + timedelta(hours=24))
-                encoded = base64.b64encode(jwt_token).decode()
-                logging.info(f'token: {jwt_token}')
-                logging.info(f'encoded: {encoded}')
+                token = self.token_service.create_password_reset_token(user.id)
+                encoded = base64.b64encode(token).decode()
+                logging.info('encoded: ', encoded)
                 self.executor.submit(send_password_reset_email, user.email, encoded)
                 self.success(status=204)
             else:
@@ -78,130 +107,76 @@ class UserPasswordResetHandler(CORSHandler):
             # they are sending their token and new password
             # check that the token is correct, then
             # set them up with their new password
-            token = None
             try:
                 token = base64.b64decode(data['token']).decode()
             except:
+                logging.warning(f'Encountered invalid token: {data["token"]}')
                 self.write_error(400, 'Password reset failed, invalid token')
                 raise Finish()
-            owner = jwt.decode(token, verify=False)['own']
-            user = User.get_by_id(owner)
+            owner = self.token_service.decode_password_token(token, False)['own']
+            user = get_user(owner)
             if user is not None:
                 try:
-                    logging.info('verifying token')
-                    if verify_jwt(token, user.password):
+                    if self.token_service.validate_token(token):
                         password = data['password']
-                        User.change_password(owner, password)
-                        self.success(status=204)
+                        if not update_user_password(owner, password):
+                            logging.error(f'Failed password reset for user {owner.id}')
+                            self.write_error(500, 'Password reset failed')
+                        else:
+                            self.success(status=204)
                     else:
                         self.write_error(400, 'Password reset failed, token is expired')
                 except Exception as e:
-                    logging.warn(e)
-                    self.write_error(400, 'Password reset failed, invalid token')
+                    logging.error(e)
+                    self.write_error(500, 'Password reset failed')
             else:
-                logging.warn(f"User with id {owner} tried to reset password, but they don't exist")
+                logging.warning(f"User with id {owner} tried to reset password, but they don't exist")
                 self.write_error(400, 'No user exists with that id')
         else:
             self.write_error(400, 'Missing fields')
+        self.finish()
 
 
-class UserSettingsHandler(SecureHandler):
-    def get(self, path):
-        # check token
-        user_id = self.get_user_id()
-        if user_id:
-            user = User.get_by_id(user_id)
-            settings = user.json_settings()
-            self.success(payload=Payload(settings))
-        else:
-            self.write_error(403, 'Authentication is required')
+class UserLocationHandler(SecureHandler):
+    required_fields = set(['latitude', 'longitude'])
 
     def post(self, path):
         user_id = self.get_user_id()
-        user = User.get_by_id(user_id)
-        if user is not None:
-            # decode json
-            data = json_decode(self.request.body)
-            logging.info(f'Updating settings for user {user_id}, settings {data}')
-            if 'food_preferences' in data:
-                # ensure preference ids are legit
-                preference_ids = [pref.id for pref in FoodPreference.get_all()]
-                if all(pref in preference_ids for pref in data['food_preferences']):
-                    UserFoodPreference.update(user_id, preference_ids)
-                else:
-                    fields = ", ".join(set(data['food_preferences'])-preference_ids)
-                    self.write_error(401, f'Food preferences not foudn: {fields}')
-            if 'pantry' in data:
-                user.set_pitt_pantry(data['pantry'])
-            if 'eagerness' in data:
-                user.update_eagerness(data['eagerness'])
-            self.success(status=204)
-
-
-class UserPreferenceHandler(SecureHandler):
-    def get(self, path):
-        # check token
-        authorization = self.request.headers.get('Authorization')[7:]
-        if authorization:
-            token = decode_jwt(authorization)
-            user_id = token['own']
-            user = User.get_by_id(user_id)
-            preferences = user.food_preferences
-            self.success(payload=Payload(preferences))
-        else:
-            self.write_error(403, 'Authentication is required')
-
-    def post(self, path):
-        user_id = self.get_jwt()['own']
-        user = User.get_by_id(user_id)
-        if user is not None:
-            # decode json
-            data = json_decode(self.request.body)
-            logging.info(f'Updated preferences: {data}')
-            # check that preferences exist
-            preference_ids = [pref.id for pref in FoodPreference.get_all()]
-            if all(pref in preference_ids for pref in data):
-                UserFoodPreference.update(user_id, data)
-                self.success(status=204)
-            else:
-                fields = ", ".join(set(data) - preference_ids)
-                self.write_error(401, f'Food preferences not found: {fields}')
+        data = self.get_data()
+        add_location(user_id, data['latitude'], data['longitude'], data.get('time'))
+        self.success(204)
+        self.finish()
 
 
 class UserVerificationHandler(SecureHandler):
     def get(self, path):
-        # GET request support verification code as url param
-        # switching to make GET request resend verification
-        # try:
-        #     id = self.get_query_argument('id')
-        #     if User.activate(id):
-        #         self.success(payload='Successfully verified account')
-        #     else:
-        #         self.write_error(404)
-        # except MissingArgumentError:
-        #     self.write_error(404)
         user_id = self.get_user_id()
-        user = User.get_by_id(user_id)
-        verification = UserVerification.get_by_user(user_id)
-        if verification is None:
-            verification = UserVerification.add(user_id=user_id)
         try:
-            send_verification_email(to=user.email, code=verification.code)
-            self.success(status=204)
+            user = get_user(user_id)
+            if user.active:
+                logging.info(f"User {user_id} is already active")
+                self.write_error(400, "Error: user already active")
+            else:
+                code = get_user_verification(user_id)
+                send_verification_email(to=user.email, code=code)
+                self.success(status=204)
         except Exception as e:
             logging.error("Failed to send verification email")
             logging.error(e)
             self.write_error(500, "Error: failed to send verification email")
-            raise(e)
+        finally:
+            self.finish()
 
     def post(self, path):
         # decode json
-        data = json_decode(self.request.body)
-        if 'activation' in data:
-            activation = data['activation']
-            if User.activate(activation):
+        user_id = self.get_user_id()
+        data = self.get_data()
+        code = data.get('code')
+        if not code:
+            self.write_error(400, 'Missing verification code')
+        else:
+            if verify_user(code, user_id):
                 self.success(status=204)
             else:
-                self.write_error(400, 'Invalid activation code')
-        else:
-            self.write_error(400, 'Missing activation code')
+                self.write_error(400, 'Invalid verification code')
+        self.finish()
