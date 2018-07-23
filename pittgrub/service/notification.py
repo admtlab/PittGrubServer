@@ -22,7 +22,7 @@ from exponent_server_sdk import (
 class InvalidExpoToken(Exception):
     def __init__(self):
         self.message = "Invalid expo token"
-        super(self).__init__(self.message)
+        super(InvalidExpoToken,self).__init__(self.message)
 
 
 def send_push_to_users(users: List['User'], title: str, body: str, data: Dict[Any, Any]=None) -> List[bool]:
@@ -45,7 +45,7 @@ def send_push_to_users(users: List['User'], title: str, body: str, data: Dict[An
                 sent[i] = False
     return sent
 
-
+#Is this right?
 def send_to_all_users(title: str, body: str, data: Dict[Any, Any]=None) -> List[bool]:
     return send_push_to_users(get_all_users())
 

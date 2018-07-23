@@ -76,7 +76,25 @@ TEST_DATA = dict({
         (2, 2),
     ],
 })
-
+num = 19999
+TEST_DATA = dict({
+    'User': [
+        (i+1, 'pittgrub'+str(i+1)+'@pitt.edu','12345', UserStatus.ACCEPTED, str(i+1)+" tester", True, False, 0) if i != 22 else
+        (23, 'pittgrub@pitt.edu', '12345', UserStatus.ACCEPTED, "PittGrub Admin", True, False, 0) for i in range(num)
+    ],
+    'UserRole': [
+        (i+1,1) if i != 22 else
+        (23,3) for i in range(num)
+    ],
+    'UserFoodPreference': [
+        (1, 2),
+        (2, 2),
+        (3, 2),
+        (4, 2),
+        (5, 2),
+        (6, 2)
+    ]
+})
 
 def __bulk_insert(engine, data: Dict[str, Any]):
     schema.Base.metadata.create_all(bind=engine)
@@ -85,9 +103,9 @@ def __bulk_insert(engine, data: Dict[str, Any]):
         cls = getattr(sys.modules[__name__], entity)
         # merge values
         # this avoids duplicate errors
-        with session_scope() as session:
-            for i in values:
-                session.merge(cls(*i))
+        for i in values:
+            with session_scope() as session:
+                    session.merge(cls(*i))
 
 
 @contextmanager

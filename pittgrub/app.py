@@ -9,7 +9,7 @@ import logging
 import os.path
 import re
 import sys
-from typing import Dict
+from typing import Dict, Any
 
 from tornado import concurrent, httpserver, log, web
 from tornado.ioloop import IOLoop
@@ -19,7 +19,7 @@ import db
 from handlers.admin import HostApprovalHandler
 from handlers.events import (AcceptedEventHandler, AcceptEventHandler,
                              EventHandler, EventImageHandler,
-                             RecommendedEventHandler)
+                             RecommendedEventHandler, TestRec, TestAcc)
 from handlers.index import EmailListAddHandler, EmailListRemoveHandler, HealthHandler, MainHandler
 from handlers.login import (HostSignupHandler, LoginHandler, LogoutHandler,
                             SignupHandler)
@@ -48,6 +48,7 @@ class App(web.Application):
             token_service: JwtTokenService,
             image_store: ImageStore,
             static_path: str=None,
+			rec_params: Dict[str,Any]=None,
             **db_config: Dict[str, str]) -> None:
         """Initialize application
 
@@ -87,8 +88,10 @@ class App(web.Application):
             (r'/users/password', UserPasswordHandler, dict(token_service=token_service)),
             (r'/users/password/reset(/*)', UserPasswordResetHandler, dict(token_service=token_service, executor=thread_pool)),
             # events
-            (r'/events(/*)', EventHandler, dict(token_service=token_service, executor=thread_pool)),
-            (r'/events/(\d+/*)', EventHandler, dict(token_service=token_service, executor=thread_pool)),
+            (r'/events/testacc(/*)', TestAcc),
+            (r'/events/testrec(/*)', TestRec, dict(executor=thread_pool, rec_params = rec_params)),
+            (r'/events(/*)', EventHandler, dict(token_service=token_service, executor=thread_pool, rec_params = rec_params)),
+            (r'/events/(\d+/*)', EventHandler, dict(token_service=token_service, executor=thread_pool, rec_params = rec_params)),
             (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(token_service=token_service, image_store=image_store)),
             (r'/events/recommended(/*)', RecommendedEventHandler, dict(token_service=token_service)),
             (r'/events/accepted(/*)', AcceptedEventHandler, dict(token_service=token_service)),
@@ -155,7 +158,7 @@ def main():
 
     # token service configuration
     token_service = JwtTokenService(server_config.get('secret'))
-  
+
     # storage configuration
     store_config = config['STORE']
     image_store = ImageStore(store_config.get('images'))
@@ -167,6 +170,10 @@ def main():
     fmt = log_config.get('format')
     logging.basicConfig(filename=filename, level=level, format=fmt)
 
+    # reccommendation configuration
+    rec_config = config['REC']
+    avg_prob_attnd = rec_config.get('assumed_avg_prob_attnd')
+
     # create app
     app = App(
         debug=debug,
@@ -175,6 +182,7 @@ def main():
         username=username,
         password=password,
         url=url,
+		rec_params = {'avg_prob':avg_prob_attnd},
         database=database,
         params=params,
         generate=generate)
