@@ -19,7 +19,7 @@ import db
 from handlers.admin import HostApprovalHandler
 from handlers.events import (AcceptedEventHandler, AcceptEventHandler,
                              EventHandler, EventImageHandler,
-                             RecommendedEventHandler, TestRec, TestAcc)
+                             RecommendedEventHandler)
 from handlers.index import EmailListAddHandler, EmailListRemoveHandler, HealthHandler, MainHandler
 from handlers.login import (HostSignupHandler, LoginHandler, LogoutHandler,
                             SignupHandler)
@@ -88,8 +88,6 @@ class App(web.Application):
             (r'/users/password', UserPasswordHandler, dict(token_service=token_service)),
             (r'/users/password/reset(/*)', UserPasswordResetHandler, dict(token_service=token_service, executor=thread_pool)),
             # events
-            (r'/events/testacc(/*)', TestAcc),
-            (r'/events/testrec(/*)', TestRec, dict(executor=thread_pool, rec_params = rec_params)),
             (r'/events(/*)', EventHandler, dict(token_service=token_service, executor=thread_pool, rec_params = rec_params)),
             (r'/events/(\d+/*)', EventHandler, dict(token_service=token_service, executor=thread_pool, rec_params = rec_params)),
             (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(token_service=token_service, image_store=image_store)),

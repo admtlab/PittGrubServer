@@ -76,7 +76,7 @@ TEST_DATA = dict({
         (2, 2),
     ],
 })
-num = 19999
+num = 25
 TEST_DATA = dict({
     'User': [
         (i+1, 'pittgrub'+str(i+1)+'@pitt.edu','12345', UserStatus.ACCEPTED, str(i+1)+" tester", True, False, 0) if i != 22 else
@@ -84,7 +84,7 @@ TEST_DATA = dict({
     ],
     'UserRole': [
         (i+1,1) if i != 22 else
-        (23,3) for i in range(num)
+        (23,2) for i in range(num)
     ],
     'UserFoodPreference': [
         (1, 2),

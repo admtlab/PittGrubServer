@@ -31,46 +31,6 @@ from storage import ImageStore
 from datetime import datetime, timedelta
 from domain.data import UserData
 
-class TestAcc(BaseHandler):
-    
-    def get(self, path):
-        uid = random.randint(1,1000)
-        events = list(set(user_recommended_events_valid(uid)) - set(user_accepted_events(uid)))
-        if len(events) != 0:
-            j = random.randint(1,len(events))
-            eid = events[j].id
-            user_accept_event(eid,uid)
-        self.success(200,Payload(events))
-        self.finish()
-
-class TestRec(BaseHandler):
-    
-    def initialize(self, executor: 'ThreadPoolExecutor', rec_params: Dict[str,Any]=None):
-        super().initialize()
-        self.executor = executor
-        self.with_rec_params = rec_params
-
-    def get(self, path):
-        event = create_event('Free pizza',23,datetime.now()+timedelta(seconds=15),datetime.now()+timedelta(hours=2),100,'3990 Fifth Ave.',40.440624,-79.995888,'Details','Location')
-        rec_params = self.with_rec_params
-        recs = _event_recommendation(event,rec_params)
-        self.executor.submit(
-                    send_push_to_users,
-                    recs,
-                    'PittGrub: New Event!',
-                    event.title,
-                    data={
-                        'type': 'event',
-                        'event': event.title,
-                        'title':'PittGrub: New event!',
-                        'body': event.title})
-        for u in recs:
-            user_accept_event(event.id,u.id)
-        self.success(200,{
-            'ids':[u.id for u in recs],
-            'emails':[u.email for u in recs]})
-        self.finish()
-
 
 class EventHandler(SecureHandler):
     required_fields = set(["title", "details", "start_date", "end_date", "address", "location", "servings", "food_preferences", "latitude", "longitude"])
