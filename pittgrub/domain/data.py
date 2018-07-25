@@ -23,7 +23,7 @@ class Data(ABC):
 
 class EventData(Data):
 
-    def __init__(self, event: 'Event'):
+    def __init__(self, event: 'Event', image_url: str=None):
         self.id = event.id
         self.organizer = event.organizer_id
         self.organization = event.organization
@@ -35,6 +35,7 @@ class EventData(Data):
         self.address = event.address
         self.location = event.location
         self.food_preferences = [FoodPreferenceData(f) for f in event.food_preferences]
+        self.image_url = image_url
 
     def json(self) -> Dict[str, Any]:
         data = self.__dict__
@@ -51,7 +52,7 @@ class EventImageData(Data):
 
 class EventViewData(Data):
 
-    def __init__(self, event: 'Event', accepted: bool, recommended: bool):
+    def __init__(self, event: 'Event', accepted: bool, recommended: bool, image_url: str=None):
         self.id = event.id
         self.organizer = event.organizer_id
         self.organization = event.organization
@@ -67,6 +68,7 @@ class EventViewData(Data):
         self.food_preferences = [FoodPreferenceData(f) for f in event.food_preferences]
         self.accepted = bool(accepted) 
         self.recommended = bool(recommended)
+        self.image_url = image_url
 
     def json(self) -> Dict[str, Any]:
         data = self.__dict__

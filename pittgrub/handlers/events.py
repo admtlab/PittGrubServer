@@ -56,11 +56,6 @@ class EventHandler(SecureHandler):
                     # event found
                     self.set_status(200)
                     payload = Payload(value)
-                    event_image = get_event_image_by_event(value.id)
-                    # attach image link if available
-                    if event_image is not None:
-                        payload.add("image", f"/events/{path}/images")
-                    # send response
                     self.finish(payload)
         else:
             # get event list
@@ -82,6 +77,7 @@ class EventHandler(SecureHandler):
             data['end_date'] = data['end_date'].replace(tzinfo=None)
             data['organizer'] = self.get_user_id()
             foodprefs = data.pop('food_preferences')
+            data['image'] = data.get('image', False)
             # add event
             event = create_event(**data)
             if event:

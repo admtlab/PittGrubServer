@@ -18,17 +18,9 @@ from domain.data import (
 )
 
 
-def create_event(
-        title: str,
-        organizer: int,
-        start_date: 'datetime',
-        end_date: 'datetime',
-        servings: int,
-        address: str,
-        latitude,
-        longitude,
-        details: str=None,
-        location: str=None) -> EventData:
+def create_event(title: str, organizer: int, start_date: 'datetime',
+    end_date: 'datetime', servings: int, address: str, latitude, longitude,
+    details: str=None, location: str=None, image: bool=False) -> EventData:
     with session_scope() as session:
         event = Event(
             title=title,
@@ -46,6 +38,10 @@ def create_event(
         session.add(event)
         session.commit()
         session.refresh(event)
+        if image:
+            event_image = EventImage(event_id=event.id)
+            session.add(event_image)
+            return EventData(event, event_image.url)
         return EventData(event)
 
 
@@ -57,7 +53,8 @@ def get_event(id: int) -> Optional[EventData]:
 def get_event_by_user(id: int, user_id: int) -> Optional[EventViewData]:
     with session_scope() as session:
         event = Event.get_by_user(session, id, user_id)
-        return EventViewData(*event)
+        event_image = EventImage.get_by_event(session, event.id)
+        return EventViewData(*event, event_image.url)
 
 
 def get_events() -> List[EventData]:
@@ -76,7 +73,9 @@ def get_active_by_user(user_id: int) -> List[EventViewData]:
     with session_scope() as session:
         events = Event.get_all_active_by_user(session, user_id)
         logging.info('events: ', events)
-        return [EventViewData(*event) for event in events]
+        return [
+            EventViewData(*event, EventImage.get_by_event(session, event.id).url)
+            for event in events]
 
 
 def user_accept_event(event: int, user: int):
