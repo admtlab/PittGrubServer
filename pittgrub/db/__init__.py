@@ -76,15 +76,16 @@ TEST_DATA = dict({
         (2, 2),
     ],
 })
-num = 25
+host_step = 25
+num = 2500
 TEST_DATA = dict({
     'User': [
-        (i+1, 'pittgrub'+str(i+1)+'@pitt.edu','12345', UserStatus.ACCEPTED, str(i+1)+" tester", True, False, 0) if i != 22 else
-        (23, 'pittgrub@pitt.edu', '12345', UserStatus.ACCEPTED, "PittGrub Admin", True, False, 0) for i in range(num)
+        (i+1, 'pittgrub'+str(i+1)+'@pitt.edu','12345', UserStatus.ACCEPTED, "PittGrub Tester "+str(i+1), True, False, 0) if (i+1)%host_step != 0 else
+        (i+1, 'pittgrub'+str(i+1)+'@pitt.edu', '12345', UserStatus.ACCEPTED, "PittGrub Host "+str(i+1), True, False, 0) for i in range(num)
     ],
     'UserRole': [
-        (i+1,1) if i != 22 else
-        (23,2) for i in range(num)
+        (i+1,1) if (i+1)%host_step != 0 else
+        (i+1,2) for i in range(num)
     ],
     'UserFoodPreference': [
         (1, 2),
