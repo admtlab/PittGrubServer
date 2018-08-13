@@ -61,7 +61,9 @@ class User(Base, Entity):
     pitt_pantry = Column('pitt_pantry', BOOLEAN, nullable=False, default=False)
     eagerness = Column('eagerness', INT, nullable=False, default=3)
     email_subscription = Column('email_subscription', BOOLEAN, nullable=False, default=True)
-    
+    primary_affiliation = Column('primary_affiliation', SMALLINT, ForeignKey("PrimaryAffiliation.id"), unique=False, nullable=True)
+
+
     # mappings
     roles = association_proxy('_user_roles', 'role')
     expo_tokens = association_proxy('_user_expo_tokens', 'token')
@@ -83,7 +85,8 @@ class User(Base, Entity):
             login_count: int=0,
             expo_token: str=None,
             pitt_pantry: bool=False,
-            eagerness: int=3):
+            eagerness: int=3,
+            primary_affiliation: int=None):
         self.id = id
         self.created = datetime.datetime.utcnow()
         self.email = email
@@ -96,6 +99,7 @@ class User(Base, Entity):
         self.expo_token = expo_token
         self.pitt_pantry = pitt_pantry
         self.eagerness = eagerness
+        self.primary_affiliation = None
 
     @property
     def valid(self):
@@ -169,6 +173,24 @@ class UserActivity(Base):
         self.user_id = user_id
         self.activity = activity
         self.time = datetime.datetime.utcnow()
+
+class PrimaryAffiliation(Base, Entity):
+    """
+    Primary Affiliation for users who are hosts or admins
+    """
+
+    __tablename__ = 'PrimaryAffiliation'
+
+    id = Column('id',SMALLINT, primary_key=True, autoincrement=True)
+    name = Column('name', VARCHAR(100), unique = True, nullable = False)
+
+    def __init__(self, id: int=None, name: str=None):
+        self.id = id
+        self.name = name
+
+    @classmethod
+    def get_by_name(cls, session, name: str) -> Optional['PrimaryAffiliation']:
+        return session.query(cls).filter_by(name=name).one_or_none()
 
 
 class Role(Base, Entity):
@@ -298,7 +320,6 @@ class UserHostRequest(Base, Entity):
 
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
     user_id = Column('user', BIGINT, ForeignKey("User.id"), unique=True, nullable=False)
-    organization = Column('organization', VARCHAR(255), nullable=False)
     directory = Column('directory', VARCHAR(512), nullable=False)
     reason = Column('reason', VARCHAR(500), nullable=True)
     created = Column('created', DateTime, nullable=False, default=datetime.datetime.utcnow)
@@ -306,12 +327,13 @@ class UserHostRequest(Base, Entity):
     approved_by = Column('approved_by', BIGINT, ForeignKey("User.id"), unique=False, nullable=True)
 
     user = relationship('User', foreign_keys=[user_id], backref='_user_host_request')
+    primary_affiliation = Column('primary_affiliation', SMALLINT, ForeignKey("PrimaryAffiliation.id"), unique=False, nullable=True)
     admin_approval = relationship('User', foreign_keys=[approved_by])
 
-    def __init__(self, id: int=None, user: int=None, organization: str=None, directory: str=None, reason: str=None):
+    def __init__(self, id: int=None, user: int=None, primary_affiliation: int = None, directory: str=None, reason: str=None):
         self.id = id
         self.user_id = user
-        self.organization = organization
+        self.primary_affiliation = primary_affiliation
         self.directory = directory
         self.reason = reason
         self.created = datetime.datetime.utcnow()

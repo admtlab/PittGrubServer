@@ -14,7 +14,7 @@ from .schema import (
     FoodPreference, Role, User, UserAcceptedEvent,
     UserCheckedInEvent, UserFoodPreference, UserHostRequest,
     UserRecommendedEvent, UserReferral, UserRole, UserVerification,
-    UserLocation, UserActivity
+    UserLocation, UserActivity, PrimaryAffiliation
 )
 
 # database sessionmaker
@@ -77,7 +77,7 @@ TEST_DATA = dict({
     ],
 })
 host_step = 25
-num = 2500
+num = 25
 TEST_DATA = dict({
     'User': [
         (i+1, 'pittgrub'+str(i+1)+'@pitt.edu','12345', UserStatus.ACCEPTED, "PittGrub Tester "+str(i+1), True, False, 0) if (i+1)%host_step != 0 else
@@ -85,7 +85,8 @@ TEST_DATA = dict({
     ],
     'UserRole': [
         (i+1,1) if (i+1)%host_step != 0 else
-        (i+1,2) for i in range(num)
+        (i+1,2) if (i+1)!=num else 
+        (i+1,3) for i in range(num)
     ],
     'UserFoodPreference': [
         (1, 2),
@@ -147,6 +148,8 @@ def init(username: str, password: str, url: str, database: str,
     # add default data
     __bulk_insert(engine, DEFAULTS)
     if generate:
+        schema.Base.metadata.drop_all(bind=engine)
         logging.warning('Inserting test data')
         # add test data if generate flag is set to true
+        __bulk_insert(engine, DEFAULTS)
         __bulk_insert(engine, TEST_DATA)

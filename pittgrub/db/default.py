@@ -89,5 +89,11 @@ DEFAULTS = dict({
         (58, "Van de Graaff Building", 40.44479562, -79.95856583),
         (59, "William Pitt Union", 40.4434688, -79.95480001),
         (60, "Wesley W. Posvar Hall", 40.44164387, -79.95381832),
+    ],
+    'PrimaryAffiliation': [
+        (1, 'Kenneth P. Dietrich School of Arts and Science'),
+        (2, 'School of Computing and Information'),
+        (3, 'Swanson School of Engineering'),
+        (4, 'Sodexo Dining Services')
     ]
 })
