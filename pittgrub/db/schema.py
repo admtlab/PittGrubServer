@@ -99,7 +99,7 @@ class User(Base, Entity):
         self.expo_token = expo_token
         self.pitt_pantry = pitt_pantry
         self.eagerness = eagerness
-        self.primary_affiliation = None
+        self.primary_affiliation = primary_affiliation
 
     @property
     def valid(self):
