@@ -77,7 +77,7 @@ TEST_DATA = dict({
     ],
 })
 host_step = 25
-num = 25
+num = 50
 TEST_DATA = dict({
     'User': [
         (i+1, 'pittgrub'+str(i+1)+'@pitt.edu','12345', UserStatus.ACCEPTED, "PittGrub Tester "+str(i+1), True, False, 0) if (i+1)%host_step != 0 else

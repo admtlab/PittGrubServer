@@ -181,7 +181,7 @@ class PrimaryAffiliation(Base, Entity):
 
     __tablename__ = 'PrimaryAffiliation'
 
-    id = Column('id',SMALLINT, primary_key=True, autoincrement=True)
+    id = Column('id', SMALLINT, primary_key=True, autoincrement=True)
     name = Column('name', VARCHAR(100), unique = True, nullable = False)
 
     def __init__(self, id: int=None, name: str=None):
@@ -325,12 +325,12 @@ class UserHostRequest(Base, Entity):
     created = Column('created', DateTime, nullable=False, default=datetime.datetime.utcnow)
     approved = Column('approved', DateTime, nullable=True)
     approved_by = Column('approved_by', BIGINT, ForeignKey("User.id"), unique=False, nullable=True)
+    primary_affiliation = Column('primary_affiliation', SMALLINT, ForeignKey("PrimaryAffiliation.id"), unique=False, nullable=True)
 
     user = relationship('User', foreign_keys=[user_id], backref='_user_host_request')
-    primary_affiliation = Column('primary_affiliation', SMALLINT, ForeignKey("PrimaryAffiliation.id"), unique=False, nullable=True)
     admin_approval = relationship('User', foreign_keys=[approved_by])
 
-    def __init__(self, id: int=None, user: int=None, primary_affiliation: int = None, directory: str=None, reason: str=None):
+    def __init__(self, id: int=None, user: int=None, primary_affiliation: int=None, directory: str=None, reason: str=None):
         self.id = id
         self.user_id = user
         self.primary_affiliation = primary_affiliation

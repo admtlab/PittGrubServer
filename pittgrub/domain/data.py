@@ -140,7 +140,7 @@ class UserReferralData(Data):
     def __init__(self, ref: 'UserReferral'):
         self.user = ref.requester
 
-class AffiliationData(Data):
+class PrimaryAffiliationData(Data):
 
     def __init__(self, aff: 'PrimaryAffiliation'):
         self.id = aff.id

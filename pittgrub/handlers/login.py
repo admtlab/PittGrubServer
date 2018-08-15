@@ -89,7 +89,7 @@ class PrimaryAffiliationHandler(CORSHandler):
 
     def get(self, path: str):
         possible = get_possible_affiliations()
-        self.success(payload=dict(affiliations=possible))
+        self.success(payload=Payload(possible))
 
 class HostSignupHandler(CORSHandler):
     required_fields = set(['email', 'password', 'name', 'primary_affiliation', 'directory'])
