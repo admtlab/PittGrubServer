@@ -14,7 +14,8 @@ from service.auth import (
     JwtTokenService,
     login,
     signup,
-    host_signup
+    host_signup,
+    get_possible_affiliations
 )
 from service.user import get_user_by_email
 
@@ -81,9 +82,17 @@ class SignupHandler(CORSHandler):
                 ))
         self.finish()
 
+class PrimaryAffiliationHandler(CORSHandler):
+
+    def initialize(self, token_service: JwtTokenService):
+        self.token_service = token_service
+
+    def get(self, path: str):
+        possible = get_possible_affiliations()
+        self.success(payload=Payload(possible))
 
 class HostSignupHandler(CORSHandler):
-    required_fields = set(['email', 'password', 'name', 'organization', 'directory'])
+    required_fields = set(['email', 'password', 'name', 'primary_affiliation', 'directory'])
 
     def initialize(self, token_service: JwtTokenService):
         self.token_service = token_service
@@ -98,11 +107,13 @@ class HostSignupHandler(CORSHandler):
             email = data.get('email')
             password = data.get('password')
             name = data.get('name')
-            organization = data.get('organization')
+            primary_affiliation = data.get('primary_affiliation')
             directory = data.get('directory')
             reason = data.get('reason')
-            user, code = host_signup(email, password, name, organization, directory, reason)
-            if user is None or code is None:
+            user, code, valid_aff  = host_signup(email, password, name, primary_affiliation, directory, reason)
+            if not valid_aff:
+                self.write_error(400, 'Error: not a valid primary affiliation')
+            elif user is None or code is None:
                 self.write_error(400, 'Error: user already exists with that email address')
             else:
                 send_verification_email(to=user.email, code=code)

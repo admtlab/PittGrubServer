@@ -9,9 +9,10 @@ from db import (
     UserHostRequest,
     UserReferral,
     UserVerification,
+    PrimaryAffiliation,
     session_scope,
 )
-from domain.data import UserData
+from domain.data import UserData, PrimaryAffiliationData
 from emailer import send_verification_email
 
 
@@ -159,16 +160,22 @@ def signup(email: str, password: str, name: str=None) -> Tuple[Optional['UserDat
             return UserData(user), activation.code
     return None, None
 
-
-def host_signup(email: str, password: str, name: str, organization: str, directory: str, reason: str=None) -> Tuple[Optional['UserData'], Optional[str]]:
+def get_possible_affiliations():
     with session_scope() as session:
-        user = User.create(session, User(email=email, password=password, name=name))
-        if user is not None:
-            activation = UserVerification.add(session, user.id)
-            host_request = UserHostRequest(user=user.id, organization=organization, directory=directory, reason=reason)
-            session.add(host_request)
-            return UserData(user), activation.code
-    return None, None
+        return [PrimaryAffiliationData(aff) for aff in PrimaryAffiliation.get_all(session)]
+    return None
+
+def host_signup(email: str, password: str, name: str, primary_affiliation: int, directory: str, reason: str=None) -> Tuple[Optional['UserData'], Optional[str], bool]:
+    with session_scope() as session:
+        if PrimaryAffiliation.get_by_id(session,primary_affiliation) is not None:
+            user = User.create(session, User(email=email, password=password, name=name, primary_affiliation=primary_affiliation))
+            if user is not None:
+                activation = UserVerification.add(session, user.id)
+                host_request = UserHostRequest(user=user.id, primary_affiliation = primary_affiliation, directory=directory, reason=reason)
+                session.add(host_request)
+                return UserData(user), activation.code, True
+            return None, None, True
+    return None, None, False
 
 # def get_access_token(id: int) -> 'AccessToken':
 #     with session_scope() as session:

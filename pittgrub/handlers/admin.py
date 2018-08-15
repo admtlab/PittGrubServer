@@ -21,7 +21,7 @@ class HostApprovalHandler(CORSHandler, SecureHandler):
 
     def get(self, path: str):
         if not self.has_admin_role():
-            logging.warning(f'User {self.get_user_id()} attempted to access {cls}')
+            logging.warning(f'User {self.get_user_id()} attempted to approve host')
             self.write_error(403, 'Error: insufficient permissions')
         else:
             host_requests = get_pending_host_requests()

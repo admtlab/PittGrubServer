@@ -127,16 +127,21 @@ class UserHostRequestData(Data):
 
     def __init__(self, req: 'UserHostRequest'):
         self.id = req.id
-        self.organization = req.organization
         self.directory = req.directory
         self.reason = req.reason
         self.created = req.created.isoformat()
         self.approved = req.approved
         self.approved_by = req.approved_by
         self.user = {'id': req.user_id, 'email': req.user.email, 'name': req.user.name}
-
+        self.primary_affiliation = req.primary_affiliation
 
 class UserReferralData(Data):
 
     def __init__(self, ref: 'UserReferral'):
         self.user = ref.requester
+
+class PrimaryAffiliationData(Data):
+
+    def __init__(self, aff: 'PrimaryAffiliation'):
+        self.id = aff.id
+        self.name = aff.name

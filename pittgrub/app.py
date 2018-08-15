@@ -22,7 +22,7 @@ from handlers.events import (AcceptedEventHandler, AcceptEventHandler,
                              RecommendedEventHandler)
 from handlers.index import EmailListAddHandler, EmailListRemoveHandler, HealthHandler, MainHandler
 from handlers.login import (HostSignupHandler, LoginHandler, LogoutHandler,
-                            SignupHandler)
+                            SignupHandler, PrimaryAffiliationHandler)
 from handlers.notifications import NotificationHandler
 from handlers.token import (NotificationTokenHandler, TokenRequestHandler,
                             TokenValidationHandler)
@@ -74,6 +74,7 @@ class App(web.Application):
             (r'/logout(/*)', LogoutHandler, dict(token_service=token_service)),
             (r'/signup(/*)', SignupHandler, dict(token_service=token_service)),
             (r'/signup/host(/*)', HostSignupHandler, dict(token_service=token_service)),
+            (r'/signup/host/affiliations(/*)', PrimaryAffiliationHandler, dict(token_service=token_service)),
             # token
             (r'/token/request(/*)', TokenRequestHandler, dict(token_service=token_service)),
             (r'/token/validate(/*)', TokenValidationHandler, dict(token_service=token_service)),
