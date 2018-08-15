@@ -145,11 +145,13 @@ def init(username: str, password: str, url: str, database: str,
                            convert_unicode=True, echo=echo, pool_recycle=3600)
     Session.configure(bind=engine)
     logging.info('Inserting default data')
-    # add default data
-    __bulk_insert(engine, DEFAULTS)
+
     if generate:
         schema.Base.metadata.drop_all(bind=engine)
         logging.warning('Inserting test data')
         # add test data if generate flag is set to true
         __bulk_insert(engine, DEFAULTS)
         __bulk_insert(engine, TEST_DATA)
+    else:
+        __bulk_insert(engine, DEFAULTS)
+
