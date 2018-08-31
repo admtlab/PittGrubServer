@@ -128,22 +128,23 @@ def session_scope():
         session.close()
 
 
-def init(username: str, password: str, url: str, database: str,
-         params: str, echo: bool=False, generate: bool=False):
+def init(username: str, password: str, url: str, database: str, port: str, params: str, echo: bool=False, generate: bool=False):
     """Initialize database
 
     :username: username
     :password: user's password
     :url:      database url
+    :port:     database port
     :database: database name
     :params:   parameters
     :echo:     log commands
     :generate: generate tables dynamically
     """
     global Session
-    engine = create_engine(f'mysql+pymysql://{username}:{password}@{url}/{database}{params}',
+    engine = create_engine(f'mysql+pymysql://{username}:{password}@{url}:{port}/{database}{params}',
                            convert_unicode=True, echo=echo, pool_recycle=3600)
     Session.configure(bind=engine)
+    logging.info(f'connecting to {engine}')
     logging.info('Inserting default data')
 
     if generate:
@@ -154,4 +155,3 @@ def init(username: str, password: str, url: str, database: str,
         __bulk_insert(engine, TEST_DATA)
     else:
         __bulk_insert(engine, DEFAULTS)
-

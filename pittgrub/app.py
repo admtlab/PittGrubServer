@@ -122,6 +122,7 @@ class App(web.Application):
             username=db_config['username'],
             password=db_config['password'],
             url=db_config['url'],
+            port=db_config['dbport'],
             database=db_config['database'],
             params=db_config['params'],
             generate=db_config['generate'])
@@ -147,6 +148,7 @@ def main():
     username = db_config.get('username')
     password = db_config.get('password')
     url = db_config.get('url')
+    dbport = db_config.get('port', '3306')
     database = db_config.get('database')
     generate = db_config.getboolean('generate')
     if config.has_option('DB', 'options'):
@@ -181,6 +183,7 @@ def main():
         username=username,
         password=password,
         url=url,
+        dbport=dbport,
 		rec_params = {'avg_prob':avg_prob_attnd},
         database=database,
         params=params,
