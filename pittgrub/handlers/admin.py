@@ -6,6 +6,7 @@ Author: Mark Silvis
 import logging
 
 from tornado.escape import json_decode
+from tornado.web import Finish
 
 from db import UserReferral
 from handlers.base import CORSHandler, SecureHandler
@@ -14,6 +15,8 @@ from service import MissingUserError
 from service.admin import (
     host_approval, get_pending_host_requests, AdminPermissionError, get_referrals
 )
+from service.property import get_property, set_property
+from service.user import invite_next_users
 
 
 class HostApprovalHandler(CORSHandler, SecureHandler):
@@ -91,6 +94,29 @@ class UserApprovedReferralHandler(CORSHandler, SecureHandler):
         refs = UserReferral.get_approved(user_id)
         print(f'approved referrals: {refs}')
         self.success(status=200, payload=Payload(refs))
+
+class UpdateUserThreshold(SecureHandler):
+    required_fields = set(['increment'])
+    
+    def post(self, path):
+        if not self.has_admin_role():
+            self.write_error(403)
+            raise Finish()
+
+        prop = 'user.threshold'
+        data = self.get_data()
+
+        try:
+            increment = int(data.get('increment', 0))
+        except ValueError:
+            self.write_error(400, f"Error: invalid number")
+            raise Finish()
+
+        set_property(prop, str(int(get_property(prop)) + increment))
+        invite_next_users()
+        self.success(status=201)
+        self.finish()
+
 
 # class AdminHandler(CORSHandler, SecureHandler):
 #     def post(self, path: str):

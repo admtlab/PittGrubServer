@@ -11,7 +11,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, validates
 from sqlalchemy.types import (BIGINT, BOOLEAN, CHAR, DECIMAL, INT, SMALLINT,
-                              VARCHAR, DateTime, Enum)
+                              VARCHAR, DateTime, Enum, TEXT)
 
 import db
 from db.base import (Activity, Entity, OrganizationRole, Password,
@@ -154,6 +154,15 @@ class User(Base, Entity):
         if user is None:
             return False
         return bcrypt_sha256.verify(password, user.password)
+
+    @classmethod
+    def next_users_to_permit(cls, session) -> List['User']:
+        limit = int(Property.get_by_name(session, 'user.threshold').value)
+        return session.query(cls)\
+            .filter(cls.status == UserStatus.REQUESTED)\
+            .order_by(cls.id.asc())\
+            .limit(limit)\
+            .all()
 
     def verify_password(self, password: str) -> bool:
         return bcrypt_sha256.verify(password, self.password)
@@ -841,3 +850,24 @@ class Building(Base, Entity):
     @classmethod
     def get_by_name(cls, name: str) -> Optional['Building']:
         return db.session.query(cls).filter_by(name=name).one_or_none()
+
+
+class Property(Base, Entity):
+    __tablename__ = "Property"
+
+    id = Column('id', BIGINT, primary_key=True, autoincrement=True)
+    name = Column('name', VARCHAR(255), unique=True, nullable=False)
+    value = Column('value', TEXT, unique=False, nullable=False)
+    created = Column('created', DateTime, default=datetime.datetime.utcnow, nullable=False)
+    updated = Column('updated', DateTime, default=datetime.datetime.utcnow, nullable=True)
+
+    def __init__(self, id: int, name: str, value: str):
+        self.id = id
+        self.name = name
+        self.value = value
+        self.created = datetime.datetime.utcnow()
+        self.updated = None
+
+    @classmethod
+    def get_by_name(cls, session, name: str) -> Optional['Property']:
+        return session.query(cls).filter_by(name=name).one_or_none()

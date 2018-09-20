@@ -16,7 +16,7 @@ from tornado.ioloop import IOLoop
 from tornado.options import define, options, parse_command_line
 
 import db
-from handlers.admin import HostApprovalHandler
+from handlers.admin import HostApprovalHandler, UpdateUserThreshold
 from handlers.events import (AcceptedEventHandler, AcceptEventHandler,
                              EventHandler, EventImageHandler,
                              RecommendedEventHandler)
@@ -81,6 +81,7 @@ class App(web.Application):
             (r'/token/notification(/*)', NotificationTokenHandler, dict(token_service=token_service)),
             # admin
             (r'/admin/approveHost(/*)', HostApprovalHandler, dict(token_service=token_service)),
+            (r'/admin/updateUserThreshold(/*)', UpdateUserThreshold, dict(token_service=token_service)),
             # users
             (r'/users(/*)', UserHandler, dict(token_service=token_service)),
             (r'/users/profile(/*)', UserProfileHandler, dict(token_service=token_service)),

@@ -11,7 +11,7 @@ from .base import Entity, ReferralStatus, UserStatus, health_check, Activity
 from .default import DEFAULTS
 from .schema import (
     Building, EmailList, Event, EventFoodPreference, EventImage,
-    FoodPreference, Role, User, UserAcceptedEvent,
+    FoodPreference, Property, Role, User, UserAcceptedEvent,
     UserCheckedInEvent, UserFoodPreference, UserHostRequest,
     UserRecommendedEvent, UserReferral, UserRole, UserVerification,
     UserLocation, UserActivity, PrimaryAffiliation

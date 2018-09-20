@@ -10,6 +10,8 @@ from db import (
     session_scope
 )
 from domain.data import UserData, UserProfileData, FoodPreferenceData
+from emailer import send_verification_email
+from service.property import get_property, set_property
 from . import MissingUserError
 
 
@@ -28,6 +30,15 @@ def get_user_verification(id: int) -> str:
         verification = UserVerification.get_by_user(session, id)
         if verification is None:
             verification = UserVerification.add(session, user_id=id)
+        return verification.code
+
+def get_user_verification_code(id: int) -> Optional[str]:
+    with session_scope() as session:
+        if not _is_user(session, id):
+            raise MissingUserError(f"User not found with id: {id}")
+        verification = UserVerification.get_by_user(session, id)
+        if verification is None:
+            return None
         return verification.code
 
 def get_user(id: int) -> Optional[UserData]:
@@ -131,3 +142,15 @@ def remove_from_email_list(email: str) -> bool:
             EmailList.remove(session, email)
         return True
     return False
+
+def invite_next_users():
+    threshold = int(get_property('user.threshold'))
+    with session_scope() as session:
+        users = UserData.list(User.next_users_to_permit(session))
+        for user in users:
+            if threshold < 1:
+                break
+            code = UserVerification.add(session, user.id).code
+            send_verification_email(to=user.email, code=code)
+            threshold -= 1
+    set_property('user.threshold', str(threshold))

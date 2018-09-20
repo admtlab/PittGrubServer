@@ -69,10 +69,11 @@ class SignupHandler(CORSHandler):
         else:
             name = data['name'] if 'name' in data else None
             user, code = signup(data['email'], data['password'], name)
-            if user is None or code is None:
+            if user is None:
                 self.write_error(400, 'Error: user already exists with that email address')
             else:
-                send_verification_email(to=user.email, code=code)
+                if code is not None:
+                    send_verification_email(to=user.email, code=code)
                 access_token = self.token_service.create_access_token(owner=user.id)
                 refresh_token = self.token_service.create_refresh_token(owner=user.id)
                 self.success(payload=dict(
