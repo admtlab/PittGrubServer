@@ -30,6 +30,7 @@ from handlers.user import (UserHandler, UserLocationHandler,
                            UserPasswordHandler, UserPasswordResetHandler,
                            UserProfileHandler, UserVerificationHandler)
 from service.auth import JwtTokenService
+from service.property import init_cache
 from storage import ImageStore
 
 
@@ -128,6 +129,9 @@ class App(web.Application):
             params=db_config['params'],
             generate=db_config['generate'])
 
+        # initialize property cache
+        init_cache()
+
 
 def main():
     """Make application"""
@@ -185,7 +189,7 @@ def main():
         password=password,
         url=url,
         dbport=dbport,
-		rec_params = {'avg_prob':avg_prob_attnd},
+		rec_params={'avg_prob': avg_prob_attnd},
         database=database,
         params=params,
         generate=generate)

@@ -98,6 +98,7 @@ TEST_DATA = dict({
     ]
 })
 
+
 def __bulk_insert(engine, data: Dict[str, Any]):
     schema.Base.metadata.create_all(bind=engine)
     for entity, values in data.items():
@@ -121,7 +122,7 @@ def session_scope():
         yield session
         session.commit()
     except Exception as e:
-        logging.warning(f'\nA ROLLBACK OCCURRED\n{e}')
+        logging.error(f'\nA ROLLBACK OCCURRED\n{e}')
         session.rollback()
         raise
     finally:

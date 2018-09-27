@@ -44,7 +44,6 @@ class EmailList(Base, Entity):
             .one_or_none()
 
 
-
 class User(Base, Entity):
     __tablename__ = 'User'
 
@@ -183,6 +182,7 @@ class UserActivity(Base):
         self.activity = activity
         self.time = datetime.datetime.utcnow()
 
+
 class PrimaryAffiliation(Base, Entity):
     """
     Primary Affiliation for users who are hosts or admins
@@ -191,7 +191,7 @@ class PrimaryAffiliation(Base, Entity):
     __tablename__ = 'PrimaryAffiliation'
 
     id = Column('id', SMALLINT, primary_key=True, autoincrement=True)
-    name = Column('name', VARCHAR(100), unique = True, nullable = False)
+    name = Column('name', VARCHAR(100), unique=True, nullable=False)
 
     def __init__(self, id: int=None, name: str=None):
         self.id = id
@@ -401,13 +401,19 @@ class UserReferral(Base):
     @classmethod
     def get_approved(cls, reference_id: int) -> List['UserReferral']:
         assert reference_id > 0
-        referrals = db.session.query(cls).filter_by(reference=reference_id).filter_by(status=ReferralStatus.APPROVED).all()
+        referrals = db.session.query(cls)\
+                      .filter_by(reference=reference_id)\
+                      .filter_by(status=ReferralStatus.APPROVED)\
+                      .all()
         return referrals
 
     @classmethod
     def get_pending(cls, reference_id: int) -> List['UserReferral']:
         assert reference_id > 0
-        referrals = db.session.query(cls).filter_by(reference=reference_id).filter_by(status=ReferralStatus.PENDING).all()
+        referrals = db.session.query(cls)\
+                      .filter_by(reference=reference_id)\
+                      .filter_by(status=ReferralStatus.PENDING)\
+                      .all()
         return referrals
 
     def approve(self):
@@ -717,6 +723,7 @@ Event types are not currently used
 #         self.event_type = event_type
 #
 
+
 class UserRecommendedEvent(Base):
     __tablename__ = 'UserRecommendedEvent'
 
@@ -858,6 +865,8 @@ class Property(Base, Entity):
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
     name = Column('name', VARCHAR(255), unique=True, nullable=False)
     value = Column('value', TEXT, unique=False, nullable=False)
+    cached = Column('cached', BOOLEAN, unique=False, nullable=False, default=False)
+    encrypted = Column('encrypted', BOOLEAN, unique=False, nullable=False, default=False)
     created = Column('created', DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated = Column('updated', DateTime, default=datetime.datetime.utcnow, nullable=True)
 
@@ -871,3 +880,7 @@ class Property(Base, Entity):
     @classmethod
     def get_by_name(cls, session, name: str) -> Optional['Property']:
         return session.query(cls).filter_by(name=name).one_or_none()
+
+    @classmethod
+    def get_cacheable(cls, session) -> List['Property']:
+        return session.query(cls).filter_by(cached=True).all()

@@ -160,7 +160,7 @@ class UserVerificationHandler(SecureHandler):
             if user.active:
                 logging.info(f"User {user_id} is already active")
                 self.write_error(400, "Error: user already active")
-            elif user.status == "REQUESTED" and threshold > 0:
+            elif user.status == "REQUESTED" and (threshold > 0 or get_user_verification_code(user_id) is not None):
                 code = get_user_verification(user_id)
                 send_verification_email(to=user.email, code=code)
                 set_property('user.threshold', str(threshold-1))
