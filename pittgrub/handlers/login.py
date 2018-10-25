@@ -32,7 +32,7 @@ class LoginHandler(CORSHandler):
         password = data['password']
         user = login(email, password)
         if user is None:
-            self.write_error(400, 'Error: Incorrect email or password')
+            self.write_error(401, 'Error: Incorrect email or password')
         else:
             access_token = self.token_service.create_access_token(owner=user.id)
             refresh_token = self.token_service.create_refresh_token(owner=user.id)
