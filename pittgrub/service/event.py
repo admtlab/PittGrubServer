@@ -74,7 +74,7 @@ def get_active_by_user(user_id: int) -> List[EventViewData]:
         events = Event.get_all_active_by_user(session, user_id)
         logging.info('events: ', events)
         return [
-            EventViewData(*event, EventImage.get_by_event(session, event.id).url)
+            EventViewData(*event)
             for event in events]
 
 

@@ -22,8 +22,8 @@ class TokenRequestHandler(BaseHandler):
             user = get_user(user_id)
             if user.disabled:
                 self.write_error(403, f'Error: user account disabled')
-            elif not user.active:
-                self.write_error(401, f'Error: user activation required')
+            # elif not user.active:
+            #     self.write_error(401, f'Error: user activation required')
             else:
                 access_token = self.token_service.create_access_token(owner=user.id)
                 self.success(payload=dict(
