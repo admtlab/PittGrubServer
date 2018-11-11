@@ -17,7 +17,7 @@ def food_preference_filter(user: User, event: Event) -> bool:
 
 
 def should_recommend(user: User, event: Event) -> bool:
-    return food_preference_filter(user, event)
+    return food_preference_filter(user, event) and user.active
 
 
 def _event_recommendation(event: Union[Event, 'EventData'], with_params: Dict[str,Any]=None) -> List[User]:

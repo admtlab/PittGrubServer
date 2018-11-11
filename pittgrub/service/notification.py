@@ -35,6 +35,7 @@ def send_push_to_users(users: List['User'], title: str, body: str, data: Dict[An
             notification_data['title'] = title
             notification_data['body'] = body
             notification_data['type'] = 'message'
+            # notification_data['user_id'] = user.id
             try:
                 if send_push_notification(user.expo_token, title, body, notification_data):
                     sent[i] = True
