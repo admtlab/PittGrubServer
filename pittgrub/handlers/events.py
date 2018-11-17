@@ -30,7 +30,7 @@ from service.recommender import _event_recommendation
 from storage import ImageStore
 from datetime import datetime, timedelta
 from domain.data import UserData
-
+import logging
 
 class EventHandler(SecureHandler):
     required_fields = set(["title", "details", "start_date", "end_date", "address", "location", "servings", "food_preferences", "latitude", "longitude"])
