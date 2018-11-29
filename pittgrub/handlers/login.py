@@ -111,13 +111,14 @@ class HostSignupHandler(CORSHandler):
             primary_affiliation = data.get('primary_affiliation')
             directory = data.get('directory')
             reason = data.get('reason')
-            user, code, valid_aff  = host_signup(email, password, name, primary_affiliation, directory, reason)
+            user, code, valid_aff = host_signup(email, password, name, primary_affiliation, directory, reason)
             if not valid_aff:
                 self.write_error(400, 'Error: not a valid primary affiliation')
-            elif user is None or code is None:
+            elif user is None and code is None:
                 self.write_error(400, 'Error: user already exists with that email address')
             else:
-                send_verification_email(to=user.email, code=code)
+                if code is not None:
+                    send_verification_email(to=user.email, code=code)
                 access_token = self.token_service.create_access_token(owner=user.id)
                 refresh_token = self.token_service.create_refresh_token(owner=user.id)
                 self.success(payload=dict(
