@@ -4,6 +4,7 @@ Author: Mark Silvis
 """
 
 from abc import ABC
+import logging
 from typing import Any, Dict, List, Type, TypeVar
 
 from db.schema import Base
@@ -53,8 +54,11 @@ class EventImageData(Data):
 class EventViewData(Data):
 
     def __init__(self, event: 'Event', accepted: bool, recommended: bool, image_url: str=None):
+        logging.info(event)
         self.id = event.id
         self.organizer = event.organizer_id
+        self.organizer_name = event.organizer.name
+        self.organizer_affiliation = event.organizer.affiliation.name
         self.organization = event.organization
         self.title = event.title
         self.start_date = event.start_date.isoformat()
@@ -127,7 +131,6 @@ class UserHostRequestData(Data):
 
     def __init__(self, req: 'UserHostRequest'):
         self.id = req.id
-        self.directory = req.directory
         self.reason = req.reason
         self.created = req.created.isoformat()
         self.approved = req.approved

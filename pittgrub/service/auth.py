@@ -177,7 +177,7 @@ def get_possible_affiliations():
         return [PrimaryAffiliationData(aff) for aff in PrimaryAffiliation.get_all(session)]
     return None
 
-def host_signup(email: str, password: str, name: str, primary_affiliation: int, directory: str, reason: str=None) -> Tuple[Optional['UserData'], Optional[str], bool]:
+def host_signup(email: str, password: str, name: str, primary_affiliation: int, reason: str=None) -> Tuple[Optional['UserData'], Optional[str], bool]:
     with session_scope() as session:
         if PrimaryAffiliation.get_by_id(session,primary_affiliation) is not None:
             user = User.create(session, User(email=email, password=password, name=name, primary_affiliation=primary_affiliation))
@@ -187,7 +187,7 @@ def host_signup(email: str, password: str, name: str, primary_affiliation: int, 
                 if threshold > 0:
                     code = UserVerification.add(session, user.id).code
                     set_property('user.threshold', str(threshold-1))
-                host_request = UserHostRequest(user=user.id, primary_affiliation = primary_affiliation, directory=directory, reason=reason)
+                host_request = UserHostRequest(user=user.id, primary_affiliation=primary_affiliation, reason=reason)
                 session.add(host_request)
                 return UserData(user), code, True
             return None, None, True

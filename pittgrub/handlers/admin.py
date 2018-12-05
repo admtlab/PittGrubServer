@@ -20,7 +20,7 @@ from service.user import invite_next_users
 
 
 class HostApprovalHandler(CORSHandler, SecureHandler):
-    required_fields = set(['user_id'])
+    required_fields = {'user_id'}
 
     def get(self, path: str):
         if not self.has_admin_role():
@@ -35,6 +35,8 @@ class HostApprovalHandler(CORSHandler, SecureHandler):
         user_id = data.get('user_id')
         if not isinstance(user_id, int):
             self.write(400, 'Error: invalid user id')
+        elif not self.has_admin_role():
+            self.write_error(403, 'Error: insufficient permissions')
         else:
             admin_id = self.get_user_id()
             try:

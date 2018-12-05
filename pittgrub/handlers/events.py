@@ -9,7 +9,7 @@ import random
 import dateutil.parser
 from PIL import Image
 from typing import Dict, Any
-from handlers import SecureHandler, BaseHandler
+from handlers import BaseHandler, CORSHandler, SecureHandler
 from handlers.response import Payload
 from service.auth import JwtTokenService
 from service.event import (
@@ -24,6 +24,7 @@ from service.event import (
     user_accept_event,
     user_accepted_events,
     user_recommended_events_valid,
+    user_remove_event,
 )
 from service.notification import send_push_to_users
 from service.recommender import _event_recommendation
@@ -31,6 +32,7 @@ from storage import ImageStore
 from datetime import datetime, timedelta
 from domain.data import UserData
 import logging
+
 
 class EventHandler(SecureHandler):
     required_fields = set(["title", "details", "start_date", "end_date", "address", "location", "servings", "food_preferences", "latitude", "longitude"])
@@ -122,13 +124,35 @@ class AcceptedEventHandler(SecureHandler):
 
 
 class AcceptEventHandler(SecureHandler):
-    def post(self, event):
+
+    def post(self, path):
         user_id = self.get_user_id()
         event = self.get_data().get('event_id')
         user_accept_event(event, user_id)
         self.set_status(204)
         self.finish()
         logging.info(f'accepted event {event} for user {user_id}')
+
+    def delete(self, path):
+        user_id = self.get_user_id()
+        event = self.get_data().get('event_id')
+        user_remove_event(event, user_id)
+        self.set_status(204)
+        self.finish()
+        logging.info(f'removed event {event} for user {user_id}')
+
+
+class EventImageTest(CORSHandler):
+    def post(self, path):
+        logging.info(f'path ${path}')
+        logging.info('request data')
+        logging.info(self.request)
+        data = self.get_data()
+        logging.info(data)
+        image = Image.open(BytesIO(image['body']))
+        image2 = Image.open(BytesIO(data._parts[1].uri))
+        image.show()
+        image2.show()
 
 
 class EventImageHandler(SecureHandler):

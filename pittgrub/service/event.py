@@ -53,6 +53,7 @@ def get_event(id: int) -> Optional[EventData]:
 def get_event_by_user(id: int, user_id: int) -> Optional[EventViewData]:
     with session_scope() as session:
         event = Event.get_by_user(session, id, user_id)
+        logging.info(f'got event {event}')
         event_image = EventImage.get_by_event(session, event.id)
         return EventViewData(*event, event_image.url)
 
@@ -71,17 +72,27 @@ def get_active() -> List[EventData]:
 
 def get_active_by_user(user_id: int) -> List[EventViewData]:
     with session_scope() as session:
-        events = Event.get_all_active_by_user(session, user_id)
-        logging.info('events: ', events)
-        return [
-            EventViewData(*event)
-            for event in events]
+        # events = Event.get_all_active_by_user(session, user_id)
+        user = User.get_by_id(session, user_id)
+        events = Event.get_all_active(session)
+        user_accepted = {event.id for event in user.accepted_events}
+        user_recommended = {event.id for event in user.recommended_events}
+        views = [
+            EventViewData(event, event.id in user_accepted, event.id in user_recommended)
+            for event in events
+        ]
+        return views
 
 
 def user_accept_event(event: int, user: int):
     with session_scope() as session:
         accepted = UserAcceptedEvent(event, user)
         session.add(accepted)
+
+
+def user_remove_event(event: int, user: int):
+    with session_scope() as session:
+        UserAcceptedEvent.remove(session, event, user)
 
 
 def user_accepted_events(user_id: int):

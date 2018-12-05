@@ -93,7 +93,7 @@ class PrimaryAffiliationHandler(CORSHandler):
         self.success(payload=Payload(possible))
 
 class HostSignupHandler(CORSHandler):
-    required_fields = set(['email', 'password', 'name', 'primary_affiliation', 'directory'])
+    required_fields = set(['email', 'password', 'name', 'primary_affiliation'])
 
     def initialize(self, token_service: JwtTokenService):
         self.token_service = token_service
@@ -109,9 +109,8 @@ class HostSignupHandler(CORSHandler):
             password = data.get('password')
             name = data.get('name')
             primary_affiliation = data.get('primary_affiliation')
-            directory = data.get('directory')
             reason = data.get('reason')
-            user, code, valid_aff = host_signup(email, password, name, primary_affiliation, directory, reason)
+            user, code, valid_aff = host_signup(email, password, name, primary_affiliation, reason)
             if not valid_aff:
                 self.write_error(400, 'Error: not a valid primary affiliation')
             elif user is None and code is None:

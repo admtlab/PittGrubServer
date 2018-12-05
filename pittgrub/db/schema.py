@@ -70,6 +70,7 @@ class User(Base, Entity):
     recommended_events = association_proxy('_user_recommended_events', 'event')
     accepted_events = association_proxy('_user_accepted_events', 'event')
     checkedin_events = association_proxy('_user_checkedin_events', 'event')
+    affiliation = relationship("PrimaryAffiliation", foreign_keys=[primary_affiliation])
 
 
     def __init__(
@@ -329,7 +330,6 @@ class UserHostRequest(Base, Entity):
 
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
     user_id = Column('user', BIGINT, ForeignKey("User.id"), unique=True, nullable=False)
-    directory = Column('directory', VARCHAR(512), nullable=False)
     reason = Column('reason', VARCHAR(500), nullable=True)
     created = Column('created', DateTime, nullable=False, default=datetime.datetime.utcnow)
     approved = Column('approved', DateTime, nullable=True)
@@ -339,11 +339,10 @@ class UserHostRequest(Base, Entity):
     user = relationship('User', foreign_keys=[user_id], backref='_user_host_request')
     admin_approval = relationship('User', foreign_keys=[approved_by])
 
-    def __init__(self, id: int=None, user: int=None, primary_affiliation: int=None, directory: str=None, reason: str=None):
+    def __init__(self, id: int=None, user: int=None, primary_affiliation: int=None, reason: str=None):
         self.id = id
         self.user_id = user
         self.primary_affiliation = primary_affiliation
-        self.directory = directory
         self.reason = reason
         self.created = datetime.datetime.utcnow()
         self.approved = None
@@ -785,6 +784,13 @@ class UserAcceptedEvent(Base):
             db.session.add(user_accepted_event)
             db.session.commit()
         return user_accepted_event
+
+    @classmethod
+    def remove(cls, session, event_id, user_id):
+        return session.query(cls)\
+            .filter_by(event_id=event_id)\
+            .filter_by(user_id=user_id)\
+            .delete()
 
 
 class UserCheckedInEvent(Base):
