@@ -136,7 +136,7 @@ class UserHostRequestData(Data):
         self.approved = req.approved
         self.approved_by = req.approved_by
         self.user = {'id': req.user_id, 'email': req.user.email, 'name': req.user.name}
-        self.primary_affiliation = req.primary_affiliation
+        self.primary_affiliation = req.user.affiliation.name
 
 class UserReferralData(Data):
 
