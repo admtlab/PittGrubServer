@@ -34,7 +34,7 @@ class HostApprovalHandler(CORSHandler, SecureHandler):
         data = self.get_data()
         user_id = data.get('user_id')
         if not isinstance(user_id, int):
-            self.write(400, 'Error: invalid user id')
+            self.write_error(400, 'Error: invalid user id')
         elif not self.has_admin_role():
             self.write_error(403, 'Error: insufficient permissions')
         else:
