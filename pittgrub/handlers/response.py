@@ -62,7 +62,6 @@ class Payload():
         else:
             self._links.update({key.lower(): {'href': val} for key, val in links.items()})
 
-
     def json(self) -> str:
         """Returns escaped JSON encoding of payload"""
         if isinstance(self._response, list):
@@ -79,8 +78,11 @@ class Payload():
                     '_embedded': embedded,
                     '_links': self._links
                 }))
-        else:
+        elif isinstance(self._response, Data):
             res = self._response.json()
+            res['_links'] = self._links
+            return json_esc(res)
+        else:
             res['_links'] = self._links
             return json_esc(res)
 

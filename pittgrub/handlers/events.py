@@ -182,16 +182,20 @@ class EventImageHandler(SecureHandler):
         event = get_event(event_id)
         if event is None:
             self.write_error(404, f'Event not found with id: {id}')
+        elif not self.has_host_role() or event.organizer_id != self.get_user_id():
+            self.write_error(403, 'Insufficient permission')
         else:
-            image = self.request.files['image'][0]
-            if image is None:
-                self.write_error(400, 'Missing image file')
-            else:
-                image = Image.open(BytesIO(image['body']))
-                event_image = add_event_image(event_id)
-                image_id = event_image.id
-                if self.image_store.save_image(image_id, image):
-                    self.success(status=201, payload=dict(image=self.image_store.get_name(image_id)))
-                else:
-                    self.write_error(400, f'Failed to upload image')
+            logging.info(f'Adding image to event {event_id}')
+            self.success()
+            # image = self.request.files['image'][0]
+            # if image is None:
+            #     self.write_error(400, 'Missing image file')
+            # else:
+            #     image = Image.open(BytesIO(image['body']))
+            #     event_image = add_event_image(event_id)
+            #     image_id = event_image.id
+            #     if self.image_store.save_image(image_id, image):
+            #         self.success(status=201, payload=dict(image=self.image_store.get_name(image_id)))
+            #     else:
+            #         self.write_error(400, f'Failed to upload image')
         self.finish()

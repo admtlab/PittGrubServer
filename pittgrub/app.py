@@ -28,6 +28,7 @@ from handlers.events import (
     EventImageTest,
     RecommendedEventHandler
 )
+from handlers.host import HostTrainingSlidesHandler
 from handlers.index import EmailListAddHandler, EmailListRemoveHandler, HealthHandler, MainHandler
 from handlers.login import (
     HostSignupHandler,
@@ -69,7 +70,6 @@ class App(web.Application):
             self,
             debug: bool,
             token_service: JwtTokenService,
-            image_store: ImageStore,
             static_path: str=None,
             rec_params: Dict[str, Any]=None,
             **db_config: Dict[str, str]) -> None:
@@ -115,13 +115,14 @@ class App(web.Application):
             # events
             (r'/events(/*)', EventHandler, dict(token_service=token_service, executor=thread_pool, rec_params=rec_params)),
             (r'/events/(\d+/*)', EventHandler, dict(token_service=token_service, executor=thread_pool, rec_params=rec_params)),
-            (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(token_service=token_service, image_store=image_store)),
+            (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(token_service=token_service)),
             (r'/events/test(/*)', EventImageTest),
             (r'/events/recommended(/*)', RecommendedEventHandler, dict(token_service=token_service)),
             (r'/events/accepted(/*)', AcceptedEventHandler, dict(token_service=token_service)),
             (r'/events/accept(/*)', AcceptEventHandler, dict(token_service=token_service)),
             # notifications
             (r'/notifications(/*)', NotificationHandler, dict(token_service=token_service)),
+            (r'/data/host-training-slides(/*)', HostTrainingSlidesHandler),
             # TODO: finish these
             # (r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
             #(r'/referrals(/*)', UserReferralHandler),   # get user referrals
@@ -188,10 +189,6 @@ def main():
     # token service configuration
     token_service = JwtTokenService(server_config.get('secret'))
 
-    # storage configuration
-    store_config = config['STORE']
-    image_store = ImageStore(store_config.get('images'))
-
     # logging configuration
     log_config = config['LOG']
     filename = log_config.get('file')
@@ -207,12 +204,11 @@ def main():
     app = App(
         debug=debug,
         token_service=token_service,
-        image_store=image_store,
         username=username,
         password=password,
         url=url,
         dbport=dbport,
-		rec_params={'avg_prob': avg_prob_attnd},
+        rec_params={'avg_prob': avg_prob_attnd},
         database=database,
         params=params,
         generate=generate)
