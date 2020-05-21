@@ -43,6 +43,7 @@ class Entity:
             .delete()
         return success
 
+
 class Password(TypeDecorator):
     """Password hash
     Hash is SHA-256

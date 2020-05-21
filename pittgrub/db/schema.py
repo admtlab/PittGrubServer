@@ -11,7 +11,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, validates
 from sqlalchemy.types import (BIGINT, BOOLEAN, CHAR, DECIMAL, INT, SMALLINT,
-                              VARCHAR, DateTime, Enum)
+                              VARCHAR, DateTime, Enum, TEXT)
 
 import db
 from db.base import (Activity, Entity, OrganizationRole, Password,
@@ -44,7 +44,6 @@ class EmailList(Base, Entity):
             .one_or_none()
 
 
-
 class User(Base, Entity):
     __tablename__ = 'User'
 
@@ -61,7 +60,9 @@ class User(Base, Entity):
     pitt_pantry = Column('pitt_pantry', BOOLEAN, nullable=False, default=False)
     eagerness = Column('eagerness', INT, nullable=False, default=3)
     email_subscription = Column('email_subscription', BOOLEAN, nullable=False, default=True)
-    
+    primary_affiliation = Column('primary_affiliation', SMALLINT, ForeignKey("PrimaryAffiliation.id"), unique=False, nullable=True)
+
+
     # mappings
     roles = association_proxy('_user_roles', 'role')
     expo_tokens = association_proxy('_user_expo_tokens', 'token')
@@ -69,6 +70,7 @@ class User(Base, Entity):
     recommended_events = association_proxy('_user_recommended_events', 'event')
     accepted_events = association_proxy('_user_accepted_events', 'event')
     checkedin_events = association_proxy('_user_checkedin_events', 'event')
+    affiliation = relationship("PrimaryAffiliation", foreign_keys=[primary_affiliation])
 
 
     def __init__(
@@ -83,7 +85,8 @@ class User(Base, Entity):
             login_count: int=0,
             expo_token: str=None,
             pitt_pantry: bool=False,
-            eagerness: int=3):
+            eagerness: int=3,
+            primary_affiliation: int=None):
         self.id = id
         self.created = datetime.datetime.utcnow()
         self.email = email
@@ -96,6 +99,7 @@ class User(Base, Entity):
         self.expo_token = expo_token
         self.pitt_pantry = pitt_pantry
         self.eagerness = eagerness
+        self.primary_affiliation = primary_affiliation
 
     @property
     def valid(self):
@@ -151,6 +155,15 @@ class User(Base, Entity):
             return False
         return bcrypt_sha256.verify(password, user.password)
 
+    @classmethod
+    def next_users_to_permit(cls, session) -> List['User']:
+        limit = int(Property.get_by_name(session, 'user.threshold').value)
+        return session.query(cls)\
+            .filter(cls.status == UserStatus.REQUESTED)\
+            .order_by(cls.id.asc())\
+            .limit(limit)\
+            .all()
+
     def verify_password(self, password: str) -> bool:
         return bcrypt_sha256.verify(password, self.password)
 
@@ -169,6 +182,25 @@ class UserActivity(Base):
         self.user_id = user_id
         self.activity = activity
         self.time = datetime.datetime.utcnow()
+
+
+class PrimaryAffiliation(Base, Entity):
+    """
+    Primary Affiliation for users who are hosts or admins
+    """
+
+    __tablename__ = 'PrimaryAffiliation'
+
+    id = Column('id', SMALLINT, primary_key=True, autoincrement=True)
+    name = Column('name', VARCHAR(100), unique=True, nullable=False)
+
+    def __init__(self, id: int=None, name: str=None):
+        self.id = id
+        self.name = name
+
+    @classmethod
+    def get_by_name(cls, session, name: str) -> Optional['PrimaryAffiliation']:
+        return session.query(cls).filter_by(name=name).one_or_none()
 
 
 class Role(Base, Entity):
@@ -298,21 +330,19 @@ class UserHostRequest(Base, Entity):
 
     id = Column('id', BIGINT, primary_key=True, autoincrement=True)
     user_id = Column('user', BIGINT, ForeignKey("User.id"), unique=True, nullable=False)
-    organization = Column('organization', VARCHAR(255), nullable=False)
-    directory = Column('directory', VARCHAR(512), nullable=False)
     reason = Column('reason', VARCHAR(500), nullable=True)
     created = Column('created', DateTime, nullable=False, default=datetime.datetime.utcnow)
     approved = Column('approved', DateTime, nullable=True)
     approved_by = Column('approved_by', BIGINT, ForeignKey("User.id"), unique=False, nullable=True)
+    primary_affiliation = Column('primary_affiliation', SMALLINT, ForeignKey("PrimaryAffiliation.id"), unique=False, nullable=True)
 
     user = relationship('User', foreign_keys=[user_id], backref='_user_host_request')
     admin_approval = relationship('User', foreign_keys=[approved_by])
 
-    def __init__(self, id: int=None, user: int=None, organization: str=None, directory: str=None, reason: str=None):
+    def __init__(self, id: int=None, user: int=None, primary_affiliation: int=None, reason: str=None):
         self.id = id
         self.user_id = user
-        self.organization = organization
-        self.directory = directory
+        self.primary_affiliation = primary_affiliation
         self.reason = reason
         self.created = datetime.datetime.utcnow()
         self.approved = None
@@ -370,13 +400,19 @@ class UserReferral(Base):
     @classmethod
     def get_approved(cls, reference_id: int) -> List['UserReferral']:
         assert reference_id > 0
-        referrals = db.session.query(cls).filter_by(reference=reference_id).filter_by(status=ReferralStatus.APPROVED).all()
+        referrals = db.session.query(cls)\
+                      .filter_by(reference=reference_id)\
+                      .filter_by(status=ReferralStatus.APPROVED)\
+                      .all()
         return referrals
 
     @classmethod
     def get_pending(cls, reference_id: int) -> List['UserReferral']:
         assert reference_id > 0
-        referrals = db.session.query(cls).filter_by(reference=reference_id).filter_by(status=ReferralStatus.PENDING).all()
+        referrals = db.session.query(cls)\
+                      .filter_by(reference=reference_id)\
+                      .filter_by(status=ReferralStatus.PENDING)\
+                      .all()
         return referrals
 
     def approve(self):
@@ -686,6 +722,7 @@ Event types are not currently used
 #         self.event_type = event_type
 #
 
+
 class UserRecommendedEvent(Base):
     __tablename__ = 'UserRecommendedEvent'
 
@@ -747,6 +784,13 @@ class UserAcceptedEvent(Base):
             db.session.add(user_accepted_event)
             db.session.commit()
         return user_accepted_event
+
+    @classmethod
+    def remove(cls, session, event_id, user_id):
+        return session.query(cls)\
+            .filter_by(event_id=event_id)\
+            .filter_by(user_id=user_id)\
+            .delete()
 
 
 class UserCheckedInEvent(Base):
@@ -819,3 +863,30 @@ class Building(Base, Entity):
     @classmethod
     def get_by_name(cls, name: str) -> Optional['Building']:
         return db.session.query(cls).filter_by(name=name).one_or_none()
+
+
+class Property(Base, Entity):
+    __tablename__ = "Property"
+
+    id = Column('id', BIGINT, primary_key=True, autoincrement=True)
+    name = Column('name', VARCHAR(255), unique=True, nullable=False)
+    value = Column('value', TEXT, unique=False, nullable=False)
+    cached = Column('cached', BOOLEAN, unique=False, nullable=False, default=False)
+    encrypted = Column('encrypted', BOOLEAN, unique=False, nullable=False, default=False)
+    created = Column('created', DateTime, default=datetime.datetime.utcnow, nullable=False)
+    updated = Column('updated', DateTime, default=datetime.datetime.utcnow, nullable=True)
+
+    def __init__(self, id: int, name: str, value: str):
+        self.id = id
+        self.name = name
+        self.value = value
+        self.created = datetime.datetime.utcnow()
+        self.updated = None
+
+    @classmethod
+    def get_by_name(cls, session, name: str) -> Optional['Property']:
+        return session.query(cls).filter_by(name=name).one_or_none()
+
+    @classmethod
+    def get_cacheable(cls, session) -> List['Property']:
+        return session.query(cls).filter_by(cached=True).all()

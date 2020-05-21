@@ -4,6 +4,7 @@ Author: Mark Silvis
 """
 
 from abc import ABC
+import logging
 from typing import Any, Dict, List, Type, TypeVar
 
 from db.schema import Base
@@ -23,7 +24,7 @@ class Data(ABC):
 
 class EventData(Data):
 
-    def __init__(self, event: 'Event'):
+    def __init__(self, event: 'Event', image_url: str=None):
         self.id = event.id
         self.organizer = event.organizer_id
         self.organization = event.organization
@@ -35,6 +36,7 @@ class EventData(Data):
         self.address = event.address
         self.location = event.location
         self.food_preferences = [FoodPreferenceData(f) for f in event.food_preferences]
+        self.image_url = image_url
 
     def json(self) -> Dict[str, Any]:
         data = self.__dict__
@@ -51,9 +53,12 @@ class EventImageData(Data):
 
 class EventViewData(Data):
 
-    def __init__(self, event: 'Event', accepted: bool, recommended: bool):
+    def __init__(self, event: 'Event', accepted: bool, recommended: bool, image_url: str=None):
+        logging.info(event)
         self.id = event.id
         self.organizer = event.organizer_id
+        self.organizer_name = event.organizer.name
+        self.organizer_affiliation = event.organizer.affiliation.name
         self.organization = event.organization
         self.title = event.title
         self.start_date = event.start_date.isoformat()
@@ -67,6 +72,7 @@ class EventViewData(Data):
         self.food_preferences = [FoodPreferenceData(f) for f in event.food_preferences]
         self.accepted = bool(accepted) 
         self.recommended = bool(recommended)
+        self.image_url = image_url
 
     def json(self) -> Dict[str, Any]:
         data = self.__dict__
@@ -125,16 +131,20 @@ class UserHostRequestData(Data):
 
     def __init__(self, req: 'UserHostRequest'):
         self.id = req.id
-        self.organization = req.organization
-        self.directory = req.directory
         self.reason = req.reason
         self.created = req.created.isoformat()
         self.approved = req.approved
         self.approved_by = req.approved_by
         self.user = {'id': req.user_id, 'email': req.user.email, 'name': req.user.name}
-
+        self.primary_affiliation = req.user.affiliation.name
 
 class UserReferralData(Data):
 
     def __init__(self, ref: 'UserReferral'):
         self.user = ref.requester
+
+class PrimaryAffiliationData(Data):
+
+    def __init__(self, aff: 'PrimaryAffiliation'):
+        self.id = aff.id
+        self.name = aff.name

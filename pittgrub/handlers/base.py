@@ -130,7 +130,7 @@ class SecureHandler(BaseHandler):
             except ExpiredSignatureError:
                 self.write_error(401, 'Authorization token is expired')
                 raise Finish()
-            except DecodeError :
+            except DecodeError:
                 self.write_error(401, 'Invalid authorization token')
                 raise Finish()
             except Exception as e:

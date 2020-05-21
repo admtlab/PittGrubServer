@@ -4,12 +4,15 @@ import logging
 from tornado.escape import json_decode
 from tornado.web import Finish
 
+from db import UserStatus
 from emailer import send_verification_email, send_password_reset_email
+from service.property import get_property, set_property
 from service.user import (
     get_user,
     get_user_profile,
     get_user_by_email,
     get_user_verification,
+    get_user_verification_code,
     update_user_password,
     update_user_profile,
     change_user_password,
@@ -153,13 +156,19 @@ class UserVerificationHandler(SecureHandler):
         user_id = self.get_user_id()
         try:
             user = get_user(user_id)
+            threshold = int(get_property('user.threshold'))
             if user.active:
                 logging.info(f"User {user_id} is already active")
                 self.write_error(400, "Error: user already active")
-            else:
+            elif user.status == "REQUESTED" and (threshold > 0 or get_user_verification_code(user_id) is not None):
                 code = get_user_verification(user_id)
                 send_verification_email(to=user.email, code=code)
+                set_property('user.threshold', str(threshold-1))
                 self.success(status=204)
+            elif user.status == 'VERIFIED' or user.status == 'ACCEPTED':
+                self.write_error(400, "User is already verified")
+            else:
+                self.write_error(403, "User has not yet been permitted")
         except Exception as e:
             logging.error("Failed to send verification email")
             logging.error(e)

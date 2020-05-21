@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional, Tuple
 
@@ -9,10 +10,13 @@ from db import (
     UserHostRequest,
     UserReferral,
     UserVerification,
+    PrimaryAffiliation,
+    Property,
     session_scope,
 )
-from domain.data import UserData
+from domain.data import UserData, PrimaryAffiliationData
 from emailer import send_verification_email
+from service.property import get_property, set_property
 
 
 class JwtTokenService:
@@ -136,9 +140,11 @@ def login(email: str, password: str) -> 'UserData':
             user = User.get_by_email(session, email)
             if not user.active:
                 verification = UserVerification.get_by_user(session, user.id)
-                if not verification:
+                threshold = int(get_property('user.threshold'))
+                if not verification and threshold > 0:
                     verification = UserVerification.add(session, user_id=user.id)
-                    send_verification_email(to=email, activation=verification.code)
+                    send_verification_email(to=email, code=verification.code)
+                    set_property('user.threshold', threshold-1)
             user.login_count += 1
             return UserData(user)
     return None
@@ -155,20 +161,37 @@ def signup(email: str, password: str, name: str=None) -> Tuple[Optional['UserDat
     with session_scope() as session:
         user = User.create(session, User(email=email, password=password))
         if user is not None:
-            activation = UserVerification.add(session, user.id)
-            return UserData(user), activation.code
+            code = None
+            threshold = int(get_property('user.threshold'))
+            if threshold > 0:
+                logging.info("passed threshold")
+                code = UserVerification.add(session, user.id).code
+                set_property('user.threshold', str(threshold-1))
+            else:
+                logging.info("failed threshold")
+            return UserData(user), code
     return None, None
 
-
-def host_signup(email: str, password: str, name: str, organization: str, directory: str, reason: str=None) -> Tuple[Optional['UserData'], Optional[str]]:
+def get_possible_affiliations():
     with session_scope() as session:
-        user = User.create(session, User(email=email, password=password, name=name))
-        if user is not None:
-            activation = UserVerification.add(session, user.id)
-            host_request = UserHostRequest(user=user.id, organization=organization, directory=directory, reason=reason)
-            session.add(host_request)
-            return UserData(user), activation.code
-    return None, None
+        return [PrimaryAffiliationData(aff) for aff in PrimaryAffiliation.get_all(session)]
+    return None
+
+def host_signup(email: str, password: str, name: str, primary_affiliation: int, reason: str=None) -> Tuple[Optional['UserData'], Optional[str], bool]:
+    with session_scope() as session:
+        if PrimaryAffiliation.get_by_id(session,primary_affiliation) is not None:
+            user = User.create(session, User(email=email, password=password, name=name, primary_affiliation=primary_affiliation))
+            if user is not None:
+                code = None
+                threshold = int(get_property('user.threshold'))
+                if threshold > 0:
+                    code = UserVerification.add(session, user.id).code
+                    set_property('user.threshold', str(threshold-1))
+                host_request = UserHostRequest(user=user.id, primary_affiliation=primary_affiliation, reason=reason)
+                session.add(host_request)
+                return UserData(user), code, True
+            return None, None, True
+    return None, None, False
 
 # def get_access_token(id: int) -> 'AccessToken':
 #     with session_scope() as session:

@@ -9,27 +9,50 @@ import logging
 import os.path
 import re
 import sys
-from typing import Dict
+from typing import Dict, Any
 
 from tornado import concurrent, httpserver, log, web
 from tornado.ioloop import IOLoop
 from tornado.options import define, options, parse_command_line
 
 import db
-from handlers.admin import HostApprovalHandler
-from handlers.events import (AcceptedEventHandler, AcceptEventHandler,
-                             EventHandler, EventImageHandler,
-                             RecommendedEventHandler)
+from handlers.admin import (
+    HostApprovalHandler,
+    UpdateUserThreshold
+)
+from handlers.events import (
+    AcceptedEventHandler, 
+    AcceptEventHandler,
+    EventHandler,
+    EventImageHandler,
+    EventImageTest,
+    RecommendedEventHandler
+)
+from handlers.host import HostTrainingSlidesHandler
 from handlers.index import EmailListAddHandler, EmailListRemoveHandler, HealthHandler, MainHandler
-from handlers.login import (HostSignupHandler, LoginHandler, LogoutHandler,
-                            SignupHandler)
+from handlers.login import (
+    HostSignupHandler,
+    LoginHandler,
+    LogoutHandler,
+    SignupHandler,
+    PrimaryAffiliationHandler
+)
 from handlers.notifications import NotificationHandler
-from handlers.token import (NotificationTokenHandler, TokenRequestHandler,
-                            TokenValidationHandler)
-from handlers.user import (UserHandler, UserLocationHandler,
-                           UserPasswordHandler, UserPasswordResetHandler,
-                           UserProfileHandler, UserVerificationHandler)
+from handlers.token import (
+    NotificationTokenHandler,
+    TokenRequestHandler,
+    TokenValidationHandler
+)
+from handlers.user import (
+    UserHandler,
+    UserLocationHandler,
+    UserPasswordHandler,
+    UserPasswordResetHandler,
+    UserProfileHandler,
+    UserVerificationHandler
+)
 from service.auth import JwtTokenService
+from service.property import init_cache
 from storage import ImageStore
 
 
@@ -39,6 +62,7 @@ define("config", default="./config.ini", type=str,
 parse_command_line()
 log.enable_pretty_logging()
 
+
 class App(web.Application):
     """Wrapper around Tornado web application with configuration"""
 
@@ -46,8 +70,8 @@ class App(web.Application):
             self,
             debug: bool,
             token_service: JwtTokenService,
-            image_store: ImageStore,
             static_path: str=None,
+            rec_params: Dict[str, Any]=None,
             **db_config: Dict[str, str]) -> None:
         """Initialize application
 
@@ -73,12 +97,14 @@ class App(web.Application):
             (r'/logout(/*)', LogoutHandler, dict(token_service=token_service)),
             (r'/signup(/*)', SignupHandler, dict(token_service=token_service)),
             (r'/signup/host(/*)', HostSignupHandler, dict(token_service=token_service)),
+            (r'/signup/host/affiliations(/*)', PrimaryAffiliationHandler, dict(token_service=token_service)),
             # token
             (r'/token/request(/*)', TokenRequestHandler, dict(token_service=token_service)),
             (r'/token/validate(/*)', TokenValidationHandler, dict(token_service=token_service)),
             (r'/token/notification(/*)', NotificationTokenHandler, dict(token_service=token_service)),
             # admin
             (r'/admin/approveHost(/*)', HostApprovalHandler, dict(token_service=token_service)),
+            (r'/admin/updateUserThreshold(/*)', UpdateUserThreshold, dict(token_service=token_service)),
             # users
             (r'/users(/*)', UserHandler, dict(token_service=token_service)),
             (r'/users/profile(/*)', UserProfileHandler, dict(token_service=token_service)),
@@ -87,14 +113,16 @@ class App(web.Application):
             (r'/users/password', UserPasswordHandler, dict(token_service=token_service)),
             (r'/users/password/reset(/*)', UserPasswordResetHandler, dict(token_service=token_service, executor=thread_pool)),
             # events
-            (r'/events(/*)', EventHandler, dict(token_service=token_service, executor=thread_pool)),
-            (r'/events/(\d+/*)', EventHandler, dict(token_service=token_service, executor=thread_pool)),
-            (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(token_service=token_service, image_store=image_store)),
+            (r'/events(/*)', EventHandler, dict(token_service=token_service, executor=thread_pool, rec_params=rec_params)),
+            (r'/events/(\d+/*)', EventHandler, dict(token_service=token_service, executor=thread_pool, rec_params=rec_params)),
+            (r'/events/(\d+/*)/images(/*)', EventImageHandler, dict(token_service=token_service)),
+            (r'/events/test(/*)', EventImageTest),
             (r'/events/recommended(/*)', RecommendedEventHandler, dict(token_service=token_service)),
             (r'/events/accepted(/*)', AcceptedEventHandler, dict(token_service=token_service)),
             (r'/events/accept(/*)', AcceptEventHandler, dict(token_service=token_service)),
             # notifications
             (r'/notifications(/*)', NotificationHandler, dict(token_service=token_service)),
+            (r'/data/host-training-slides(/*)', HostTrainingSlidesHandler),
             # TODO: finish these
             # (r'/signup/referral(/*)', ReferralHandler),     # sign-up with reference
             #(r'/referrals(/*)', UserReferralHandler),   # get user referrals
@@ -120,9 +148,13 @@ class App(web.Application):
             username=db_config['username'],
             password=db_config['password'],
             url=db_config['url'],
+            port=db_config['dbport'],
             database=db_config['database'],
             params=db_config['params'],
             generate=db_config['generate'])
+
+        # initialize property cache
+        init_cache()
 
 
 def main():
@@ -145,6 +177,7 @@ def main():
     username = db_config.get('username')
     password = db_config.get('password')
     url = db_config.get('url')
+    dbport = db_config.get('port', '3306')
     database = db_config.get('database')
     generate = db_config.getboolean('generate')
     if config.has_option('DB', 'options'):
@@ -155,10 +188,6 @@ def main():
 
     # token service configuration
     token_service = JwtTokenService(server_config.get('secret'))
-  
-    # storage configuration
-    store_config = config['STORE']
-    image_store = ImageStore(store_config.get('images'))
 
     # logging configuration
     log_config = config['LOG']
@@ -167,14 +196,19 @@ def main():
     fmt = log_config.get('format')
     logging.basicConfig(filename=filename, level=level, format=fmt)
 
+    # reccommendation configuration
+    rec_config = config['REC']
+    avg_prob_attnd = rec_config.get('assumed_avg_prob_attnd')
+
     # create app
     app = App(
         debug=debug,
         token_service=token_service,
-        image_store=image_store,
         username=username,
         password=password,
         url=url,
+        dbport=dbport,
+        rec_params={'avg_prob': avg_prob_attnd},
         database=database,
         params=params,
         generate=generate)

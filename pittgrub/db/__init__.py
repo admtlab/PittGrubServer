@@ -11,10 +11,10 @@ from .base import Entity, ReferralStatus, UserStatus, health_check, Activity
 from .default import DEFAULTS
 from .schema import (
     Building, EmailList, Event, EventFoodPreference, EventImage,
-    FoodPreference, Role, User, UserAcceptedEvent,
+    FoodPreference, Property, Role, User, UserAcceptedEvent,
     UserCheckedInEvent, UserFoodPreference, UserHostRequest,
     UserRecommendedEvent, UserReferral, UserRole, UserVerification,
-    UserLocation, UserActivity
+    UserLocation, UserActivity, PrimaryAffiliation
 )
 
 # database sessionmaker
@@ -76,6 +76,27 @@ TEST_DATA = dict({
         (2, 2),
     ],
 })
+host_step = 25
+num = 50
+TEST_DATA = dict({
+    'User': [
+        (i+1, 'pittgrub'+str(i+1)+'@pitt.edu','12345', UserStatus.ACCEPTED, "PittGrub Tester "+str(i+1), True, False, 0) if (i+1)%host_step != 0 else
+        (i+1, 'pittgrub'+str(i+1)+'@pitt.edu', '12345', UserStatus.ACCEPTED, "PittGrub Host "+str(i+1), True, False, 0) for i in range(num)
+    ],
+    'UserRole': [
+        (i+1,1) if (i+1)%host_step != 0 else
+        (i+1,2) if (i+1)!=num else 
+        (i+1,3) for i in range(num)
+    ],
+    'UserFoodPreference': [
+        (1, 2),
+        (2, 2),
+        (3, 2),
+        (4, 2),
+        (5, 2),
+        (6, 2)
+    ]
+})
 
 
 def __bulk_insert(engine, data: Dict[str, Any]):
@@ -85,9 +106,9 @@ def __bulk_insert(engine, data: Dict[str, Any]):
         cls = getattr(sys.modules[__name__], entity)
         # merge values
         # this avoids duplicate errors
-        with session_scope() as session:
-            for i in values:
-                session.merge(cls(*i))
+        for i in values:
+            with session_scope() as session:
+                    session.merge(cls(*i))
 
 
 @contextmanager
@@ -101,33 +122,37 @@ def session_scope():
         yield session
         session.commit()
     except Exception as e:
-        logging.warning(f'\nA ROLLBACK OCCURRED\n{e}')
+        logging.error(f'\nA ROLLBACK OCCURRED\n{e}')
         session.rollback()
         raise
     finally:
         session.close()
 
 
-def init(username: str, password: str, url: str, database: str,
-         params: str, echo: bool=False, generate: bool=False):
+def init(username: str, password: str, url: str, database: str, port: str, params: str, echo: bool=False, generate: bool=False):
     """Initialize database
 
     :username: username
     :password: user's password
     :url:      database url
+    :port:     database port
     :database: database name
     :params:   parameters
     :echo:     log commands
     :generate: generate tables dynamically
     """
     global Session
-    engine = create_engine(f'mysql+pymysql://{username}:{password}@{url}/{database}{params}',
+    engine = create_engine(f'mysql+pymysql://{username}:{password}@{url}:{port}/{database}{params}',
                            convert_unicode=True, echo=echo, pool_recycle=3600)
     Session.configure(bind=engine)
+    logging.info(f'connecting to {engine}')
     logging.info('Inserting default data')
-    # add default data
-    __bulk_insert(engine, DEFAULTS)
+
     if generate:
+        schema.Base.metadata.drop_all(bind=engine)
         logging.warning('Inserting test data')
         # add test data if generate flag is set to true
+        __bulk_insert(engine, DEFAULTS)
         __bulk_insert(engine, TEST_DATA)
+    else:
+        __bulk_insert(engine, DEFAULTS)
