@@ -83,6 +83,23 @@ RESET_HTML = """\
 <a style="background-color:#336699;border:1px solid #336699;border-radius:3px;color:#ffffff;display:inline-block;font-family:sans-serif;font-size:16px;line-height:40px;text-align:center;text-decoration:none;width:150px;-webkit-text-size-adjust:none;mso-hide:all;" class="button" target="_blank" href='https://pittgrub.com/passwordReset?token={token}'>Reset password</a>
 """
 
+NEWSLETTER_SIGNUP_TEXT = """\
+PittGrub
+
+Thanks for signing up for the PittGrub newsletter! We will notify you when the PittGrub app is available on the iOS App Store and Google Play Store.
+
+Unsubscribe: https://api.pittrub.com/email/remove/{email}
+"""
+
+NEWSLETTER_SIGNUP_HTML = """\
+<h2 align="center" style="font-family:Futura, sans-serif;font-size:32px; color:#F7E53B; text-shadow:#444 0 1px 1px">PittGrub</h2>
+
+<p style="font-family:sans-serif;font-size:16px"> Thanks for signing up for the PittGrub newsletter! We will notify you when the PittGrub app is available on the iOS App Store and Google Play Store.
+
+<br><br>
+<p style="color:#aaaaaa;font-size:10px"><a href='https://api.pittgrub.com/email/remove/{email}'>Click here to unsubscribe.</a></p>
+"""
+
 
 # def create_verification_code(length: int = 6) -> str:
 #     """
@@ -219,3 +236,29 @@ def send_password_reset_email(to: str, token: str) -> bool:
     email_server.sendmail(msg['From'], msg['To'], msg.as_string())
     email_server.quit()
 
+def send_email_list_confirmation(to: str) -> bool:
+    # verify server was created
+    if not (EMAIL_ADDRESS or EMAIL_USER or EMAIL_PASS or EMAIL_HOST or EMAIL_PORT):
+        __get_credentials()
+
+    # setup
+    email_server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
+
+    # construct message
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = 'PittGrub Newsletter'
+    msg['From'] = f'{EMAIL_SENDER} <{EMAIL_ADDRESS}>'
+    msg['To'] = to
+
+    # body
+    text_body = NEWSLETTER_SIGNUP_TEXT.format(email=to)
+    html_body = NEWSLETTER_SIGNUP_HTML.format(email=to)
+    msg.attach(MIMEText(text_body, 'text'))
+    msg.attach(MIMEText(html_body, 'html'))
+
+    # send message
+    email_server.ehlo()
+    email_server.starttls()
+    email_server.login(EMAIL_USER, EMAIL_PASS)
+    email_server.sendmail(msg['From'], msg['To'], msg.as_string())
+    email_server.quit()
